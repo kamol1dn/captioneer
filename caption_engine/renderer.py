@@ -14,10 +14,37 @@ NLEs (Premiere, Resolve, Final Cut). Editors can drop the .mov on a track and
 see-through transparency just works.
 """
 from __future__ import annotations
+import re
 import subprocess
 import math
 from typing import List, Optional, Callable, Tuple
 from PIL import Image, ImageDraw, ImageFont
+
+# Matches emoji characters (supplementary plane + misc symbols + variation selector)
+_EMOJI_RE = re.compile(
+    r"[\U0001F000-\U0001FFFF"
+    r"\U00002600-\U000027BF"
+    r"️]+"
+    r"(?:‍[\U0001F000-\U0001FFFF\U00002600-\U000027BF️]+)*"
+)
+
+
+def _has_emoji(text: str) -> bool:
+    return bool(_EMOJI_RE.search(text))
+
+
+def _split_runs(text: str) -> List[Tuple[str, bool]]:
+    """Split text into (segment, is_emoji) pairs for font-switching."""
+    runs: List[Tuple[str, bool]] = []
+    pos = 0
+    for m in _EMOJI_RE.finditer(text):
+        if m.start() > pos:
+            runs.append((text[pos:m.start()], False))
+        runs.append((m.group(), True))
+        pos = m.end()
+    if pos < len(text):
+        runs.append((text[pos:], False))
+    return runs or [(text, False)]
 
 from .style import CaptionStyle
 from .layout import Phrase, Line, find_active_word_index
@@ -26,6 +53,10 @@ from .transcriber import Word
 
 # ─── Font cache (loading fonts is slow; we do it once per size) ─────────────
 _FONT_CACHE: dict = {}
+
+
+# Valid bitmap strike sizes for sbix fonts (e.g. AppleColorEmoji)
+_SBIX_SIZES = [20, 32, 40, 48, 64, 96, 160]
 
 
 def _get_font(path: str, size: int) -> ImageFont.FreeTypeFont:
@@ -40,26 +71,54 @@ def _get_font(path: str, size: int) -> ImageFont.FreeTypeFont:
             )
         try:
             _FONT_CACHE[key] = ImageFont.truetype(path, size)
-        except OSError:
-            raise FileNotFoundError(
-                f"Font file not readable: {path!r}\n"
-                "Set style.font_path to a valid .ttf/.otf file."
-            ) from None
+        except OSError as exc:
+            if "invalid pixel size" in str(exc).lower():
+                # Bitmap-only (sbix) font — snap to nearest valid strike size
+                snapped = min(_SBIX_SIZES, key=lambda s: abs(s - size))
+                try:
+                    _FONT_CACHE[key] = ImageFont.truetype(path, snapped)
+                except OSError:
+                    raise FileNotFoundError(
+                        f"Font file not readable: {path!r}\n"
+                        "Set style.font_path to a valid .ttf/.otf file."
+                    ) from None
+            else:
+                raise FileNotFoundError(
+                    f"Font file not readable: {path!r}\n"
+                    "Set style.font_path to a valid .ttf/.otf file."
+                ) from None
     return _FONT_CACHE[key]
 
 
-def _measure_word(font: ImageFont.FreeTypeFont, text: str) -> Tuple[int, int]:
-    """Return (width, height) of a word at the given font."""
-    bbox = font.getbbox(text)
-    return bbox[2] - bbox[0], bbox[3] - bbox[1]
+def _measure_word(
+    font: ImageFont.FreeTypeFont,
+    text: str,
+    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
+) -> Tuple[int, int]:
+    """Return (width, height) of a word, switching to emoji_font for emoji runs."""
+    if emoji_font is None or not _has_emoji(text):
+        bbox = font.getbbox(text)
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+    total_w, max_h = 0, 0
+    for segment, is_emoji in _split_runs(text):
+        f = emoji_font if is_emoji else font
+        bbox = f.getbbox(segment)
+        total_w += bbox[2] - bbox[0]
+        max_h = max(max_h, bbox[3] - bbox[1])
+    return total_w, max_h
 
 
-def _line_width(font: ImageFont.FreeTypeFont, words: List[Word], space_w: int) -> int:
+def _line_width(
+    font: ImageFont.FreeTypeFont,
+    words: List[Word],
+    space_w: int,
+    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
+) -> int:
     if not words:
         return 0
     total = 0
     for i, w in enumerate(words):
-        total += _measure_word(font, w.text)[0]
+        total += _measure_word(font, w.text, emoji_font)[0]
         if i < len(words) - 1:
             total += space_w
     return total
@@ -83,10 +142,17 @@ def _draw_phrase(
     """Draw a single phrase onto img (which is RGBA, already cleared)."""
     draw = ImageDraw.Draw(img)
     font = _get_font(style.font_path, style.font_size)
+    emoji_font: Optional[ImageFont.FreeTypeFont] = None
+    if style.emoji_font_path:
+        try:
+            emoji_font = _get_font(style.emoji_font_path, style.font_size)
+        except FileNotFoundError:
+            pass
+
     space_w, _ = _measure_word(font, " ")
 
     # ── compute layout: line widths & total block height ────────────────────
-    line_widths = [_line_width(font, line.words, space_w) for line in phrase.lines]
+    line_widths = [_line_width(font, line.words, space_w, emoji_font) for line in phrase.lines]
     line_h = int(style.font_size * style.line_spacing)
     total_h = line_h * len(phrase.lines)
 
@@ -116,7 +182,7 @@ def _draw_phrase(
 
         for w_idx, word in enumerate(line.words):
             is_active = (word_running_idx == active_word_idx)
-            ww, wh = _measure_word(font, word.text)
+            ww, wh = _measure_word(font, word.text, emoji_font)
 
             # ── highlight: "box" mode ───────────────────────────────────────
             if is_active and style.highlight_mode == "box":
@@ -136,7 +202,6 @@ def _draw_phrase(
                 if style.entry_anim == "pop":
                     elapsed = t - word.start
                     if 0 <= elapsed < style.entry_anim_duration:
-                        # ease-out overshoot
                         prog = elapsed / style.entry_anim_duration
                         scale = 1.0 + 0.18 * math.sin(prog * math.pi)
                 if style.highlight_mode == "scale":
@@ -144,24 +209,45 @@ def _draw_phrase(
 
             # ── render the word ────────────────────────────────────────────
             if abs(scale - 1.0) < 0.001:
-                _draw_text_with_stroke(draw, (x, y), word.text, font, color, style)
+                _draw_text_with_stroke(draw, (x, y), word.text, font, color, style, emoji_font)
             else:
-                _draw_scaled_word(img, word.text, font, color, style, x, y, ww, wh, scale)
+                _draw_scaled_word(img, word.text, font, color, style, x, y, ww, wh, scale, emoji_font)
 
             x += ww + space_w
             word_running_idx += 1
 
 
-def _draw_text_with_stroke(draw, pos, text, font, color, style: CaptionStyle):
-    """Draw text with optional stroke. Pillow's stroke_width handles this natively."""
-    if style.text_stroke_width > 0:
-        draw.text(
-            pos, text, font=font, fill=color,
-            stroke_width=style.text_stroke_width,
-            stroke_fill=style.text_stroke_color,
-        )
-    else:
-        draw.text(pos, text, font=font, fill=color)
+def _draw_text_with_stroke(
+    draw, pos, text, font, color, style: CaptionStyle,
+    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
+):
+    """Draw text with optional stroke, switching to emoji_font for emoji runs."""
+    if emoji_font is None or not _has_emoji(text):
+        if style.text_stroke_width > 0:
+            draw.text(pos, text, font=font, fill=color,
+                      stroke_width=style.text_stroke_width,
+                      stroke_fill=style.text_stroke_color)
+        else:
+            draw.text(pos, text, font=font, fill=color)
+        return
+
+    x, y = pos
+    for segment, is_emoji in _split_runs(text):
+        f = emoji_font if is_emoji else font
+        if is_emoji:
+            try:
+                draw.text((x, y), segment, font=f, embedded_color=True)
+            except TypeError:
+                draw.text((x, y), segment, font=f, fill=color)
+        else:
+            if style.text_stroke_width > 0:
+                draw.text((x, y), segment, font=f, fill=color,
+                          stroke_width=style.text_stroke_width,
+                          stroke_fill=style.text_stroke_color)
+            else:
+                draw.text((x, y), segment, font=f, fill=color)
+        seg_bbox = f.getbbox(segment)
+        x += seg_bbox[2] - seg_bbox[0]
 
 
 def _draw_scaled_word(
@@ -175,15 +261,14 @@ def _draw_scaled_word(
     ww: int,
     wh: int,
     scale: float,
+    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
 ) -> None:
-    """Render the word to a sub-image, scale it, and paste it back centered
-    on the original position. This keeps the word visually 'popping' without
-    breaking line layout."""
+    """Render the word to a sub-image, scale it, and paste it back centered."""
     pad = style.text_stroke_width * 2 + 4
     sub_w, sub_h = ww + pad * 2, wh + pad * 2
     sub = Image.new("RGBA", (sub_w, sub_h), (0, 0, 0, 0))
     sub_draw = ImageDraw.Draw(sub)
-    _draw_text_with_stroke(sub_draw, (pad, pad), text, font, color, style)
+    _draw_text_with_stroke(sub_draw, (pad, pad), text, font, color, style, emoji_font)
 
     new_w = max(1, int(sub_w * scale))
     new_h = max(1, int(sub_h * scale))

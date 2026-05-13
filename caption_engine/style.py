@@ -4,6 +4,14 @@ from dataclasses import dataclass, field
 from typing import Tuple, Literal
 
 
+def _default_emoji_font() -> str:
+    p = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "assets-fonts", "ios-emojis", "AppleColorEmoji-Windows.ttf",
+    )
+    return p if os.path.exists(p) else ""
+
+
 def find_system_font() -> str:
     """Return a path to a usable bold font. Tries common locations on all platforms."""
     _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,7 +56,8 @@ class CaptionStyle:
 
     # ── Typography ──────────────────────────────────────────────────────────
     font_path: str = field(default_factory=find_system_font)
-    font_size: int = 90
+    emoji_font_path: str = field(default_factory=_default_emoji_font)
+    font_size: int = 96
     line_spacing: float = 1.15  # multiplier of font height
 
     # ── Layout ──────────────────────────────────────────────────────────────
