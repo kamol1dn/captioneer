@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.env/
+
+# Outputs and local data
+data/inputs/
+data/outputs/
+
+# Audio files
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.aac
+
+*.mov
+*.mp4
+*.avi
+
+# OS files
+.DS_Store
+Thumbs.db
