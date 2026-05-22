@@ -5,10 +5,22 @@ The layout is what determines the "feel" of the captions:
 - Max lines visible controls how much text is on screen at once
 - Phrase gaps create natural reading pauses
 """
+import re
 from dataclasses import dataclass, field
 from typing import List
 from .transcriber import Word
 from .style import CaptionStyle
+
+# A word made up entirely of emoji/symbol codepoints (ranges kept in sync with
+# renderer._EMOJI_RE). Such words decorate the preceding word and must not be
+# bumped to their own line by the char-count limit.
+_EMOJI_ONLY_RE = re.compile(
+    r"^[\U0001F000-\U0001FFFF\U00002600-\U000027BF️‍]+$"
+)
+
+
+def _is_emoji_only(text: str) -> bool:
+    return bool(text) and bool(_EMOJI_ONLY_RE.match(text))
 
 
 @dataclass
@@ -52,16 +64,29 @@ class Phrase:
 
 
 def _break_into_lines(words: List[Word], max_chars: int) -> List[Line]:
-    """Greedily pack words into lines under max_chars."""
+    """Pack words into lines.
+
+    A word with `line_break=True` ends its line immediately — a manual break,
+    e.g. at a sentence end. Otherwise words are greedily packed under max_chars.
+    Emoji-only words never trigger an automatic break — they stay on the line of
+    the word they follow, even if that nudges the line slightly over max_chars.
+    """
     lines: List[Line] = []
     current = Line()
     for w in words:
-        prospective_len = current.char_count + (1 if current.words else 0) + len(w.text)
-        if current.words and prospective_len > max_chars:
-            lines.append(current)
-            current = Line(words=[w])
-        else:
+        if current.words and _is_emoji_only(w.text):
+            # Keep a trailing emoji glued to the current line.
             current.words.append(w)
+        else:
+            prospective_len = current.char_count + (1 if current.words else 0) + len(w.text)
+            if current.words and prospective_len > max_chars:
+                lines.append(current)
+                current = Line(words=[w])
+            else:
+                current.words.append(w)
+        if w.line_break:
+            lines.append(current)
+            current = Line()
     if current.words:
         lines.append(current)
     return lines

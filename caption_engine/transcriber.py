@@ -16,6 +16,7 @@ class Word:
     start: float   # seconds
     end: float     # seconds
     probability: float = 1.0
+    line_break: bool = False   # if True, the on-screen line ends after this word
 
     def to_dict(self) -> dict:
         return asdict(self)
