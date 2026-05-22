@@ -28,9 +28,10 @@ Refine these captions for a short-form social media video (Reels/TikTok/Shorts).
 
 RULES:
 - Return ONLY a valid JSON array — no explanation, no markdown, no code blocks
-- Each object must have exactly: "text" (string), "start" (number), "end" (number)
+- Each object must have "text" (string), "start" (number), "end" (number); it may also include "line_break" (boolean)
 - Do NOT change start/end timestamps
 - Fix transcription errors, use natural capitalization for captions
+- Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause
 - You may insert an emoji as a SEPARATE entry by duplicating the adjacent word's timestamps
 {emoji_rule}\
 Transcription JSON:
@@ -182,7 +183,8 @@ class CaptionApp(tk.Tk):
             return
         try:
             data = json.loads(raw)
-            words = [Word(text=item["text"], start=item["start"], end=item["end"])
+            words = [Word(text=item["text"], start=item["start"], end=item["end"],
+                          line_break=bool(item.get("line_break", False)))
                      for item in data]
         except Exception as e:
             messagebox.showerror("Invalid JSON", f"Could not parse the pasted JSON:\n{e}")
