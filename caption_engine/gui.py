@@ -32,14 +32,14 @@ RULES:
 - Do NOT change start/end timestamps
 - Fix transcription errors, use natural capitalization for captions
 - Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause
-- You may insert an emoji as a SEPARATE entry by duplicating the adjacent word's timestamps
 {emoji_rule}\
 Transcription JSON:
 {words_json}"""
 
 _EMOJI_RULE = """\
 - Add emojis to amplify key moments — not every line, roughly 1 per 2-3 sentences
-- Append the emoji directly to the word's "text" value (e.g. "fire🔥", "goals💪")
+- The emoji MUST be appended directly to the end of an existing word's "text" value with no space — e.g. "fire🔥", "goals💪", "finance🎯". Do NOT create a separate JSON entry for the emoji; a standalone emoji entry gets pushed to the next line on screen, which is wrong
+- If the word the emoji is attached to ends with "." "!" or "?", DROP that punctuation — "done.✨" looks wrong, write "done✨". Same for "!" and "?"
 - Match the energy of the content: 🔥 💪 😤 🎯 ✨ 😂 etc.
 """
 
