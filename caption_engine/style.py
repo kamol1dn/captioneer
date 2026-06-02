@@ -95,6 +95,10 @@ class CaptionStyle:
     # ── Word grouping behaviour ─────────────────────────────────────────────
     # If gap between words > this many seconds, force a new "phrase"/segment
     phrase_gap_threshold: float = 0.7
+    # After a phrase's last word ends, keep showing its final frame for this many
+    # seconds (clamped so it never bleeds into the next phrase). Bridges the gap
+    # between phrases so the caption doesn't blink off and flicker. 0 = disabled.
+    phrase_hold: float = 1.0
 
     def __post_init__(self):
         if self.height == 0:
