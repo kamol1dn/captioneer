@@ -124,10 +124,21 @@ def _line_width(
     return total
 
 
-def _find_active_phrase(phrases: List[Phrase], t: float) -> Optional[int]:
-    """Find phrase whose [start, end] contains t. Returns None if in a gap."""
+def _find_active_phrase(
+    phrases: List[Phrase], t: float, hold: float = 0.0
+) -> Optional[int]:
+    """Find phrase active at time t. Returns None if in a gap.
+
+    Each phrase stays active for `hold` seconds past its last word so its final
+    frame is held across the gap before the next phrase (instead of blinking
+    off). The hold is clamped to the next phrase's start so the two never
+    overlap.
+    """
     for i, p in enumerate(phrases):
-        if p.start <= t <= p.end:
+        end = p.end + hold
+        if i + 1 < len(phrases):
+            end = min(end, phrases[i + 1].start)
+        if p.start <= t <= end:
             return i
     return None
 
@@ -297,7 +308,9 @@ def render_to_mov(
         progress_cb: optional callback(current_frame, total_frames)
     """
     if duration is None:
-        duration = phrases[-1].end + 0.5 if phrases else 1.0
+        # Tail the clip by the hold so the last phrase's held frame is included.
+        tail = max(style.phrase_hold, 0.5)
+        duration = phrases[-1].end + tail if phrases else 1.0
     total_frames = int(duration * style.fps)
 
     # ── spin up ffmpeg ──────────────────────────────────────────────────────
@@ -325,7 +338,7 @@ def render_to_mov(
             t = frame_idx / style.fps
             img = Image.new("RGBA", (style.width, style.height), (0, 0, 0, 0))
 
-            phrase_idx = _find_active_phrase(phrases, t)
+            phrase_idx = _find_active_phrase(phrases, t, style.phrase_hold)
             if phrase_idx is not None:
                 phrase = phrases[phrase_idx]
                 active_word = find_active_word_index(phrase, t)

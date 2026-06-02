@@ -80,12 +80,16 @@ def main():
     ap.add_argument("--fps", type=int, default=None)
     ap.add_argument("--duration", type=float, default=None,
                     help="Override clip duration in seconds")
+    ap.add_argument("--hold", type=float, default=None,
+                    help="Seconds to hold a phrase's last frame across the gap "
+                         "before the next phrase (anti-flicker). Default: 1.0")
     args = ap.parse_args()
 
     style = presets.get(args.preset)
     if args.width:  style.width = args.width
     if args.height: style.height = args.height
     if args.fps:    style.fps = args.fps
+    if args.hold is not None: style.phrase_hold = args.hold
 
     t0 = time.time()
 

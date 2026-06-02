@@ -96,6 +96,11 @@ class CaptionApp(tk.Tk):
                      values=["tiny", "base", "small", "medium", "large-v3"],
                      state="readonly", width=12).pack(side="left", padx=4)
 
+        ttk.Label(opts, text="Hold (s)").pack(side="left", padx=(16, 0))
+        self._hold_var = tk.DoubleVar(value=1.0)
+        ttk.Spinbox(opts, textvariable=self._hold_var, from_=0.0, to=10.0,
+                    increment=0.25, width=6).pack(side="left", padx=4)
+
         # ── Emoji toggle ───────────────────────────────────────────────────
         self._emoji_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(f, text="Include emoji instructions in AI prompt",
@@ -199,6 +204,10 @@ class CaptionApp(tk.Tk):
 
         output = self._output_var.get().strip() or "captions.mov"
         style = presets.get(self._preset_var.get())
+        try:
+            style.phrase_hold = max(0.0, float(self._hold_var.get()))
+        except (tk.TclError, ValueError):
+            pass  # keep the preset default if the field is blank/invalid
 
         self._set_busy(True)
         self._status_var.set("Rendering…")
