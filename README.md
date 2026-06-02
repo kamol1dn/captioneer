@@ -3,7 +3,8 @@
 Offline word-by-word caption generator. Produces transparent **ProRes 4444 .mov**
 files you drop into Premiere / DaVinci Resolve / Final Cut as an overlay.
 
-- 100% offline (uses `faster-whisper` locally)
+- 100% offline (uses `faster-whisper` / `whisperx` locally)
+- Accurate word timing via WhisperX forced alignment (default)
 - Word-level highlighting (scale pop, color, or box modes)
 - Style presets + full custom control
 - Editor-agnostic output (alpha .mov works everywhere)
@@ -11,9 +12,16 @@ files you drop into Premiere / DaVinci Resolve / Final Cut as an overlay.
 ## Install
 
 ```bash
+pip install whisperx pillow      # whisperx pulls in faster-whisper + alignment models
+# or, without forced alignment (less accurate timings):
 pip install faster-whisper pillow
 # ffmpeg must be on PATH
 ```
+
+By default transcription runs WhisperX forced alignment for accurate word
+timings. Pass `--no-align` (CLI) or untick "Align timings" (GUI) to use plain
+faster-whisper. If WhisperX isn't installed, the engine warns and falls back to
+faster-whisper automatically.
 
 ## Quick start
 

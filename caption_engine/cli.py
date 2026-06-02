@@ -64,6 +64,9 @@ def main():
                     help="Whisper model size")
     ap.add_argument("--language", default=None,
                     help="ISO language code (en, es...). Default: auto-detect.")
+    ap.add_argument("--no-align", dest="align", action="store_false",
+                    help="Disable WhisperX forced alignment (use faster-whisper's "
+                         "less accurate word timings).")
     ap.add_argument("-j", "--json", default=None,
                     help="Cache transcription to this JSON path")
     ap.add_argument("--from-json", default=None,
@@ -103,8 +106,10 @@ def main():
             ap.error("Need input file for --transcribe-only")
         if not args.json:
             ap.error("Need -j/--json for --transcribe-only")
-        print(f"→ Transcribing {args.input} with model={args.model}...")
-        words = engine.transcribe(args.input, model_size=args.model, language=args.language)
+        print(f"→ Transcribing {args.input} with model={args.model}"
+              f"{' + WhisperX align' if args.align else ''}...")
+        words = engine.transcribe(args.input, model_size=args.model,
+                                  language=args.language, align=args.align)
         engine.save_words(words, args.json)
         print(f"✓ Saved {len(words)} words to {args.json}")
         return
@@ -120,6 +125,7 @@ def main():
         style=style,
         model_size=args.model,
         language=args.language,
+        align=args.align,
         duration=args.duration,
         cache_words_to=args.json,
         progress_cb=_progress,
