@@ -23,6 +23,7 @@ def make_captions(
     preset: Optional[str] = None,
     model_size: str = "base",
     language: Optional[str] = None,
+    align: bool = True,
     duration: Optional[float] = None,
     progress_cb: Optional[Callable] = None,
     cache_words_to: Optional[str] = None,
@@ -48,7 +49,8 @@ def make_captions(
                 "Provide one of: words=, words_json=, or input_audio_video="
             )
         words = transcribe(
-            input_audio_video, model_size=model_size, language=language
+            input_audio_video, model_size=model_size, language=language,
+            align=align,
         )
         if cache_words_to:
             save_words(words, cache_words_to)

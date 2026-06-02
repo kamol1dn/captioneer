@@ -101,6 +101,11 @@ class CaptionApp(tk.Tk):
         ttk.Checkbutton(f, text="Include emoji instructions in AI prompt",
                          variable=self._emoji_var).grid(row=3, column=1, sticky="w", **p)
 
+        # ── Alignment toggle ───────────────────────────────────────────────
+        self._align_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(f, text="Align timings (WhisperX) — accurate word timing",
+                         variable=self._align_var).grid(row=3, column=2, sticky="w", **p)
+
         # ── Transcribe ─────────────────────────────────────────────────────
         ttk.Separator(f, orient="horizontal").grid(
             row=4, column=0, columnspan=3, sticky="ew", pady=8)
@@ -162,13 +167,15 @@ class CaptionApp(tk.Tk):
         self._progress.start(10)
         threading.Thread(
             target=self._transcribe_thread,
-            args=(path, self._model_var.get(), self._emoji_var.get()),
+            args=(path, self._model_var.get(), self._emoji_var.get(),
+                  self._align_var.get()),
             daemon=True,
         ).start()
 
-    def _transcribe_thread(self, path: str, model: str, use_emojis: bool):
+    def _transcribe_thread(self, path: str, model: str, use_emojis: bool,
+                           align: bool):
         try:
-            words = engine.transcribe(path, model_size=model)
+            words = engine.transcribe(path, model_size=model, align=align)
             prompt = _build_prompt(words, use_emojis)
             self._q.put(("transcribe_ok", words, prompt))
         except Exception as e:
