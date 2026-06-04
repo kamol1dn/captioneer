@@ -1,42 +1,8 @@
-"""Style configuration for caption rendering."""
-import os
+"""The CaptionStyle dataclass: all style/layout settings for rendering."""
 from dataclasses import dataclass, field
 from typing import Tuple, Literal
 
-
-def _default_emoji_font() -> str:
-    p = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "assets-fonts", "ios-emojis", "AppleColorEmoji-Windows.ttf",
-    )
-    return p if os.path.exists(p) else ""
-
-
-def find_system_font() -> str:
-    """Return a path to a usable bold font. Tries common locations on all platforms."""
-    _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    _win = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
-    candidates = [
-        # Project-bundled font (highest priority)
-        os.path.join(_project_root, "assets-fonts", "monsterrat", "static", "Montserrat-Bold.ttf"),
-        # Windows
-        # os.path.join(_win, "arialbd.ttf"),
-        # os.path.join(_win, "calibrib.ttf"),
-        # os.path.join(_win, "trebucbd.ttf"),
-        # os.path.join(_win, "verdanab.ttf"),
-        # # macOS
-        # "/Library/Fonts/Arial Bold.ttf",
-        # "/System/Library/Fonts/Helvetica.ttc",
-        # # Linux
-        # "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf",
-        # "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-        # "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    ]
-    for p in candidates:
-        if os.path.exists(p):
-            return p
-    return ""
-
+from .fonts import find_system_font, default_emoji_font
 
 RGBA = Tuple[int, int, int, int]
 RGB = Tuple[int, int, int]
@@ -56,7 +22,7 @@ class CaptionStyle:
 
     # ── Typography ──────────────────────────────────────────────────────────
     font_path: str = field(default_factory=find_system_font)
-    emoji_font_path: str = field(default_factory=_default_emoji_font)
+    emoji_font_path: str = field(default_factory=default_emoji_font)
     font_size: int = 96
     line_spacing: float = 1.15  # multiplier of font height
 
@@ -91,6 +57,14 @@ class CaptionStyle:
     # ── Word entry animation (subtle pop) ──────────────────────────────────
     entry_anim: Literal["none", "pop"] = "none"
     entry_anim_duration: float = 0.08   # seconds
+
+    # ── Phrase transition ───────────────────────────────────────────────────
+    # "none" : phrase shows/hides instantly (bridged by phrase_hold)
+    # "fade" : fade the phrase in over `transition_frames`, and out over the
+    #          same, sequentially — the old phrase fully fades out before the
+    #          next fades in (not a cross-dissolve).
+    transition: Literal["none", "fade"] = "none"
+    transition_frames: int = 0          # frames for each of fade-in / fade-out
 
     # ── Word grouping behaviour ─────────────────────────────────────────────
     # If gap between words > this many seconds, force a new "phrase"/segment
