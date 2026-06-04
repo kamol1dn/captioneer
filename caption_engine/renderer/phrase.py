@@ -1,11 +1,11 @@
 """Finding the active phrase at a given time and drawing one phrase frame."""
 import math
 from typing import List, Optional
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from ..style import CaptionStyle
 from ..layout import Phrase
-from .fonts import get_font
+from .fonts import get_font, load_emoji_font, EmojiFont
 from .text import measure_word, line_width, draw_text_with_stroke, draw_scaled_word
 
 
@@ -69,12 +69,8 @@ def draw_phrase(
     """Draw a single phrase onto img (which is RGBA, already cleared)."""
     draw = ImageDraw.Draw(img)
     font = get_font(style.font_path, style.font_size)
-    emoji_font: Optional[ImageFont.FreeTypeFont] = None
-    if style.emoji_font_path:
-        try:
-            emoji_font = get_font(style.emoji_font_path, style.font_size)
-        except FileNotFoundError:
-            pass
+    emoji_font: Optional[EmojiFont] = load_emoji_font(
+        style.emoji_font_path, style.font_size)
 
     space_w, _ = measure_word(font, " ")
 

@@ -5,6 +5,7 @@ NLEs (Premiere, Resolve, Final Cut). Editors can drop the .mov on a track and
 see-through transparency just works.
 """
 import subprocess
+import threading
 from typing import List, Optional, Callable
 from PIL import Image
 
@@ -56,8 +57,22 @@ def render_to_mov(
         output_path,
     ]
     proc = subprocess.Popen(
-        cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL
     )
+
+    # Drain stderr in a background thread. ffmpeg streams progress stats to
+    # stderr continuously; if we don't read it while writing frames, the OS pipe
+    # buffer (~64 KB) fills, ffmpeg blocks on its stderr write, stops consuming
+    # stdin, and proc.stdin.write() deadlocks. (This is why long renders froze
+    # at a fixed frame while short ones finished fine.)
+    stderr_chunks: List[bytes] = []
+
+    def _drain_stderr() -> None:
+        for chunk in iter(lambda: proc.stderr.read(4096), b""):
+            stderr_chunks.append(chunk)
+
+    stderr_thread = threading.Thread(target=_drain_stderr, daemon=True)
+    stderr_thread.start()
 
     try:
         for frame_idx in range(total_frames):
@@ -84,8 +99,9 @@ def render_to_mov(
                 progress_cb(frame_idx, total_frames)
     finally:
         proc.stdin.close()
-        stderr = proc.stderr.read().decode("utf-8", errors="ignore")
+        stderr_thread.join()
         ret = proc.wait()
+        stderr = b"".join(stderr_chunks).decode("utf-8", errors="ignore")
         if ret != 0:
             raise RuntimeError(f"ffmpeg failed (code {ret}):\n{stderr[-2000:]}")
 

@@ -10,18 +10,25 @@ from ..emoji import has_emoji, split_runs
 def measure_word(
     font: ImageFont.FreeTypeFont,
     text: str,
-    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
+    emoji_font=None,
 ) -> Tuple[int, int]:
-    """Return (width, height) of a word, switching to emoji_font for emoji runs."""
+    """Return (width, height) of a word, switching to emoji_font for emoji runs.
+
+    `emoji_font` is an EmojiFont wrapper (loaded at a real strike, with a scale
+    factor), so emoji runs are measured at their scaled display size.
+    """
     if emoji_font is None or not has_emoji(text):
         bbox = font.getbbox(text)
         return bbox[2] - bbox[0], bbox[3] - bbox[1]
     total_w, max_h = 0, 0
     for segment, is_emoji in split_runs(text):
-        f = emoji_font if is_emoji else font
-        bbox = f.getbbox(segment)
-        total_w += bbox[2] - bbox[0]
-        max_h = max(max_h, bbox[3] - bbox[1])
+        if is_emoji:
+            w, h = emoji_font.measure(segment)
+        else:
+            bbox = font.getbbox(segment)
+            w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        total_w += w
+        max_h = max(max_h, h)
     return total_w, max_h
 
 
@@ -29,7 +36,7 @@ def line_width(
     font: ImageFont.FreeTypeFont,
     words: List[Word],
     space_w: int,
-    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
+    emoji_font=None,
 ) -> int:
     if not words:
         return 0
@@ -43,9 +50,14 @@ def line_width(
 
 def draw_text_with_stroke(
     draw, pos, text, font, color, style: CaptionStyle,
-    emoji_font: Optional[ImageFont.FreeTypeFont] = None,
+    emoji_font=None,
 ):
-    """Draw text with optional stroke, switching to emoji_font for emoji runs."""
+    """Draw text with optional stroke, switching to emoji_font for emoji runs.
+
+    Emoji runs are bitmap glyphs rendered at the font's real strike and scaled
+    to the display size (see EmojiFont), then alpha-composited onto the target
+    image — PIL can't draw a bitmap-emoji font at an arbitrary pixel size.
+    """
     if emoji_font is None or not has_emoji(text):
         if style.text_stroke_width > 0:
             draw.text(pos, text, font=font, fill=color,
@@ -55,23 +67,23 @@ def draw_text_with_stroke(
             draw.text(pos, text, font=font, fill=color)
         return
 
+    target = getattr(draw, "_image", None)
     x, y = pos
     for segment, is_emoji in split_runs(text):
-        f = emoji_font if is_emoji else font
         if is_emoji:
-            try:
-                draw.text((x, y), segment, font=f, embedded_color=True)
-            except TypeError:
-                draw.text((x, y), segment, font=f, fill=color)
+            glyph = emoji_font.render(segment)
+            if target is not None:
+                target.alpha_composite(glyph, (int(x), int(y)))
+            x += emoji_font.measure(segment)[0]
         else:
             if style.text_stroke_width > 0:
-                draw.text((x, y), segment, font=f, fill=color,
+                draw.text((x, y), segment, font=font, fill=color,
                           stroke_width=style.text_stroke_width,
                           stroke_fill=style.text_stroke_color)
             else:
-                draw.text((x, y), segment, font=f, fill=color)
-        seg_bbox = f.getbbox(segment)
-        x += seg_bbox[2] - seg_bbox[0]
+                draw.text((x, y), segment, font=font, fill=color)
+            seg_bbox = font.getbbox(segment)
+            x += seg_bbox[2] - seg_bbox[0]
 
 
 def draw_scaled_word(

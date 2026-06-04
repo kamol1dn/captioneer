@@ -65,15 +65,15 @@ def gashtak_main() -> CaptionStyle:
     """Uzbek base style: small clean text, no background, no word highlight,
     quick 2-frame fade between phrases (not a cross-dissolve).
 
-    Font is ~half the English presets (45 vs ~90), same family (the bundled
+    Font is ~half the English presets (48 vs ~90), same family (the bundled
     Montserrat-Bold default). A light stroke keeps it legible without a box.
     """
     return CaptionStyle(
-        font_size=45,                       # ~2x smaller than the English presets
-        max_chars_per_line=28,              # smaller font fits more per line
+        font_size=64,                       # any size now; emoji scales independently
+        max_chars_per_line=25,              # smaller font fits more per line
         text_color=(255, 255, 255, 255),
         text_stroke_color=(0, 0, 0, 255),
-        text_stroke_width=4,
+        text_stroke_width=0,
         bg_enabled=False,                   # no background
         highlight_mode="none",              # no word highlighting
         transition="fade",                  # 2-frame fade out, then 2-frame fade in
@@ -85,14 +85,14 @@ def gashtak_main() -> CaptionStyle:
 def gashtak_2() -> CaptionStyle:
     """Like gashtak_main but with a subtle background box and word highlighting."""
     return CaptionStyle(
-        font_size=45,
+        font_size=64,                       # any size now; emoji scales independently
         max_chars_per_line=28,
         text_color=(255, 255, 255, 255),
         text_stroke_color=(0, 0, 0, 255),
-        text_stroke_width=4,
+        text_stroke_width=0,
         bg_enabled=True,                    # subtle background
         bg_color=(0, 0, 0, 140),
-        highlight_mode="scale",             # word highlighting
+        highlight_mode="none",             # word highlighting
         highlight_scale=1.12,
         highlight_color=(255, 220, 0, 255),
         transition="fade",
