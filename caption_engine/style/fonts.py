@@ -4,6 +4,10 @@ Fonts live under the project's `assets-fonts/` directory; these helpers find a
 bundled bold text font and the bundled color-emoji font.
 """
 import os
+from collections import OrderedDict
+
+# Font file extensions we offer in the picker.
+_FONT_EXTS = (".ttf", ".otf", ".ttc")
 
 
 def _project_root() -> str:
@@ -18,6 +22,32 @@ def default_emoji_font() -> str:
         "assets-fonts", "ios-emojis", "AppleColorEmoji-Windows.ttf",
     )
     return p if os.path.exists(p) else ""
+
+
+def list_available_fonts() -> "OrderedDict[str, str]":
+    """Return {display_name: path} for every bundled text font, sorted by name.
+
+    Scans `assets-fonts/` recursively for .ttf/.otf/.ttc files, excluding the
+    color-emoji font (it isn't a text face). Display names are the file stems;
+    on a stem collision the parent folder is appended to keep keys unique.
+    """
+    root = os.path.join(_project_root(), "assets-fonts")
+    found: list = []  # (label, path)
+    seen_labels: dict = {}
+    for dirpath, _dirs, files in os.walk(root):
+        if "ios-emojis" in dirpath.replace("\\", "/").split("/"):
+            continue  # skip the emoji font directory
+        for name in files:
+            if not name.lower().endswith(_FONT_EXTS):
+                continue
+            path = os.path.join(dirpath, name)
+            label = os.path.splitext(name)[0]
+            if label in seen_labels:
+                label = f"{label} ({os.path.basename(dirpath)})"
+            seen_labels[label] = path
+            found.append((label, path))
+    found.sort(key=lambda lp: lp[0].lower())
+    return OrderedDict(found)
 
 
 def find_system_font() -> str:

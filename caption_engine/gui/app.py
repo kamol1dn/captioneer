@@ -1,5 +1,6 @@
 """The Tkinter application window for the caption engine."""
 import json
+import os
 import queue
 import threading
 import tkinter as tk
@@ -7,6 +8,7 @@ from tkinter import ttk, filedialog, messagebox, scrolledtext
 from pathlib import Path
 
 from .. import engine, presets
+from ..style import list_available_fonts
 from ..transcriber import Word
 from .prompt import build_prompt
 
@@ -116,9 +118,25 @@ class CaptionApp(tk.Tk):
                                                      font=("Consolas", 9))
         self._json_text.grid(row=8, column=0, columnspan=3, sticky="ew", padx=8, pady=4)
 
-        # ── Render ─────────────────────────────────────────────────────────
-        self._render_btn = ttk.Button(f, text="Render", command=self._start_render)
-        self._render_btn.grid(row=9, column=0, columnspan=3, sticky="ew", padx=8, pady=4)
+        # ── Font picker (searchable) + Render ──────────────────────────────
+        render_row = ttk.Frame(f)
+        render_row.grid(row=9, column=0, columnspan=3, sticky="ew", padx=8, pady=4)
+        render_row.columnconfigure(1, weight=1)
+
+        self._fonts = list_available_fonts()          # {label: path}
+        self._font_labels = list(self._fonts.keys())
+
+        ttk.Label(render_row, text="Font").grid(row=0, column=0, sticky="w")
+        self._font_var = tk.StringVar(value=self._default_font_label())
+        # Editable combobox = type to search; KeyRelease filters the list.
+        self._font_combo = ttk.Combobox(
+            render_row, textvariable=self._font_var,
+            values=self._font_labels, width=28)
+        self._font_combo.grid(row=0, column=1, sticky="w", padx=(4, 12))
+        self._font_combo.bind("<KeyRelease>", self._on_font_search)
+
+        self._render_btn = ttk.Button(render_row, text="Render", command=self._start_render)
+        self._render_btn.grid(row=0, column=2, sticky="e")
 
         # ── Status ─────────────────────────────────────────────────────────
         ttk.Separator(f, orient="horizontal").grid(
@@ -164,6 +182,37 @@ class CaptionApp(tk.Tk):
             self._hold_var.set(presets.get(self._preset_var.get()).phrase_hold)
         except (ValueError, tk.TclError):
             pass
+
+    # ── Font picker ────────────────────────────────────────────────────────
+    def _default_font_label(self) -> str:
+        """Pre-select the style's default font if it's in the bundled list."""
+        from ..style import find_system_font
+        default_path = find_system_font()
+        for label, path in getattr(self, "_fonts", {}).items():
+            if os.path.normcase(path) == os.path.normcase(default_path):
+                return label
+        return self._font_labels[0] if getattr(self, "_font_labels", None) else ""
+
+    def _on_font_search(self, event):
+        """Filter the dropdown to fonts whose name contains the typed text."""
+        if event.keysym in ("Up", "Down", "Return", "Escape", "Left", "Right"):
+            return  # let navigation/selection keys through untouched
+        typed = self._font_var.get().strip().lower()
+        matches = [lbl for lbl in self._font_labels if typed in lbl.lower()]
+        self._font_combo.configure(values=matches or self._font_labels)
+
+    def _resolve_font_path(self):
+        """Map the current font field to a path. Exact match wins; otherwise
+        fall back to the first name that contains the typed text. Returns None
+        if nothing matches (caller keeps the preset default)."""
+        label = self._font_var.get().strip()
+        if label in self._fonts:
+            return self._fonts[label]
+        low = label.lower()
+        for lbl, path in self._fonts.items():
+            if low and low in lbl.lower():
+                return path
+        return None
 
     def _browse(self):
         path = filedialog.askopenfilename(
@@ -233,6 +282,10 @@ class CaptionApp(tk.Tk):
             style.phrase_hold = max(0.0, float(self._hold_var.get()))
         except (tk.TclError, ValueError):
             pass  # keep the preset default if the field is blank/invalid
+
+        font_path = self._resolve_font_path()
+        if font_path:
+            style.font_path = font_path
 
         self._set_busy(True)
         self._status_var.set("Rendering…")
