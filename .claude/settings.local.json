@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(python -c \"from fontTools.ttLib import TTFont; f = TTFont\\(r'd:\\\\coding\\\\captioneer-english\\\\assets-fonts\\\\ios-emojis\\\\AppleColorEmoji-Windows.ttf'\\); print\\(list\\(f.keys\\(\\)\\)\\)\")"
-    ]
-  }
-}
