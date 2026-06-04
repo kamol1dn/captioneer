@@ -1,15 +1,4 @@
-"""Tkinter GUI for the caption engine.
-
-Workflow:
-  1. Pick input file, choose preset/model, toggle emoji flag
-  2. Hit "Transcribe & Copy Prompt" — runs Whisper, copies AI prompt to clipboard
-  3. Paste prompt into Claude/Gemini, get refined JSON back
-  4. Paste AI's JSON response into the text area
-  5. Hit "Render" — renders the refined captions to a ProRes .mov
-
-Run with:
-  python -m caption_engine.gui
-"""
+"""The Tkinter application window for the caption engine."""
 import json
 import queue
 import threading
@@ -17,41 +6,30 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 from pathlib import Path
 
-from . import engine, presets
-from .transcriber import Word
+from .. import engine, presets
+from ..transcriber import Word
+from .prompt import build_prompt
 
 
-# ── Prompt template ────────────────────────────────────────────────────────────
+# Per-language UI config. Selecting a language drives the preset list (from
+# presets.PRESET_GROUPS), the model dropdown, the alignment toggle and the hold.
+# `code` is what we pass to engine.transcribe(language=...): None lets WhisperX
+# auto-detect; "uz" routes to the Kotib backend (fixed model, always MMS-aligned).
+_LANGUAGES = {
+    "English": {
+        "code": None,
+        "models": ["tiny", "base", "small", "medium", "large-v3"],
+        "default_model": "large-v3",
+        "whisper": True,    # model size + WhisperX align apply
+    },
+    "Uzbek": {
+        "code": "uz",
+        "models": ["Kotib"],
+        "default_model": "Kotib",
+        "whisper": False,   # Kotib is a fixed model; align is always via MMS
+    },
+}
 
-_PROMPT = """\
-Refine these captions for a short-form social media video (Reels/TikTok/Shorts).
-
-RULES:
-- Return ONLY a valid JSON array — no explanation, no markdown, no code blocks
-- Each object must have "text" (string), "start" (number), "end" (number); it may also include "line_break" (boolean)
-- Do NOT change start/end timestamps
-- Fix transcription errors, use natural capitalization for captions
-- Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause
-{emoji_rule}\
-Transcription JSON:
-{words_json}"""
-
-_EMOJI_RULE = """\
-- Add emojis to amplify key moments — not every line, roughly 1 per 2-3 sentences
-- The emoji MUST be appended directly to the end of an existing word's "text" value with no space — e.g. "fire🔥", "goals💪", "finance🎯". Do NOT create a separate JSON entry for the emoji; a standalone emoji entry gets pushed to the next line on screen, which is wrong
-- If the word the emoji is attached to ends with "." "!" or "?", DROP that punctuation — "done.✨" looks wrong, write "done✨". Same for "!" and "?"
-- Match the energy of the content: 🔥 💪 😤 🎯 ✨ 😂 etc.
-"""
-
-
-def _build_prompt(words: list, use_emojis: bool) -> str:
-    return _PROMPT.format(
-        emoji_rule=_EMOJI_RULE if use_emojis else "",
-        words_json=json.dumps([w.to_dict() for w in words], indent=2, ensure_ascii=False),
-    )
-
-
-# ── Main app ───────────────────────────────────────────────────────────────────
 
 class CaptionApp(tk.Tk):
     def __init__(self):
@@ -80,21 +58,30 @@ class CaptionApp(tk.Tk):
         self._output_var = tk.StringVar(value="captions.mov")
         ttk.Entry(f, textvariable=self._output_var, width=52).grid(row=1, column=1, sticky="ew", **p)
 
-        # ── Preset + Model ─────────────────────────────────────────────────
+        # ── Language → Preset → Model → Hold (language drives the rest) ─────
         opts = ttk.Frame(f)
         opts.grid(row=2, column=0, columnspan=3, sticky="w", **p)
 
+        ttk.Label(opts, text="Language").pack(side="left")
+        self._lang_var = tk.StringVar(value="English")
+        self._lang_combo = ttk.Combobox(opts, textvariable=self._lang_var,
+                                         values=list(_LANGUAGES.keys()),
+                                         state="readonly", width=10)
+        self._lang_combo.pack(side="left", padx=(4, 16))
+        self._lang_combo.bind("<<ComboboxSelected>>", self._on_language_changed)
+
         ttk.Label(opts, text="Preset").pack(side="left")
-        self._preset_var = tk.StringVar(value="otg_cyan")
-        ttk.Combobox(opts, textvariable=self._preset_var,
-                     values=list(presets.PRESETS.keys()),
-                     state="readonly", width=18).pack(side="left", padx=(4, 16))
+        self._preset_var = tk.StringVar()
+        self._preset_combo = ttk.Combobox(opts, textvariable=self._preset_var,
+                                          state="readonly", width=18)
+        self._preset_combo.pack(side="left", padx=(4, 16))
+        self._preset_combo.bind("<<ComboboxSelected>>", self._on_preset_changed)
 
         ttk.Label(opts, text="Model").pack(side="left")
-        self._model_var = tk.StringVar(value="large-v3")
-        ttk.Combobox(opts, textvariable=self._model_var,
-                     values=["tiny", "base", "small", "medium", "large-v3"],
-                     state="readonly", width=12).pack(side="left", padx=4)
+        self._model_var = tk.StringVar()
+        self._model_combo = ttk.Combobox(opts, textvariable=self._model_var,
+                                         state="readonly", width=12)
+        self._model_combo.pack(side="left", padx=4)
 
         ttk.Label(opts, text="Hold (s)").pack(side="left", padx=(16, 0))
         self._hold_var = tk.DoubleVar(value=1.0)
@@ -108,8 +95,10 @@ class CaptionApp(tk.Tk):
 
         # ── Alignment toggle ───────────────────────────────────────────────
         self._align_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(f, text="Align timings (WhisperX) — accurate word timing",
-                         variable=self._align_var).grid(row=3, column=2, sticky="w", **p)
+        self._align_chk = ttk.Checkbutton(
+            f, text="Align timings (WhisperX) — accurate word timing",
+            variable=self._align_var)
+        self._align_chk.grid(row=3, column=2, sticky="w", **p)
 
         # ── Transcribe ─────────────────────────────────────────────────────
         ttk.Separator(f, orient="horizontal").grid(
@@ -140,7 +129,41 @@ class CaptionApp(tk.Tk):
         self._progress = ttk.Progressbar(f, mode="determinate", length=520)
         self._progress.grid(row=12, column=0, columnspan=3, sticky="ew", padx=8, pady=4)
 
+        # Populate preset/model/hold for the initial language.
+        self._on_language_changed()
+
     # ── Helpers ────────────────────────────────────────────────────────────────
+
+    def _on_language_changed(self, *_):
+        """Language drives the preset list/default, model dropdown, alignment
+        toggle and hold."""
+        cfg = _LANGUAGES[self._lang_var.get()]
+        group = presets.PRESET_GROUPS[self._lang_var.get()]
+
+        self._preset_combo.configure(values=group)
+        self._preset_var.set(group[0])                      # default = first
+
+        self._model_combo.configure(
+            values=cfg["models"],
+            state="readonly" if cfg["whisper"] else "disabled",
+        )
+        self._model_var.set(cfg["default_model"])
+
+        # WhisperX alignment only applies to the Whisper path; Kotib always
+        # aligns via MMS, so disable the toggle for Uzbek.
+        self._align_chk.configure(state="normal" if cfg["whisper"] else "disabled")
+
+        self._sync_hold_to_preset()
+
+    def _on_preset_changed(self, *_):
+        self._sync_hold_to_preset()
+
+    def _sync_hold_to_preset(self):
+        """Set the hold field to the selected preset's own phrase_hold."""
+        try:
+            self._hold_var.set(presets.get(self._preset_var.get()).phrase_hold)
+        except (ValueError, tk.TclError):
+            pass
 
     def _browse(self):
         path = filedialog.askopenfilename(
@@ -166,6 +189,7 @@ class CaptionApp(tk.Tk):
         if not path:
             messagebox.showerror("Error", "Select an input file first.")
             return
+        language = _LANGUAGES[self._lang_var.get()]["code"]
         self._set_busy(True)
         self._status_var.set("Transcribing…")
         self._progress.configure(mode="indeterminate")
@@ -173,15 +197,16 @@ class CaptionApp(tk.Tk):
         threading.Thread(
             target=self._transcribe_thread,
             args=(path, self._model_var.get(), self._emoji_var.get(),
-                  self._align_var.get()),
+                  self._align_var.get(), language),
             daemon=True,
         ).start()
 
     def _transcribe_thread(self, path: str, model: str, use_emojis: bool,
-                           align: bool):
+                           align: bool, language):
         try:
-            words = engine.transcribe(path, model_size=model, align=align)
-            prompt = _build_prompt(words, use_emojis)
+            words = engine.transcribe(path, model_size=model, align=align,
+                                      language=language)
+            prompt = build_prompt(words, use_emojis, language)
             self._q.put(("transcribe_ok", words, prompt))
         except Exception as e:
             self._q.put(("error", str(e)))
@@ -278,7 +303,3 @@ class CaptionApp(tk.Tk):
 def main():
     app = CaptionApp()
     app.mainloop()
-
-
-if __name__ == "__main__":
-    main()

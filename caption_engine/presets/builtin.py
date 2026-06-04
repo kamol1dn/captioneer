@@ -1,5 +1,5 @@
 """Pre-made style presets. Easy starting points for users."""
-from .style import CaptionStyle
+from ..style import CaptionStyle
 
 
 def reels_classic() -> CaptionStyle:
@@ -60,6 +60,47 @@ def punchy_green() -> CaptionStyle:
         highlight_scale=1.22,
     )
 
+
+def gashtak_main() -> CaptionStyle:
+    """Uzbek base style: small clean text, no background, no word highlight,
+    quick 2-frame fade between phrases (not a cross-dissolve).
+
+    Font is ~half the English presets (45 vs ~90), same family (the bundled
+    Montserrat-Bold default). A light stroke keeps it legible without a box.
+    """
+    return CaptionStyle(
+        font_size=45,                       # ~2x smaller than the English presets
+        max_chars_per_line=28,              # smaller font fits more per line
+        text_color=(255, 255, 255, 255),
+        text_stroke_color=(0, 0, 0, 255),
+        text_stroke_width=4,
+        bg_enabled=False,                   # no background
+        highlight_mode="none",              # no word highlighting
+        transition="fade",                  # 2-frame fade out, then 2-frame fade in
+        transition_frames=2,
+        phrase_hold=0.5,                    # snappier than the 1.0s English default
+    )
+
+
+def gashtak_2() -> CaptionStyle:
+    """Like gashtak_main but with a subtle background box and word highlighting."""
+    return CaptionStyle(
+        font_size=45,
+        max_chars_per_line=28,
+        text_color=(255, 255, 255, 255),
+        text_stroke_color=(0, 0, 0, 255),
+        text_stroke_width=4,
+        bg_enabled=True,                    # subtle background
+        bg_color=(0, 0, 0, 140),
+        highlight_mode="scale",             # word highlighting
+        highlight_scale=1.12,
+        highlight_color=(255, 220, 0, 255),
+        transition="fade",
+        transition_frames=2,
+        phrase_hold=0.5,
+    )
+
+
 def otg_cyan() -> CaptionStyle:
     """On-the-go cyan preset, optimized for mobile viewing."""
     return CaptionStyle(
@@ -73,19 +114,3 @@ def otg_cyan() -> CaptionStyle:
         highlight_color=(25, 224, 214, 255),   # active word turns black on cyan
         highlight_box_padding=10,
     )
-
-PRESETS = {
-    "otg_cyan": otg_cyan,
-    "reels_classic": reels_classic,
-    "bold_yellow_box": bold_yellow_box,
-    "minimal_white": minimal_white,
-    "punchy_green": punchy_green,
-}
-
-
-def get(name: str) -> CaptionStyle:
-    if name not in PRESETS:
-        raise ValueError(
-            f"Unknown preset '{name}'. Available: {list(PRESETS.keys())}"
-        )
-    return PRESETS[name]()

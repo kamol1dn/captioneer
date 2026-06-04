@@ -1,0 +1,44 @@
+# AI caption-refinement prompts. All instructions are written in English.
+# Edit freely — the GUI re-reads this file on every "Transcribe", so changes
+# take effect without restarting.
+#
+# Sections are delimited by [[name]] on its own line. Three are required:
+#   [[english]]  base prompt for English captions
+#   [[uzbek]]    base prompt for Uzbek captions
+#   [[emoji]]    extra rules appended only when the emoji option is on
+#
+# Placeholders inside the english/uzbek prompts:
+#   {emoji_block}  -> the [[emoji]] rules (or nothing, if emoji is off)
+#   {words_json}   -> the transcription JSON
+# Keep {emoji_block} at the end of the line shown below, and {words_json} where
+# the JSON should go. Everything above the first [[...]] line is ignored.
+
+[[english]]
+Refine these captions for a short-form social media video (Reels/TikTok/Shorts).
+
+RULES:
+- Return ONLY a valid JSON array — no explanation, no markdown, no code blocks
+- Each object must have "text" (string), "start" (number), "end" (number); it may also include "line_break" (boolean)
+- Do NOT change start/end timestamps
+- Fix transcription errors, use natural capitalization for captions
+- Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause{emoji_block}
+Transcription JSON:
+{words_json}
+
+[[uzbek]]
+Refine these Uzbek captions for a short-form social media video (Reels/TikTok/Shorts).
+
+RULES:
+- Return ONLY a valid JSON array — no explanation, no markdown, no code blocks
+- Each object must have "text" (string), "start" (number), "end" (number); it may also include "line_break" (boolean)
+- Do NOT change start/end timestamps
+- The transcript is Uzbek in Latin script. Fix transcription and spelling errors in Uzbek and keep the text in Uzbek — do NOT translate it to English. Use natural Uzbek capitalization
+- Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause{emoji_block}
+Transcription JSON:
+{words_json}
+
+[[emoji]]
+- Add emojis to amplify key moments — not every line, roughly 1 per 2-3 sentences
+- The emoji MUST be appended directly to the end of an existing word's "text" value with no space — e.g. "fire🔥", "goals💪", "finance🎯". Do NOT create a separate JSON entry for the emoji; a standalone emoji entry gets pushed to the next line on screen, which is wrong
+- If the word the emoji is attached to ends with "." "!" or "?", DROP that punctuation — "done.✨" looks wrong, write "done✨". Same for "!" and "?"
+- Match the energy of the content: 🔥 💪 😤 🎯 ✨ 😂 etc.
