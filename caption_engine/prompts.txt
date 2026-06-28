@@ -19,8 +19,9 @@ Refine these captions for a short-form social media video (Reels/TikTok/Shorts).
 RULES:
 - Return ONLY a valid JSON array — no explanation, no markdown, no code blocks
 - Each object must have "text" (string), "start" (number), "end" (number); it may also include "line_break" (boolean)
-- Do NOT change start/end timestamps
 - Fix transcription errors, use natural capitalization for captions
+- Do NOT change start/end timestamps execpt:
+- When they say number with words: one hundred twelve, write 112 and combine timecodes start end.
 - Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause{emoji_block}
 Transcription JSON:
 {words_json}
@@ -31,8 +32,11 @@ Refine these Uzbek captions for a short-form social media video (Reels/TikTok/Sh
 RULES:
 - Return ONLY a valid JSON array — no explanation, no markdown, no code blocks
 - Each object must have "text" (string), "start" (number), "end" (number); it may also include "line_break" (boolean)
-- Do NOT change start/end timestamps
+- Do NOT change start/end timestamps execpt:
+- When they say number with words: one hundred twelve, write 112 and combine timecodes start end.
 - The transcript is Uzbek in Latin script. Fix transcription and spelling errors in Uzbek and keep the text in Uzbek — do NOT translate it to English. Use natural Uzbek capitalization
+- Use proper Uzbek marks, never the straight ASCII apostrophe '. Spell the o‘ and g‘ digraphs with ‘ (e.g. to‘g‘ri, bo‘lardingiz, yo‘q, o‘zi, tug‘ilgan, ko‘pincha, to‘xtalansa), and the tutuq belgisi (glottal-stop apostrophe) with ’ (e.g. ma’no, san’at, ta’lim)
+- When the speaker code-switches into Russian (a Russian word or phrase, NOT an assimilated loanword such as diagnostika, auditoriya, imkoniyat), transcribe that span in Cyrillic and wrap the whole Russian span in double quotes “ ”: opening “ on its first word, closing ” on its last. E.g. tem → bolee becomes first word {"text": "“Тем"}, last word {"text": "более”"} — on screen: “Тем более”
 - Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause{emoji_block}
 Transcription JSON:
 {words_json}

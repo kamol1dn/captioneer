@@ -25,6 +25,7 @@ class CaptionStyle:
     emoji_font_path: str = field(default_factory=default_emoji_font)
     font_size: int = 96
     line_spacing: float = 1.15  # multiplier of font height
+    letter_spacing: int = 0     # extra pixels between characters (tracking)
 
     # ── Layout ──────────────────────────────────────────────────────────────
     max_chars_per_line: int = 16
@@ -44,6 +45,13 @@ class CaptionStyle:
     bg_color: RGBA = (0, 0, 0, 230)
     bg_padding: int = 24
     bg_radius: int = 18
+    # Nudge the background box relative to the text (pixels). Useful when a font
+    # sits high/low in its line box and the box looks off-center.
+    bg_offset_x: int = 0
+    bg_offset_y: int = 0
+    # Scale the background box around its own center (1.0 = fit text + padding).
+    bg_scale_x: float = 1.0
+    bg_scale_y: float = 1.0
 
     # ── Highlight animation ─────────────────────────────────────────────────
     # "none"  : just color change
