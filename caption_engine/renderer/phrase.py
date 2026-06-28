@@ -75,7 +75,8 @@ def draw_phrase(
     space_w, _ = measure_word(font, " ")
 
     # ── compute layout: line widths & total block height ────────────────────
-    line_widths = [line_width(font, line.words, space_w, emoji_font) for line in phrase.lines]
+    line_widths = [line_width(font, line.words, space_w, emoji_font, style.letter_spacing)
+                   for line in phrase.lines]
     line_h = int(style.font_size * style.line_spacing)
     total_h = line_h * len(phrase.lines)
 
@@ -90,6 +91,17 @@ def draw_phrase(
         box_right = box_left + max_w + pad * 2
         box_top = block_top - pad
         box_bottom = block_top + total_h + pad
+
+        # scale around the box's center, then nudge by the offset
+        cx = (box_left + box_right) / 2
+        cy = (box_top + box_bottom) / 2
+        half_w = (box_right - box_left) / 2 * style.bg_scale_x
+        half_h = (box_bottom - box_top) / 2 * style.bg_scale_y
+        box_left = cx - half_w + style.bg_offset_x
+        box_right = cx + half_w + style.bg_offset_x
+        box_top = cy - half_h + style.bg_offset_y
+        box_bottom = cy + half_h + style.bg_offset_y
+
         draw.rounded_rectangle(
             [box_left, box_top, box_right, box_bottom],
             radius=style.bg_radius,
@@ -105,7 +117,7 @@ def draw_phrase(
 
         for w_idx, word in enumerate(line.words):
             is_active = (word_running_idx == active_word_idx)
-            ww, wh = measure_word(font, word.text, emoji_font)
+            ww, wh = measure_word(font, word.text, emoji_font, style.letter_spacing)
 
             # ── highlight: "box" mode ───────────────────────────────────────
             if is_active and style.highlight_mode == "box":

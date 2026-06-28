@@ -79,6 +79,7 @@ def gashtak_main() -> CaptionStyle:
         transition="fade",                  # 2-frame fade out, then 2-frame fade in
         transition_frames=2,
         phrase_hold=0.5,                    # snappier than the 1.0s English default
+        bg_offset_y=15,                     # slightly higher than the English default
     )
 
 
@@ -98,14 +99,16 @@ def gashtak_2() -> CaptionStyle:
         transition="fade",
         transition_frames=2,
         phrase_hold=0.5,
+        bg_offset_y=-8,  
+        letter_spacing=-1,                   # tight tracking is common in Uzbek captions
     )
 
 
 def otg_cyan() -> CaptionStyle:
     """On-the-go cyan preset, optimized for mobile viewing."""
     return CaptionStyle(
-        font_size=85,
-        max_chars_per_line=18,
+        font_size=70,
+        max_chars_per_line=24,
         text_color=(255, 255, 255, 255),
         text_stroke_color=(0, 0, 0, 0),
         text_stroke_width=0,
