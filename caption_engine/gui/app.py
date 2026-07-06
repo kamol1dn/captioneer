@@ -65,7 +65,7 @@ class CaptionApp(tk.Tk):
         opts.grid(row=2, column=0, columnspan=3, sticky="w", **p)
 
         ttk.Label(opts, text="Language").pack(side="left")
-        self._lang_var = tk.StringVar(value="English")
+        self._lang_var = tk.StringVar(value="Uzbek")
         self._lang_combo = ttk.Combobox(opts, textvariable=self._lang_var,
                                          values=list(_LANGUAGES.keys()),
                                          state="readonly", width=10)

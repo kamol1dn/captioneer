@@ -55,7 +55,9 @@ def find_system_font() -> str:
     root = _project_root()
     _win = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
     candidates = [
-        # Project-bundled font (highest priority)
+        # Project-bundled fonts (highest priority). Helvetica-Bold is licensed
+        # for the podcast, so it's the default; Montserrat is the fallback.
+        os.path.join(root, "assets-fonts", "helvetica", "Helvetica-Bold.ttf"),
         os.path.join(root, "assets-fonts", "monsterrat", "static", "Montserrat-Bold.ttf"),
         # Windows
         # os.path.join(_win, "arialbd.ttf"),

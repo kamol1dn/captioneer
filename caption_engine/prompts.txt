@@ -37,6 +37,7 @@ RULES:
 - The transcript is Uzbek in Latin script. Fix transcription and spelling errors in Uzbek and keep the text in Uzbek — do NOT translate it to English. Use natural Uzbek capitalization
 - Use proper Uzbek marks, never the straight ASCII apostrophe '. Spell the o‘ and g‘ digraphs with ‘ (e.g. to‘g‘ri, bo‘lardingiz, yo‘q, o‘zi, tug‘ilgan, ko‘pincha, to‘xtalansa), and the tutuq belgisi (glottal-stop apostrophe) with ’ (e.g. ma’no, san’at, ta’lim)
 - When the speaker code-switches into Russian (a Russian word or phrase, NOT an assimilated loanword such as diagnostika, auditoriya, imkoniyat), transcribe that span in Cyrillic and wrap the whole Russian span in double quotes “ ”: opening “ on its first word, closing ” on its last. E.g. tem → bolee becomes first word {"text": "“Тем"}, last word {"text": "более”"} — on screen: “Тем более”
+- Autogen may split the word and suffix like "aytmoq" "chi", combine start of first and end of last time, as a one word "aytmoqchi"
 - Set "line_break": true on the LAST word of a line to end the line there. Break at sentence ends and natural pauses so each on-screen line is one complete, coherent thought — never split mid-clause{emoji_block}
 Transcription JSON:
 {words_json}

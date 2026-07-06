@@ -21,7 +21,7 @@ PRESETS = {
 PRESET_GROUPS = {
     "English": ["otg_cyan", "reels_classic", "bold_yellow_box",
                 "minimal_white", "punchy_green"],
-    "Uzbek": ["gashtak_main", "gashtak_2"],
+    "Uzbek": ["gashtak_2", "gashtak_main"],
 }
 
 
