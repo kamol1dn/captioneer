@@ -98,8 +98,8 @@ def gashtak_2() -> CaptionStyle:
         highlight_color=(255, 220, 0, 255),
         transition="fade",
         transition_frames=2,
-        phrase_hold=0.5,
-        bg_offset_y=-8,  
+        phrase_hold=1.0,
+        bg_offset_y=-8,
         letter_spacing=-1,                   # tight tracking is common in Uzbek captions
     )
 

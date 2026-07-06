@@ -261,28 +261,41 @@ class Cue:
     start: float          # seconds
     end: float            # seconds
     text: str             # may contain '\n' between lines
+    words: Optional[List[Word]] = None  # source words, for word-level VTT
 
 
 def _joined_len(words: List[Word]) -> int:
     return sum(len(w.text) for w in words) + max(0, len(words) - 1)
 
 
-def _wrap_lines(words: List[Word], max_chars: int, max_lines: int) -> str:
+def _pack_word_lines(words: List[Word], max_chars: int, max_lines: int) -> List[List[Word]]:
     """Greedily pack `words` into up to `max_lines` lines of <= `max_chars`."""
-    lines: List[str] = []
-    cur = ""
+    lines: List[List[Word]] = []
+    cur: List[Word] = []
+    cur_len = 0
     for w in words:
-        if cur and len(cur) + 1 + len(w.text) > max_chars:
+        add = len(w.text) + (1 if cur else 0)
+        if cur and cur_len + add > max_chars:
             lines.append(cur)
-            cur = w.text
-        else:
-            cur = w.text if not cur else f"{cur} {w.text}"
+            cur, cur_len = [], 0
+            add = len(w.text)
+        cur.append(w)
+        cur_len += add
     if cur:
         lines.append(cur)
     if len(lines) > max_lines:
         # Overflow (a single very long word run): fold the rest into the last line.
-        lines = lines[:max_lines - 1] + [" ".join(lines[max_lines - 1:])]
-    return "\n".join(lines)
+        tail = [w for line in lines[max_lines - 1:] for w in line]
+        lines = lines[:max_lines - 1] + [tail]
+    return lines
+
+
+def _wrap_lines(words: List[Word], max_chars: int, max_lines: int) -> str:
+    """Greedily pack `words` into up to `max_lines` lines of <= `max_chars`."""
+    return "\n".join(
+        " ".join(w.text for w in line)
+        for line in _pack_word_lines(words, max_chars, max_lines)
+    )
 
 
 def segment_into_cues(
@@ -331,7 +344,10 @@ def segment_into_cues(
                 wanted = min(wanted, cues[i + 1][0])
             c[1] = max(c[0], wanted)
 
-    return [Cue(i + 1, s, e, t) for i, (s, e, t) in enumerate(cues)]
+    return [
+        Cue(i + 1, s, e, t, words=g)
+        for i, ((s, e, t), g) in enumerate(zip(cues, groups))
+    ]
 
 
 # ──────────────────────────────── writers ───────────────────────────────────
@@ -359,6 +375,40 @@ def render_subtitles(cues: List[Cue], fmt: str) -> str:
     return "\n\n".join(blocks) + "\n"
 
 
+def _tag_words_into_lines(words: List[Word], max_chars: int, max_lines: int) -> str:
+    """Lay `words` out like `_wrap_lines`, but prefix each word with its WebVTT
+    cue-timestamp tag (`<HH:MM:SS.mmm>word`) so players can highlight word by
+    word. The cue's first word carries no tag — it inherits the cue start time,
+    which the spec requires all inline timestamps to strictly exceed."""
+    out_lines: List[str] = []
+    first = True
+    for line in _pack_word_lines(words, max_chars, max_lines):
+        parts: List[str] = []
+        for w in line:
+            if first:
+                parts.append(w.text)
+                first = False
+            else:
+                parts.append(f"<{_format_timestamp(w.start, True)}>{w.text}")
+        out_lines.append(" ".join(parts))
+    return "\n".join(out_lines)
+
+
+def render_word_level_vtt(cues: List[Cue], max_chars_per_line: int = 42,
+                          max_lines: int = 2) -> str:
+    """Serialize cues to WebVTT with inline per-word timestamps (karaoke-style
+    highlighting). VTT only — SRT has no inline-timestamp syntax."""
+    blocks: List[str] = ["WEBVTT"]
+    for c in cues:
+        body = (_tag_words_into_lines(c.words, max_chars_per_line, max_lines)
+                if c.words else c.text)
+        blocks.append(
+            f"{_format_timestamp(c.start, True)} --> "
+            f"{_format_timestamp(c.end, True)}\n{body}"
+        )
+    return "\n\n".join(blocks) + "\n"
+
+
 def _resolve_format(output: str, fmt: Optional[str]) -> str:
     if fmt:
         return fmt.lower()
@@ -376,6 +426,7 @@ def generate_subtitles(
     device: str = "auto",
     model_size: str = "base",
     fmt: Optional[str] = None,
+    word_level: bool = False,
     window_s: float = DEFAULT_WINDOW_S,
     band_s: float = DEFAULT_BAND_S,
     max_chars_per_line: int = 42,
@@ -394,6 +445,8 @@ def generate_subtitles(
                   None = auto-detect (non-Uzbek backends).
         backend: "auto" (route by language), "kotib", "whisperx", or "faster".
         fmt: "srt" or "vtt". Inferred from `output`'s extension if omitted.
+        word_level: emit inline per-word WebVTT timestamps (karaoke highlight).
+                    VTT only; raises if the resolved format is SRT.
         window_s / band_s: Uzbek windowing — window length and silence-snap band.
         The remaining knobs tune cue segmentation (readability).
 
@@ -401,7 +454,7 @@ def generate_subtitles(
         The output path written.
     """
     if output is None:
-        output = str(Path(media_path).with_suffix(".srt"))
+        output = str(Path(media_path).with_suffix(".vtt" if word_level else ".srt"))
 
     words = transcribe_long(
         media_path, language=language, backend=backend, device=device,
@@ -422,10 +475,21 @@ def generate_subtitles(
     )
 
     fmt = _resolve_format(output, fmt)
+    if word_level and fmt != "vtt":
+        raise ValueError(
+            "word_level output uses inline WebVTT timestamps and requires VTT; "
+            "SRT has no word-timing syntax. Use a .vtt output or fmt='vtt'."
+        )
+    if word_level:
+        doc = render_word_level_vtt(cues, max_chars_per_line, max_lines)
+    else:
+        doc = render_subtitles(cues, fmt)
+
     Path(output).parent.mkdir(parents=True, exist_ok=True)
-    Path(output).write_text(render_subtitles(cues, fmt), encoding="utf-8")
+    Path(output).write_text(doc, encoding="utf-8")
     if progress:
-        print(f"✓ {len(cues)} cues → {output}")
+        kind = "word-level cues" if word_level else "cues"
+        print(f"✓ {len(cues)} {kind} → {output}")
     return output
 
 
@@ -460,6 +524,9 @@ def main() -> None:
     ap.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     ap.add_argument("--format", dest="fmt", default=None, choices=["srt", "vtt"],
                     help="Override output format (else inferred from --output).")
+    ap.add_argument("--word-level", action="store_true",
+                    help="Emit inline per-word WebVTT timestamps (karaoke-style "
+                         "highlighting). Forces VTT; default output becomes .vtt.")
     ap.add_argument("--window", type=float, default=DEFAULT_WINDOW_S,
                     help=f"Uzbek windowing length in seconds (default {DEFAULT_WINDOW_S:g}). "
                          "Lower this if you still hit VRAM limits.")
@@ -480,6 +547,7 @@ def main() -> None:
         device=args.device,
         model_size=args.model,
         fmt=args.fmt,
+        word_level=args.word_level,
         window_s=args.window,
         max_chars_per_line=args.max_line_chars,
         max_lines=args.max_lines,
