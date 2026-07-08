@@ -7,11 +7,10 @@ see-through transparency just works.
 import subprocess
 import threading
 from typing import List, Optional, Callable
-from PIL import Image
 
 from ..style import CaptionStyle
-from ..layout import Phrase, find_active_word_index
-from .phrase import find_active_phrase, draw_phrase, transition_opacity, apply_opacity
+from ..layout import Phrase
+from .preview import render_frame
 
 
 def render_to_mov(
@@ -77,22 +76,7 @@ def render_to_mov(
     try:
         for frame_idx in range(total_frames):
             t = frame_idx / style.fps
-            img = Image.new("RGBA", (style.width, style.height), (0, 0, 0, 0))
-
-            phrase_idx = find_active_phrase(phrases, t, style.phrase_hold)
-            if phrase_idx is not None:
-                phrase = phrases[phrase_idx]
-                active_word = find_active_word_index(phrase, t)
-                opacity = transition_opacity(phrases, phrase_idx, t, style)
-                if opacity >= 0.999:
-                    draw_phrase(img, phrase, active_word, style, t)
-                elif opacity > 0.0:
-                    # Fade: draw onto a layer, scale its alpha, composite.
-                    layer = Image.new("RGBA", (style.width, style.height), (0, 0, 0, 0))
-                    draw_phrase(layer, phrase, active_word, style, t)
-                    apply_opacity(layer, opacity)
-                    img.alpha_composite(layer)
-
+            img = render_frame(phrases, style, t)
             proc.stdin.write(img.tobytes())
 
             if progress_cb and frame_idx % style.fps == 0:

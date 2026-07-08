@@ -154,9 +154,10 @@ rem  Launch the app
 rem ============================================================================
 :run
 echo Starting the Caption Engine...
-echo (Keep this black window open - it closes when you close the app.
-echo  If something goes wrong, the error appears here.)
-venv\Scripts\python.exe -m caption_engine.gui
+echo (Keep this black window open - it runs the app. A browser tab will open
+echo  automatically. Closing this window shuts the app down. If something goes
+echo  wrong, the error appears here.)
+venv\Scripts\python.exe -m caption_engine.web
 if errorlevel 1 goto fail_app
 exit /b 0
 

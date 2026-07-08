@@ -26,3 +26,6 @@ uroman==1.3.1.1
 
 # --- Rendering / imaging ---
 pillow==12.2.0
+
+# --- Web UI (local browser app) ---
+flask==3.1.0

@@ -57,8 +57,8 @@ def main():
     ap.add_argument("-o", "--output", default="captions.mov",
                     help="Output .mov path (ProRes 4444 with alpha)")
     ap.add_argument("--preset", default="reels_classic",
-                    choices=list(presets.PRESETS.keys()),
-                    help="Style preset")
+                    choices=presets.names(),
+                    help="Style preset (built-in or user-created)")
     ap.add_argument("--model", default="base",
                     choices=["tiny", "base", "small", "medium", "large-v3"],
                     help="Whisper model size")
