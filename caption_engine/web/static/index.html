@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caption Engine</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🎬 Caption Engine</div>
+    <div class="steps">
+      <span class="step" data-step="1">1 · Source</span>
+      <span class="step" data-step="2">2 · Transcribe</span>
+      <span class="step" data-step="3">3 · Refine</span>
+      <span class="step" data-step="4">4 · Style &amp; Review</span>
+      <span class="step" data-step="5">5 · Export</span>
+    </div>
+    <div id="statusPill" class="status-pill">Ready</div>
+  </header>
+
+  <main class="layout">
+    <!-- ── Left: workflow ──────────────────────────────────────────────── -->
+    <section class="panel workflow">
+      <div class="card">
+        <h2>1 · Source</h2>
+        <div class="row">
+          <input id="inputPath" type="text" placeholder="No file selected" readonly>
+          <button id="browseBtn" class="btn">Browse…</button>
+        </div>
+        <div class="row">
+          <label>Language</label>
+          <select id="languageSel"></select>
+          <label>Model</label>
+          <select id="modelSel"></select>
+        </div>
+        <div class="row toggles">
+          <label class="chk"><input type="checkbox" id="alignChk" checked> Align timings (WhisperX)</label>
+          <label class="chk"><input type="checkbox" id="emojiChk" checked> Emoji in AI prompt</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2 · Transcribe</h2>
+        <button id="transcribeBtn" class="btn primary block">Transcribe &amp; Build Prompt</button>
+        <div class="subrow">
+          <span class="muted">The AI-refinement prompt appears below — paste it into ChatGPT/Claude.</span>
+        </div>
+        <textarea id="promptBox" class="mono" rows="6" placeholder="Prompt will appear here after transcription…" readonly></textarea>
+        <button id="copyPromptBtn" class="btn small">Copy prompt</button>
+      </div>
+
+      <div class="card">
+        <h2>3 · Refine</h2>
+        <div class="subrow"><span class="muted">Paste the AI's refined captions JSON here.</span></div>
+        <textarea id="jsonBox" class="mono" rows="8" placeholder='[ {"text":"Hello","start":0.2,"end":0.5,"line_break":false}, … ]'></textarea>
+        <button id="applyJsonBtn" class="btn block">Analyze → preview &amp; word editor</button>
+      </div>
+
+      <div class="card">
+        <h2>5 · Export</h2>
+        <div class="row">
+          <input id="outputPath" type="text" placeholder="captions.mov">
+        </div>
+        <button id="renderBtn" class="btn primary block">Export ProRes .mov</button>
+        <div id="renderMsg" class="muted"></div>
+      </div>
+    </section>
+
+    <!-- ── Center: preview ─────────────────────────────────────────────── -->
+    <section class="panel preview">
+      <div class="card grow">
+        <div class="preview-head">
+          <h2>4 · Review</h2>
+          <div class="preview-actions">
+            <button id="truePreviewBtn" class="btn small" title="Render a pixel-accurate proxy through the real engine">Render Preview</button>
+            <span id="previewMode" class="badge">live</span>
+          </div>
+        </div>
+        <div id="reviewSplit" class="review-split stack">
+          <div id="stage" class="stage">
+            <video id="video" playsinline></video>
+            <canvas id="overlay"></canvas>
+            <div id="stagePlaceholder" class="placeholder">Select a source file to begin</div>
+          </div>
+          <div id="wordPanel" class="word-panel hidden">
+            <div class="word-head">
+              <span id="wordCount" class="muted">0 words</span>
+              <span class="muted small">click № to jump · ↵ = line break</span>
+              <button id="copyWordsBtn" class="btn small" title="Copy the current words as JSON">Copy JSON</button>
+            </div>
+            <div id="wordEditor" class="word-editor"></div>
+          </div>
+        </div>
+        <div class="transport">
+          <button id="playBtn" class="btn small">▶</button>
+          <input id="seek" type="range" min="0" max="1000" value="0" step="1">
+          <span id="timeLabel" class="mono small">0.0 / 0.0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Right: preset editor ────────────────────────────────────────── -->
+    <section class="panel editor">
+      <div class="card">
+        <h2>Preset</h2>
+        <div class="row">
+          <select id="presetSel" class="grow"></select>
+        </div>
+        <div class="row">
+          <input id="presetName" type="text" placeholder="New preset name">
+          <select id="presetGroup"></select>
+        </div>
+        <div class="row">
+          <button id="savePresetBtn" class="btn small primary">Save</button>
+          <button id="deletePresetBtn" class="btn small danger">Delete</button>
+          <button id="resetPresetsBtn" class="btn small" title="Restore built-in presets">Reset</button>
+        </div>
+      </div>
+      <div id="editorFields" class="card grow scroll"></div>
+    </section>
+  </main>
+
+  <div id="progressBar" class="progress hidden"><div id="progressFill"></div></div>
+
+  <script src="/static/preview.js"></script>
+  <script src="/static/editor.js"></script>
+  <script src="/static/words.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

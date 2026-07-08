@@ -7,5 +7,6 @@ Submodules:
 * `encoder` — the ffmpeg pipeline (the public `render_to_mov`)
 """
 from .encoder import render_to_mov
+from .preview import render_frame, render_preview_overlay
 
-__all__ = ["render_to_mov"]
+__all__ = ["render_to_mov", "render_frame", "render_preview_overlay"]

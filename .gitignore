@@ -14,6 +14,9 @@ venv/
 data/inputs/
 data/outputs/
 
+# User config/preset store (regenerated from built-in seeds on first run)
+preferences.json
+
 # Audio files
 *.wav
 *.mp3
