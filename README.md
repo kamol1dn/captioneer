@@ -205,6 +205,17 @@ exact versions and the torchcodec/FFmpeg DLL wiring.
 
 ## Roadmap
 
+Shipped:
+
+- [x] ProRes 4444 alpha renderer (Pillow → ffmpeg)
+- [x] English transcription with WhisperX forced alignment
+- [x] Uzbek language support (Kotib + MMS alignment)
+- [x] Command-line interface
+- [x] Local web UI (browser app)
+- [x] Persistence — user-editable presets & settings in `preferences.json`
+
+Next:
+
 - [ ] Audio waveform-aware emphasis (louder = bigger pop)
 - [ ] More built-in presets and animation styles
 - [ ] Premiere / DaVinci extension that drives this engine as a backend
