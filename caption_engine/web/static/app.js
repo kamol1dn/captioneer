@@ -149,6 +149,7 @@ async function relayout() {
 function transcribe() {
   if (!state.inputPath) return setStatus("Select a source file first", "error");
   const lang = $("languageSel").value;
+  askNotifyPermission();
   setBusy(true); setStatus("Transcribing…", "busy");
   runJob("/api/transcribe", {
     input: state.inputPath, language: lang,
@@ -162,10 +163,15 @@ function transcribe() {
       $("promptBox").value = r.prompt;
       navigator.clipboard?.writeText(r.prompt).catch(() => {});
       setStatus(`Transcribed ${r.words.length} words — prompt copied`, "ok");
+      notify("Transcription finished",
+             `${r.words.length} words ready — the ChatGPT prompt is on your clipboard.`);
       showWordEditor();
       relayout();
     },
-    onError: e => { setBusy(false); setStatus("Error: " + e, "error"); },
+    onError: e => {
+      setBusy(false); setStatus("Error: " + e, "error");
+      notify("Transcription failed", String(e).slice(0, 200));
+    },
   });
   saveAppSettings();
 }
@@ -255,6 +261,7 @@ function truePreview() {
 function render() {
   if (!state.words.length) return setStatus("Nothing to export yet", "error");
   const output = $("outputPath").value.trim() || "captions.mov";
+  askNotifyPermission();
   setBusy(true); setStatus("Exporting…", "busy");
   runJob("/api/render", { words: state.words, style: state.style, output }, {
     onProgress: d => setProgress(d.current, d.total),
@@ -262,8 +269,12 @@ function render() {
       setBusy(false); hideProgress();
       setStatus("Exported → " + r.output, "ok");
       $("renderMsg").textContent = "✓ Saved to " + r.output;
+      notify("Export finished", "Saved to " + r.output);
     },
-    onError: e => { setBusy(false); hideProgress(); setStatus("Error: " + e, "error"); },
+    onError: e => {
+      setBusy(false); hideProgress(); setStatus("Error: " + e, "error");
+      notify("Export failed", String(e).slice(0, 200));
+    },
   });
 }
 
@@ -382,6 +393,29 @@ function runJob(url, body, { onProgress, onDone, onError }) {
       es.onerror = () => { es.close(); onError("connection lost"); };
     })
     .catch(e => onError(String(e)));
+}
+
+// ── desktop notifications ────────────────────────────────────────────────────
+/* Transcribing and exporting take minutes, so you switch tabs and forget. These
+ * fire only when the app tab isn't the one you're looking at — no point popping
+ * a toast over a window you're already staring at. 127.0.0.1 counts as a secure
+ * origin, so the Notification API is available without HTTPS. */
+
+function askNotifyPermission() {
+  // Must be called from a click handler: browsers ignore permission requests
+  // that aren't tied to a user gesture.
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+function notify(title, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!document.hidden) return;
+  try {
+    const n = new Notification(title, { body, tag: "caption-engine" });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch (e) { /* Android Chrome requires a service worker; ignore */ }
 }
 
 // ── misc ─────────────────────────────────────────────────────────────────────
