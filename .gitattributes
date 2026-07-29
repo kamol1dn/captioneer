@@ -1,0 +1,8 @@
+# The Mac launcher must keep Unix line endings — a CRLF after the shebang makes
+# macOS refuse to run it ("bad interpreter"). This project is developed on
+# Windows with core.autocrlf=true, which would otherwise convert it.
+*.command text eol=lf
+*.sh      text eol=lf
+
+# The Windows launcher wants CRLF for the same reason in reverse.
+*.bat     text eol=crlf
