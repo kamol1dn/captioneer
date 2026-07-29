@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "clipper-engine": {
+      "command": "D:\\coding\\captioneer-english\\venv\\Scripts\\python.exe",
+      "args": ["-m", "clipper.mcp_server"],
+      "cwd": "D:\\coding\\captioneer-english"
+    }
+  }
+}

@@ -33,4 +33,15 @@ preferences.json
 .DS_Store
 Thumbs.db
 
-.claude/
+# Ignore .claude contents (local settings), but keep the skills — they're part
+# of the tool and need to travel with the repo. Note this excludes the *entries
+# inside* .claude rather than .claude itself: git won't re-include anything
+# under a directory it has already excluded.
+.claude/*
+!.claude/skills/
+
+# Clipper engine. Projects normally live beside their media (an episode's
+# clipper/ folder), so what's here is just the id -> directory index plus the
+# fallback location used when cameras span different drives.
+clipper_projects.json
+/projects/

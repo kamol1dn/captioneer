@@ -29,3 +29,6 @@ pillow==12.2.0
 
 # --- Web UI (local browser app) ---
 flask==3.1.0
+
+# --- Clipper engine MCP server ---
+mcp==1.2.1

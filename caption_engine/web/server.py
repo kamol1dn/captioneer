@@ -20,6 +20,7 @@ from flask import (Flask, Response, jsonify, request, send_file,
 
 from .. import engine, preferences
 from ..layout import build_phrases
+from ..media import ffmpeg_bin, probe
 from ..prompt import build_prompt
 from ..renderer.preview import render_preview_overlay
 from ..style import CaptionStyle, list_available_fonts
@@ -51,39 +52,10 @@ app = Flask(__name__, static_folder=None)
 
 
 # ── ffmpeg/ffprobe resolution ────────────────────────────────────────────────
-
-def _bin(name: str) -> str:
-    """Prefer the bundled ffmpeg-7.1 binaries; fall back to PATH."""
-    bundled = _PROJECT_ROOT / "ffmpeg-7.1" / "bin" / f"{name}.exe"
-    return str(bundled) if bundled.exists() else name
-
-
-def _probe_streams(path: str) -> dict:
-    """Probe a media file: does it have video/audio, and the video size.
-
-    Audio-only inputs (podcast mp3/wav) are a first-class use case — the
-    preview then plays captions over a black stage instead of source video.
-    """
-    import json as _json
-    try:
-        out = subprocess.run(
-            [_bin("ffprobe"), "-v", "error",
-             "-show_entries", "stream=codec_type,width,height,disposition",
-             "-of", "json", path],
-            capture_output=True, text=True, check=True).stdout
-        streams = _json.loads(out or "{}").get("streams", [])
-    except Exception:
-        streams = []
-    # Ignore attached cover art (mp3 album covers show up as a video stream).
-    vids = [s for s in streams if s.get("codec_type") == "video"
-            and not (s.get("disposition") or {}).get("attached_pic")]
-    v = vids[0] if vids else None
-    return {
-        "has_video": v is not None,
-        "has_audio": any(s.get("codec_type") == "audio" for s in streams),
-        "width": (v or {}).get("width"),
-        "height": (v or {}).get("height"),
-    }
+# Both helpers now live in caption_engine.media so the clipper engine (and any
+# other non-run.bat entry point) can resolve the bundled binaries too.
+_bin = ffmpeg_bin
+_probe_streams = probe
 
 
 # ── request → engine object helpers ──────────────────────────────────────────
