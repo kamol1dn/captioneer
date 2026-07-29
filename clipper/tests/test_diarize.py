@@ -1,0 +1,124 @@
+"""Per-mic merge: bleed rejection and speaker attribution.
+
+Run: venv\\Scripts\\python.exe -m clipper.tests.test_diarize
+
+The envelopes here are synthetic: a camera is "hot" (-12 dB) while its owner
+speaks and "bleeding" (-45 dB) while the other one does. That is the same shape
+``energy.compute_envelope`` produces from real isolated mics, so the merge sees
+exactly the signal it will see in production.
+"""
+import sys
+
+from caption_engine.transcriber.word import Word
+
+from ..diarize import merge_per_mic, own_word_fraction
+from ..energy import RESOLUTION_HZ
+
+_failures = []
+
+
+def check(cond, msg):
+    if not cond:
+        _failures.append(msg)
+
+
+def envelope(loud_windows, duration=20.0, hot=-12.0, quiet=-45.0):
+    """An envelope that is `hot` inside loud_windows and `quiet` elsewhere."""
+    n = int(duration * RESOLUTION_HZ)
+    db = []
+    for i in range(n):
+        t = i / RESOLUTION_HZ
+        live = any(a <= t < b for a, b in loud_windows)
+        db.append(hot if live else quiet)
+    return {"resolution_hz": RESOLUTION_HZ, "duration": duration, "db": db}
+
+
+def words(spec):
+    """[(text, start, end), ...] -> [Word]"""
+    return [Word(text=t, start=s, end=e, probability=1.0) for t, s, e in spec]
+
+
+# ── tests ────────────────────────────────────────────────────────────────────
+
+def test_bleed_is_rejected_and_speech_is_kept():
+    """Both mics transcribe both voices; only the owner's lines survive."""
+    # A speaks 0-3, B speaks 5-8.
+    envs = {"A": envelope([(0, 3)]), "B": envelope([(5, 8)])}
+
+    a_own = words([("hello", 0.2, 0.8), ("there", 1.0, 1.6), ("friend", 2.0, 2.6)])
+    b_own = words([("good", 5.2, 5.8), ("to", 6.0, 6.4), ("see", 6.8, 7.4)])
+
+    # Each mic also picks the other up — same words, same times.
+    per_cam = {"A": a_own + b_own, "B": a_own + b_own}
+    utts, report = merge_per_mic(per_cam, envs)
+
+    check(len(utts) == 2, f"expected 2 merged utterances, got {len(utts)}")
+    got = [(u.speaker, u.text) for u in utts]
+    check(got[0][0] == "A" and "hello" in got[0][1],
+          f"first utterance should be A's, got {got[0]}")
+    check(got[1][0] == "B" and "good" in got[1][1],
+          f"second utterance should be B's, got {got[1]}")
+    check(report["A"]["dropped_as_bleed"] == 1,
+          f"A should drop B's bleed, got {report['A']}")
+    check(report["B"]["dropped_as_bleed"] == 1,
+          f"B should drop A's bleed, got {report['B']}")
+
+
+def test_simultaneous_speech_survives_on_both_mics():
+    """The payoff of per-mic: a single mix cannot represent this at all."""
+    # Both are hot over the same window — each loud on their own mic.
+    envs = {"A": envelope([(0, 4)]), "B": envelope([(0, 4)])}
+    per_cam = {
+        "A": words([("wait", 1.0, 1.5), ("no", 1.6, 2.0)]),
+        "B": words([("but", 1.1, 1.6), ("listen", 1.7, 2.3)]),
+    }
+    utts, report = merge_per_mic(per_cam, envs)
+
+    speakers = {u.speaker for u in utts}
+    check(speakers == {"A", "B"},
+          f"both speakers should survive an overlap, got {speakers}")
+    check(report["_totals"]["overlaps"] >= 1,
+          "an overlapping pair should be reported as an overlap")
+
+
+def test_output_is_ordered_and_reindexed():
+    envs = {"A": envelope([(0, 2), (6, 8)]), "B": envelope([(3, 5)])}
+    per_cam = {
+        "A": words([("first", 0.2, 0.8)]) + words([("third", 6.2, 6.8)]),
+        "B": words([("second", 3.2, 3.8)]),
+    }
+    utts, _ = merge_per_mic(per_cam, envs)
+    check([u.text for u in utts] == ["first", "second", "third"],
+          f"merged timeline should be in time order, got {[u.text for u in utts]}")
+    check([u.index for u in utts] == [0, 1, 2],
+          f"indices should be renumbered, got {[u.index for u in utts]}")
+    check(all(u.speaker_confidence > 0 for u in utts),
+          "kept utterances should carry a confidence")
+
+
+def test_missing_envelope_keeps_the_transcript():
+    """No evidence of bleed is not evidence of bleed — don't silently delete."""
+    frac = own_word_fraction("A", words([("x", 0.0, 0.5)]), {})
+    check(frac == 1.0, f"absent envelope should keep words, got {frac}")
+
+
+def main():
+    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
+    for t in tests:
+        before = len(_failures)
+        try:
+            t()
+        except Exception as e:               # noqa: BLE001
+            _failures.append(f"{t.__name__} raised {e!r}")
+        print(f"  {'ok  ' if len(_failures) == before else 'FAIL'}  {t.__name__}")
+    print()
+    if _failures:
+        print(f"{len(_failures)} failure(s):")
+        for f in _failures:
+            print("  -", f)
+        sys.exit(1)
+    print(f"all {len(tests)} tests passed")
+
+
+if __name__ == "__main__":
+    main()
