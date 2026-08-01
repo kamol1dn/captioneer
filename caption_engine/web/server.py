@@ -50,6 +50,20 @@ _STYLE_FIELDS = {f.name for f in fields(CaptionStyle)}
 
 app = Flask(__name__, static_folder=None)
 
+# Clipper-project browsing (open an episode, edit one clip's captions, re-render
+# in place). Optional on purpose: the caption editor predates the clipper engine
+# and still has to run in a checkout that doesn't have it, so an import failure
+# downgrades to the normal single-file UI instead of taking the whole app down.
+# `/api/config` reports the outcome so the browser knows whether to show the tab.
+try:
+    from .clipper_api import bp as _clipper_bp
+    app.register_blueprint(_clipper_bp)
+    CLIPPER_AVAILABLE = True
+    CLIPPER_ERROR = ""
+except Exception as _e:                                          # noqa: BLE001
+    CLIPPER_AVAILABLE = False
+    CLIPPER_ERROR = str(_e)
+
 
 # ── ffmpeg/ffprobe resolution ────────────────────────────────────────────────
 # Both helpers now live in caption_engine.media so the clipper engine (and any
@@ -115,6 +129,7 @@ def api_config():
         "preset_groups": prefs["preset_groups"],
         "fonts": list(list_available_fonts().keys()),
         "style_fields": sorted(_STYLE_FIELDS),
+        "clipper": {"available": CLIPPER_AVAILABLE, "error": CLIPPER_ERROR},
     })
 
 

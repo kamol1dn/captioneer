@@ -15,10 +15,13 @@ A subtlety worth stating: the frame integer at a shot boundary is reused as both
 the outgoing clip's ``out`` and the incoming clip's ``in``. Rounding the same
 master time twice in two places is how off-by-one-frame flashes appear.
 """
+import copy
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from .edl import EDL, Clip, iter_shots
+from .edl import EDL, AudioPlan, Clip, iter_shots
+from .sources import SourceRef, SourceTrack
 from .timebase import Timebase
 
 
@@ -38,6 +41,15 @@ class ClipItem:
     enabled: bool = True     # FALSE -> imported muted/hidden, toggleable in Premiere
     role: str = "camera"     # "camera" | "broll" | "caption" | "audio"
     scale: float = 100.0     # percent; != 100 emits a Basic Motion filter
+    # Set when this item came off a master timeline rather than a flat export.
+    # It carries the source definition (a file, or a nested sequence with its own
+    # framing) for the writer to re-emit verbatim, so a crop expressed as
+    # nest-plus-offset survives into the reel without being understood here.
+    source: Optional[SourceRef] = None
+    # The source clipitem's own <filter> elements, passed through unchanged.
+    # ``scale`` composes into an existing Basic Motion rather than adding a
+    # second one — two Basic Motions on one clipitem is undefined in Premiere.
+    filters: List[ET.Element] = field(default_factory=list)
 
     @property
     def length(self) -> int:
@@ -69,6 +81,11 @@ class CompiledClip:
     audio_tracks: List[List[ClipItem]] = field(default_factory=list)
     markers: List[CompiledMarker] = field(default_factory=list)
     duration: int = 0
+    # Program ranges where a track-backed angle has no footage, as
+    # {camera_id: [(program_start, program_end), ...]}. A hole on the *selected*
+    # angle is black frames in the finished reel, so this is reported rather
+    # than silently filled.
+    coverage_gaps: Dict[str, List[tuple]] = field(default_factory=dict)
 
     @property
     def duration_seconds(self) -> float:
@@ -102,11 +119,21 @@ class CompiledClip:
 
 
 def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
-                 caption_mov: Optional[str] = None) -> CompiledClip:
+                 caption_mov: Optional[str] = None,
+                 audio_tracks: Optional[List[SourceTrack]] = None) -> CompiledClip:
     """Compile one clip. ``cameras`` maps camera id -> {"path", "offset_sec", ...}.
+
+    A camera entry may instead carry ``"track"``: a ``SourceTrack`` read off the
+    episode timeline. That camera's picture then comes from whatever the master's
+    V-track points at, and master time maps to source time piecewise rather than
+    by a constant offset — so one shot on such a camera can become several
+    clipitems, one per master cut it spans.
 
     ``caption_mov`` is an alpha overlay rendered by ``clipper.captions``; when
     present it becomes the topmost video track, spanning the whole clip.
+
+    ``audio_tracks`` are the master's own A-tracks, used by the ``source_tracks``
+    audio mode to reproduce the episode's whole audio bed under the cut.
     """
     tb = edl.timebase
 
@@ -121,9 +148,12 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
         offset = float(cameras.get(cam_id, {}).get("offset_sec", 0.0) or 0.0)
         return tb.to_frames(master_t + offset)
 
+    def track_of(cam_id: str) -> Optional[SourceTrack]:
+        return (cameras.get(cam_id) or {}).get("track")
+
     shots = list(iter_shots(clip, edl.default_camera))
     if not shots:
-        return CompiledClip(id=clip.id, name=clip.title or clip.id,
+        return CompiledClip(id=clip.id, name=_clip_name(edl, clip),
                             timebase=tb, frame_size=edl.frame_size)
 
     stack_cams = _stack_cameras(cameras, shots)
@@ -144,30 +174,46 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
     # time onto the program timeline without recomputing the concatenation.
     prog_of_master: List[tuple] = []   # (master_start, master_end, prog_start)
 
+    gaps: Dict[str, List[tuple]] = {}
+
     for shot_idx, (master_start, master_end, cam) in enumerate(shots):
-        in_f = src_frame(master_start, cam)
-        out_f = src_frame(master_end, cam)
-        length = out_f - in_f
+        if track_of(cam) is not None:
+            # A track-backed angle is addressed in timeline frames, which are
+            # master frames — the export and the timeline share t=0 — so the
+            # shot length comes straight off the master boundaries instead of a
+            # per-camera offset that does not apply here.
+            length = tb.to_frames(master_end) - tb.to_frames(master_start)
+        else:
+            length = src_frame(master_end, cam) - src_frame(master_start, cam)
         if length <= 0:
             continue
         for cid in stack_cams:
-            c_in = src_frame(master_start, cid)
-            item = ClipItem(
-                name=f"{cid} {_tc(tb, c_in)}",
-                camera=cid, path=cameras.get(cid, {}).get("path", ""),
-                start=prog, end=prog + length,
-                # Length comes from the selected angle, never from this
-                # camera's own rounding — a per-camera offset must not be able
-                # to retime the twin.
-                in_=c_in, out=c_in + length,
-                media_type="video",
-                enabled=(cid == cam),
-                role="camera",
-                scale=scales[shot_idx],
-            )
-            cam_tracks[cid].append(item)
+            track = track_of(cid)
+            if track is None:
+                c_in = src_frame(master_start, cid)
+                items = [ClipItem(
+                    name=f"{cid} {_tc(tb, c_in)}",
+                    camera=cid, path=cameras.get(cid, {}).get("path", ""),
+                    start=prog, end=prog + length,
+                    # Length comes from the selected angle, never from this
+                    # camera's own rounding — a per-camera offset must not be
+                    # able to retime the twin.
+                    in_=c_in, out=c_in + length,
+                    media_type="video",
+                    enabled=(cid == cam), role="camera", scale=scales[shot_idx],
+                )]
+            else:
+                items = _track_items(
+                    track, cid, tb.to_frames(master_start), length, prog, tb,
+                    media_type="video", enabled=(cid == cam), role="camera",
+                    scale=scales[shot_idx])
+                for a, b in track.gaps(tb.to_frames(master_start), length):
+                    gaps.setdefault(cid, []).append(
+                        (prog + a - tb.to_frames(master_start),
+                         prog + b - tb.to_frames(master_start)))
+            cam_tracks[cid].extend(items)
             if cid == cam:
-                selected.append(item)
+                selected.extend(items)
         prog_of_master.append((master_start, master_end, prog))
         prog += length
 
@@ -216,8 +262,8 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
             ))
 
     # ── Audio ────────────────────────────────────────────────────────────────
-    audio_tracks = _compile_audio(edl, clip, cameras, selected, prog_of_master,
-                                  tb, stack_cams)
+    compiled_audio = _compile_audio(edl, clip, cameras, selected, prog_of_master,
+                                    tb, stack_cams, audio_tracks or [])
 
     # ── Captions: topmost video track, spanning the whole clip ───────────────
     caption_track: List[ClipItem] = []
@@ -235,12 +281,75 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
                     + ([v2] if v2 else [])
                     + ([caption_track] if caption_track else []))
     return CompiledClip(
-        id=clip.id, name=clip.title or clip.id,
+        id=clip.id, name=_clip_name(edl, clip),
         timebase=tb, frame_size=edl.frame_size,
-        video_tracks=video_tracks, audio_tracks=audio_tracks,
+        video_tracks=video_tracks, audio_tracks=compiled_audio,
         markers=sorted(markers, key=lambda m: m.frame),
         duration=total,
+        coverage_gaps={k: _merge_ranges(v) for k, v in gaps.items()},
     )
+
+
+def _clip_name(edl: EDL, clip: Clip) -> str:
+    """Sequence name, prefixed with the clip's position in the EDL.
+
+    Premiere sorts a bin's sequences by name, so 13 reels arrive in *title*
+    order — which is neither the order they were chosen in nor anything an editor
+    can navigate against the episode. A two-digit prefix restores the EDL's own
+    ordering, and it lines up with the number already carried in the clip ids, so
+    the sequence, the caption file and the EDL entry all read the same.
+
+    Position in the whole EDL, not in the compiled subset: exporting one clip on
+    its own must still call it 07, not 01.
+    """
+    title = clip.title or clip.id
+    for i, c in enumerate(edl.clips, start=1):
+        if c.id == clip.id:
+            return f"{i:02d} {title}"
+    return title          # compiled ad hoc, outside any EDL
+
+
+def _track_items(track: SourceTrack, cam_id: str, m_start: int, length: int,
+                 prog: int, tb: Timebase, media_type: str,
+                 enabled: bool = True, role: str = "camera",
+                 scale: float = 100.0) -> List[ClipItem]:
+    """Slice a master track into clipitems on the program timeline.
+
+    ``m_start`` is where this shot begins on the master timeline and ``prog``
+    where it begins in the finished clip; a piece keeps its offset between the
+    two, so the pieces of one shot stay butt-joined. Each piece satisfies
+    ``end - start == out - in`` on its own, which is what keeps the invariant
+    true no matter how many master cuts a shot spans.
+    """
+    out: List[ClipItem] = []
+    for p in track.slice(m_start, length):
+        out.append(ClipItem(
+            name=f"{cam_id} {_tc(tb, p.in_)}" if cam_id else p.name,
+            camera=cam_id, path=p.source.path,
+            start=prog + (p.start - m_start),
+            end=prog + (p.end - m_start),
+            in_=p.in_, out=p.in_ + p.length,
+            media_type=media_type, source_channel=p.source_channel,
+            # Both flags have to agree: the caller's says whether this is the
+            # angle the cut selects, the source's says whether the editor had
+            # muted or disabled that clip on the master. Ignoring the second one
+            # un-mutes every camera scratch track the mix was supposed to replace.
+            enabled=enabled and p.enabled,
+            role=role, scale=scale,
+            source=p.source, filters=p.filters,
+        ))
+    return out
+
+
+def _merge_ranges(ranges: List[tuple]) -> List[tuple]:
+    """Coalesce touching/overlapping (start, end) pairs."""
+    out: List[tuple] = []
+    for a, b in sorted(ranges):
+        if out and a <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], b))
+        else:
+            out.append((a, b))
+    return out
 
 
 def jump_cut_scales(shots: List[tuple], punch: float) -> List[float]:
@@ -280,9 +389,14 @@ def _stack_cameras(cameras: Dict[str, dict], shots) -> List[str]:
     and a video clipitem pointing at an mp3 makes Premiere report offline media.
     Every *video* camera is stacked even if this clip never cuts to it: having
     the unused angle sitting there, disabled, is the point.
+
+    A track-backed angle qualifies on its track alone. It has no file of its own
+    — its picture is whatever the master timeline's V-track points at — so
+    requiring a path would drop exactly the angles this workflow exists for.
     """
     ids = [cid for cid in sorted(cameras)
-           if cameras[cid].get("has_video", True) and cameras[cid].get("path")]
+           if cameras[cid].get("has_video", True)
+           and (cameras[cid].get("path") or cameras[cid].get("track") is not None)]
     used = {cam for _, _, cam in shots}
     # A camera the EDL actually cuts to must be present even if the caller's
     # metadata claims it has no picture — the cut is the stronger signal.
@@ -291,7 +405,8 @@ def _stack_cameras(cameras: Dict[str, dict], shots) -> List[str]:
 
 def _compile_audio(edl: EDL, clip: Clip, cameras: Dict[str, dict],
                    selected: List[ClipItem], prog_of_master: List[tuple],
-                   tb: Timebase, stack_cams: List[str]) -> List[List[ClipItem]]:
+                   tb: Timebase, stack_cams: List[str],
+                   master_audio: List[SourceTrack]) -> List[List[ClipItem]]:
     """Build audio tracks according to the EDL's audio mode.
 
     ``pinned`` cuts audio at *segment* boundaries only, never at camera switches
@@ -303,6 +418,9 @@ def _compile_audio(edl: EDL, clip: Clip, cameras: Dict[str, dict],
     Premiere answers with the same stereo pair twice.
     """
     mode = edl.audio.mode
+
+    if mode == "source_tracks":
+        return _source_track_audio(master_audio, clip, prog_of_master, tb)
 
     if mode == "follow_video":
         # Audio mirrors the picture edit exactly, so every pair can be linked.
@@ -340,6 +458,42 @@ def _compile_audio(edl: EDL, clip: Clip, cameras: Dict[str, dict],
     return tracks
 
 
+def _source_track_audio(tracks: List[SourceTrack], clip: Clip,
+                        prog_of_master: List[tuple],
+                        tb: Timebase) -> List[List[ClipItem]]:
+    """Reproduce the master timeline's own audio bed under the cut.
+
+    One reel track per master A-track, sliced to the kept segments and otherwise
+    untouched: the same lavs, camera scratch, music and mix layers, at the same
+    relative positions. That matters because the audio an editor hears is the
+    *sum* of those tracks — on this episode the enhanced mix covers barely a
+    fifth of the timeline and the rest of the sound lives elsewhere, so pinning
+    any single source would drop most of the audio.
+
+    Cuts land only at segment boundaries and wherever the master itself already
+    cut, never at a camera switch, so toggling an angle can't disturb the sound.
+    """
+    out: List[List[ClipItem]] = []
+    for tr in tracks:
+        if not tr.segments:
+            continue
+        items: List[ClipItem] = []
+        for seg in sorted(clip.segments, key=lambda s: s.start):
+            covering = [(ms, me, ps) for ms, me, ps in prog_of_master
+                        if ms >= seg.start - 1e-9 and me <= seg.end + 1e-9]
+            if not covering:
+                continue
+            p_start = covering[0][2]
+            p_end = covering[-1][2] + (tb.to_frames(covering[-1][1])
+                                       - tb.to_frames(covering[-1][0]))
+            items.extend(_track_items(
+                tr, "", tb.to_frames(covering[0][0]), p_end - p_start, p_start,
+                tb, media_type="audio", role="audio"))
+        if items:
+            out.append(items)
+    return out
+
+
 def _audio_run(cam_id: str, cameras: Dict[str, dict], clip: Clip,
                prog_of_master: List[tuple], tb: Timebase,
                enabled: bool = True) -> List[ClipItem]:
@@ -371,7 +525,8 @@ def _audio_run(cam_id: str, cameras: Dict[str, dict], clip: Clip,
 
 def compile_edl(edl: EDL, cameras: Dict[str, dict],
                 clip_ids: Optional[List[str]] = None,
-                caption_movs: Optional[Dict[str, str]] = None) -> List[CompiledClip]:
+                caption_movs: Optional[Dict[str, str]] = None,
+                audio_tracks: Optional[List[SourceTrack]] = None) -> List[CompiledClip]:
     """Compile every clip (or a named subset) in the EDL.
 
     ``caption_movs`` maps clip id -> rendered overlay path; clips without an
@@ -379,7 +534,48 @@ def compile_edl(edl: EDL, cameras: Dict[str, dict],
     """
     wanted = [c for c in edl.clips if clip_ids is None or c.id in clip_ids]
     movs = caption_movs or {}
-    return [compile_clip(edl, c, cameras, movs.get(c.id)) for c in wanted]
+    return [compile_clip(edl, c, cameras, movs.get(c.id), audio_tracks)
+            for c in wanted]
+
+
+def compile_for(project, edl: EDL, clip_ids: Optional[List[str]] = None,
+                caption_movs: Optional[Dict[str, str]] = None) -> List[CompiledClip]:
+    """Compile an EDL against a project, wiring in its master timeline if it has
+    one.
+
+    Every caller had been assembling compile's inputs by hand, which was fine
+    while a project was just a camera map — but a master-timeline project has a
+    second input, and one call site forgetting it produces reels with no audio
+    rather than an error. ``project`` is duck-typed to keep the dependency
+    pointing this way: ``xmeml`` already imports this module.
+    """
+    return compile_edl(edl, project.camera_map(), clip_ids, caption_movs,
+                       project.master_audio_tracks())
+
+
+def compile_for_monitor(project, edl: EDL, clip_ids: Optional[List[str]] = None,
+                        caption_movs: Optional[Dict[str, str]] = None
+                        ) -> List[CompiledClip]:
+    """Compile for local monitoring — preview renders and audio verification.
+
+    ffmpeg has to be handed one audible track, but ``source_tracks`` audio is a
+    bed whose sound is the *sum* of a dozen layers; no single one of them is what
+    a viewer hears, and picking the first would verify the cut against one lav.
+    The project's primary audio camera is precisely the exported mix that stands
+    in for that sum, so monitoring pins it and leaves the export path — which
+    should carry the real tracks into Premiere — untouched.
+    """
+    if edl.audio.mode != "source_tracks":
+        return compile_for(project, edl, clip_ids, caption_movs)
+    pinned = project.primary_audio_camera
+    if not pinned:
+        raise ValueError(
+            "monitoring a source_tracks EDL needs a primary_audio_camera to "
+            "stand in for the mix; the project has none")
+    monitor = copy.copy(edl)          # shallow: only the audio plan differs
+    monitor.audio = AudioPlan(mode="pinned", pinned_camera=pinned,
+                              channels=edl.audio.channels)
+    return compile_edl(monitor, project.camera_map(), clip_ids, caption_movs)
 
 
 def _tc(tb: Timebase, frame: int) -> str:

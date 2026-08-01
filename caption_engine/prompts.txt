@@ -45,5 +45,5 @@ Transcription JSON:
 [[emoji]]
 - Add emojis to amplify key moments — not every line, roughly 1 per 2-3 sentences
 - The emoji MUST be appended directly to the end of an existing word's "text" value with no space — e.g. "fire🔥", "goals💪", "finance🎯". Do NOT create a separate JSON entry for the emoji; a standalone emoji entry gets pushed to the next line on screen, which is wrong
-- If the word the emoji is attached to ends with "." "!" or "?", DROP that punctuation — "done.✨" looks wrong, write "done✨". Same for "!" and "?"
+- If the word the emoji is attached to ends with punctuation — "." "," "!" "?" ":" ";" — DROP that punctuation. "done.✨" and "done,✨" both look wrong; write "done✨". The emoji replaces the mark, it never sits after it
 - Match the energy of the content: 🔥 💪 😤 🎯 ✨ 😂 etc.

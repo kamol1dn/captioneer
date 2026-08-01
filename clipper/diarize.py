@@ -25,6 +25,16 @@ Two knobs, both deliberately forgiving:
   since a near-tie is what crosstalk actually looks like.
 * ``keep_ratio`` — the fraction of an utterance's words that must have won.
   Below half means the utterance is mostly someone else's voice.
+
+**Everything here is keyed by speaker, never by camera.** One person may own two
+cameras — a second angle to cut to instead of a jump cut — and their two mics
+carry the same voice within a decibel or two of each other. Fed in as separate
+rivals they would both clear the margin on every word, so every line that person
+said would survive twice and land in the master timeline twice. The caller
+therefore hands in one transcript per speaker (``Project.transcription_mic``) and
+envelopes merged per speaker (``energy.group_by_speaker``); the near-tie
+forgiveness above is for *crosstalk between people*, and cannot be asked to also
+arbitrate between one person's own mics.
 """
 from typing import Dict, List, Optional, Tuple
 
@@ -39,17 +49,18 @@ DEFAULT_MARGIN = 12
 DEFAULT_KEEP_RATIO = 0.5
 
 
-def own_word_fraction(camera: str, words: List[Word],
+def own_word_fraction(speaker: str, words: List[Word],
                       envelopes: Dict[str, dict],
                       margin: int = DEFAULT_MARGIN) -> float:
-    """Fraction of ``words`` where ``camera``'s own mic was the loudest.
+    """Fraction of ``words`` where ``speaker``'s own mic was the loudest.
 
     1.0 means every word was this speaker's; near 0 means the whole run is bleed
-    from someone else's voice.
+    from someone else's voice. ``envelopes`` must be keyed by speaker — see the
+    module docstring for why per-camera keys break this.
     """
     if not words:
         return 0.0
-    if camera not in envelopes:
+    if speaker not in envelopes:
         # Nothing to compare against — trust the transcript rather than drop it.
         return 1.0
 
@@ -61,7 +72,7 @@ def own_word_fraction(camera: str, words: List[Word],
             wins += 1          # silence everywhere; no evidence of bleed
             continue
         top = max(scores.values())
-        if scores.get(camera, 0) >= top - margin:
+        if scores.get(speaker, 0) >= top - margin:
             wins += 1
     return wins / len(words)
 
@@ -75,34 +86,38 @@ def _padded(w: Word) -> Tuple[float, float]:
     return max(0.0, start), max(0.0, end)
 
 
-def merge_per_mic(per_camera_words: Dict[str, List[Word]],
+def merge_per_mic(per_speaker_words: Dict[str, List[Word]],
                   envelopes: Dict[str, dict],
                   margin: int = DEFAULT_MARGIN,
                   keep_ratio: float = DEFAULT_KEEP_RATIO,
                   ) -> Tuple[List[Utterance], dict]:
-    """Merge one transcript per mic into a single speaker-labelled timeline.
+    """Merge one transcript per speaker into a single speaker-labelled timeline.
+
+    Both dicts are keyed by speaker id — one entry per *person*, however many
+    cameras they own. Two entries for one person is the caller's bug, and shows
+    up as every line of theirs appearing twice.
 
     Returns ``(utterances, report)``. The report is what the agent shows the
-    user: how much of each mic's transcript survived, so a mic that was mostly
-    bleed (or a bad ``margin``) is visible rather than silently swallowed.
+    user: how much of each speaker's transcript survived, so a mic that was
+    mostly bleed (or a bad ``margin``) is visible rather than silently swallowed.
     """
     kept: List[Utterance] = []
     report: Dict[str, dict] = {}
 
-    for camera in sorted(per_camera_words):
-        words = per_camera_words[camera] or []
+    for speaker in sorted(per_speaker_words):
+        words = per_speaker_words[speaker] or []
         utterances = build_utterances(words)
         n_kept = 0
         for u in utterances:
             # build_utterances keeps the Word objects; without them there is no
             # per-word evidence and the utterance can only be taken on trust.
-            share = own_word_fraction(camera, u.words, envelopes, margin)
+            share = own_word_fraction(speaker, u.words, envelopes, margin)
             if share >= keep_ratio:
-                u.speaker = camera
+                u.speaker = speaker
                 u.speaker_confidence = round(share, 3)
                 kept.append(u)
                 n_kept += 1
-        report[camera] = {
+        report[speaker] = {
             "utterances": len(utterances),
             "kept": n_kept,
             "dropped_as_bleed": len(utterances) - n_kept,
@@ -114,7 +129,7 @@ def merge_per_mic(per_camera_words: Dict[str, List[Word]],
         u.index = i
 
     report["_totals"] = {
-        "speakers": sorted(per_camera_words),
+        "speakers": sorted(per_speaker_words),
         "utterances": len(kept),
         "overlaps": _count_overlaps(kept),
     }

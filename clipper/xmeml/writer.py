@@ -15,13 +15,25 @@ Two stateful details cause most import problems and are handled here:
    genuinely frame-identical. A link whose ``clipindex`` is off by one makes
    Premiere pair the wrong items and flag everything out of sync — worse than
    no links at all, since unlinked clips still play correctly.
+
+A third applies once clips are cut from an existing episode timeline rather than
+from flat per-angle exports. Those clipitems carry a ``SourceRef``: the source
+definition exactly as Premiere wrote it, which may be a ``<file>`` or a whole
+nested ``<sequence>`` with its own frame size and internal framing. Those are
+re-emitted **verbatim**, so a crop expressed as nest-plus-offset survives without
+this module having to understand it. Ids generated here are namespaced (``reel-``)
+precisely so a copied subtree can keep Premiere's own ids and stay internally
+consistent; a definition is still written once and referenced by id thereafter,
+including definitions that arrive nested inside a copied sequence.
 """
+import copy
 import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from ..compile import ClipItem, CompiledClip
+from ..sources import SourceRef
 from ..timebase import Timebase
 from .pathurl import to_pathurl
 
@@ -38,6 +50,11 @@ class XmemlWriter:
         self.stereo_as_two_tracks = stereo_as_two_tracks
         self._file_ids: Dict[str, str] = {}     # abs path -> file id
         self._ids: Dict[int, str] = {}          # id(ClipItem) -> xml id
+        # Ids already carrying a full definition in this document, as
+        # "file:file-11" / "sequence:sequence-3". Spans both the ids we mint and
+        # the ones that arrive inside a copied nest, so a source referenced both
+        # at top level and from within a nest is still defined exactly once.
+        self._defined: Set[str] = set()
         self._n_files = 0
         self._n_items = 0
 
@@ -79,12 +96,12 @@ class XmemlWriter:
             for track in clip.video_tracks + clip.audio_tracks:
                 for item in track:
                     n += 1
-                    self._ids[id(item)] = f"clipitem-{n}"
+                    self._ids[id(item)] = f"reel-clipitem-{n}"
 
     # ── sequence ─────────────────────────────────────────────────────────────
 
     def _sequence(self, clip: CompiledClip) -> ET.Element:
-        seq = ET.Element("sequence", id=f"sequence-{_safe(clip.id)}")
+        seq = ET.Element("sequence", id=f"reel-{_safe(clip.id)}")
         # Deterministic per-clip UUID: re-exporting the same EDL then produces a
         # byte-identical file, and Premiere treats a re-import as the same
         # sequence rather than spawning a duplicate.
@@ -170,7 +187,7 @@ class XmemlWriter:
         _text(el, "end", item.end)
         _text(el, "in", item.in_)
         _text(el, "out", item.out)
-        el.append(self._file(item, tb))
+        el.append(self._source(item, tb))
 
         if item.media_type == "audio":
             st = ET.SubElement(el, "sourcetrack")
@@ -181,8 +198,8 @@ class XmemlWriter:
             _text(st, "mediatype", "video")
             _text(st, "trackindex", 1)
 
-        if item.media_type == "video" and abs(item.scale - 100.0) > 1e-6:
-            el.append(_basic_motion(item.scale))
+        for f in self._filters(item):
+            el.append(f)
 
         # Every member of a link group carries the full membership list,
         # including itself.
@@ -197,6 +214,87 @@ class XmemlWriter:
                     _text(lk, "groupindex", 1)
         return el
 
+    # ── sources ──────────────────────────────────────────────────────────────
+
+    def _source(self, item: ClipItem, tb: Timebase) -> ET.Element:
+        """What this clipitem points at, defined once and referenced after."""
+        if item.source is not None:
+            return self._passthrough(item.source)
+        return self._file(item, tb)
+
+    def _passthrough(self, ref: SourceRef) -> ET.Element:
+        """Re-emit a source read off the master timeline, unchanged.
+
+        The definition is copied whole on first use — for a nest that means its
+        tracks, its frame size and the clipitems inside it, which is where the
+        framing of a reframed angle actually lives. Later uses are the bare id
+        reference Premiere itself would have written.
+        """
+        key = f"{ref.kind}:{ref.key}"
+        if key in self._defined:
+            return ET.Element(ref.kind, id=ref.key)
+        self._defined.add(key)
+        el = copy.deepcopy(ref.element) if ref.element is not None \
+            else ET.Element(ref.kind, id=ref.key)
+        if ref.kind == "sequence":
+            self._collapse_known(el)
+        return el
+
+    def _collapse_known(self, root: ET.Element) -> None:
+        """Strip definitions inside a copied nest that this document already has.
+
+        A camera file can be referenced both by a top-level angle track and from
+        inside a nest. Emitting the full ``<file>`` twice makes Premiere create
+        two bin items for one piece of media, so the second occurrence is reduced
+        to a bare id reference — in place, since position within a clipitem is
+        part of the schema.
+        """
+        found = [(parent, child)
+                 for parent in root.iter()
+                 for child in parent
+                 if child.tag in ("file", "sequence") and len(child)]
+        for _parent, child in found:
+            key = f"{child.tag}:{child.get('id') or ''}"
+            if key in self._defined:
+                cid = child.get("id")
+                child.clear()
+                if cid:
+                    child.set("id", cid)
+            else:
+                self._defined.add(key)
+
+    def _filters(self, item: ClipItem) -> List[ET.Element]:
+        """The clipitem's filters: whatever the source carried, plus the punch.
+
+        A jump-cut punch is a scale, and the source may already have a Basic
+        Motion holding the crop that fits a landscape camera into a vertical
+        frame. Two Basic Motion blocks on one clipitem is undefined, so the punch
+        multiplies into the existing one rather than being appended beside it —
+        which also keeps the punch relative to the framing instead of replacing
+        it with an absolute zoom.
+        """
+        # No punch on this shot: hand the source's filters back byte-identical
+        # rather than round-tripping their numbers through float.
+        if item.media_type != "video" or abs(item.scale - 100.0) <= 1e-6:
+            return [copy.deepcopy(f) for f in item.filters]
+
+        punch = item.scale / 100.0
+        out: List[ET.Element] = []
+        composed = False
+        for f in item.filters:
+            f = copy.deepcopy(f)
+            if not composed and (f.findtext("effect/effectid") or "") == "basic":
+                for p in f.findall("effect/parameter"):
+                    if p.findtext("parameterid") == "scale":
+                        base = float(p.findtext("value") or 100.0)
+                        p.find("value").text = str(round(base * punch, 4))
+                        composed = True
+            out.append(f)
+
+        if not composed:
+            out.append(_basic_motion(item.scale))
+        return out
+
     def _file(self, item: ClipItem, tb: Timebase) -> ET.Element:
         """Full <file> on first use of a path, bare reference thereafter."""
         key = str(Path(item.path).resolve()) if item.path else item.name
@@ -205,8 +303,9 @@ class XmemlWriter:
             return ET.Element("file", id=known)
 
         self._n_files += 1
-        fid = f"file-{self._n_files}"
+        fid = f"reel-file-{self._n_files}"
         self._file_ids[key] = fid
+        self._defined.add(f"file:{fid}")
 
         meta = self._file_meta.get(key, {}) or self._file_meta.get(item.path, {})
         el = ET.Element("file", id=fid)

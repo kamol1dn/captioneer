@@ -22,6 +22,20 @@
   <main class="layout">
     <!-- ── Left: workflow ──────────────────────────────────────────────── -->
     <section class="panel workflow">
+      <div id="clipperCard" class="card">
+        <h2>0 · Clipper project</h2>
+        <div class="row">
+          <select id="clipperProject" class="grow"></select>
+          <button id="clipperRefresh" class="btn small" title="Reload the clip list">↻</button>
+          <button id="clipperReveal" class="btn small" title="Open the captions folder">📁</button>
+        </div>
+        <div id="clipperClips" class="clip-list scroll"></div>
+        <div class="subrow">
+          <span class="muted small">Pick a clip to edit its captions — rendering overwrites
+            the overlay the exported timeline already links to.</span>
+        </div>
+      </div>
+
       <div class="card">
         <h2>1 · Source</h2>
         <div class="row">
@@ -61,6 +75,7 @@
         <h2>5 · Export</h2>
         <div class="row">
           <input id="outputPath" type="text" placeholder="captions.mov">
+          <div id="clipperTarget" class="clipper-target hidden"></div>
         </div>
         <button id="renderBtn" class="btn primary block">Export ProRes .mov</button>
         <div id="renderMsg" class="muted"></div>
@@ -126,6 +141,8 @@
   <script src="/static/preview.js"></script>
   <script src="/static/editor.js"></script>
   <script src="/static/words.js"></script>
+  <!-- Before app.js: app.js calls init() on load, which calls Clipper.init(). -->
+  <script src="/static/clipper.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

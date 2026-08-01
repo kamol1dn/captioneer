@@ -43,7 +43,7 @@ from . import ingest as ingest_mod  # noqa: E402
 from . import transcript as transcript_mod  # noqa: E402
 from caption_engine.transcriber.word import load_words  # noqa: E402
 
-from .compile import compile_edl  # noqa: E402
+from .compile import compile_for, compile_for_monitor  # noqa: E402
 from .edl import EDL, validate  # noqa: E402
 from .preview import render_preview  # noqa: E402
 from .project import Project, create
@@ -78,18 +78,67 @@ def _load(project_id: str) -> Project:
 @mcp.tool()
 def create_project(name: str, cameras: List[dict],
                    primary_audio_camera: str = "",
-                   project_dir: Optional[str] = None) -> dict:
+                   project_dir: Optional[str] = None,
+                   language: str = "",
+                   caption_preset: str = "",
+                   master_xml: str = "",
+                   master_sequence: str = "") -> dict:
     """Register a new multicam project. Each camera export must share a common
     t=0 (same Premiere sequence, same range) — that's what lets the compiler
     skip sync/offset math by default.
 
     cameras: [{"id": "A", "path": "D:/episodes/EP12/for claude/CamA.mp4",
-               "label": "host", "offset_sec": 0.0, "transcribe": false}, ...]
+               "label": "host", "offset_sec": 0.0, "transcribe": false,
+               "speaker": "host"}, ...]
+
+    **Cutting from the episode timeline instead of flat exports.** Pass
+    `master_xml` (an FCP7 XML exported from Premiere, plus `master_sequence` when
+    the file holds more than one) and give an angle `"source_track": "V1"` in
+    place of `"path"`. That angle's picture then comes from whatever V1 already
+    points at, so it costs no video export at all — on a two-hour episode that
+    replaces four 14 GB renders with one XML. Only the audio you want
+    transcribed still has to be exported as media.
+
+    Call `inspect_master_xml` first: it lists the sequences and, for the one you
+    name, every track with its sources and coverage, which is how you decide
+    which V-track is which angle. Two caveats it will tell you about — Premiere
+    *drops* multicam items on export rather than flattening them (flatten or
+    stack plain clips first, or the V-tracks come through empty), and a
+    track-backed angle carries no sound of its own, so set the EDL's audio mode
+    to `source_tracks` to reproduce the timeline's own audio bed.
 
     ``transcribe`` selects what ingest runs Whisper on, and defaults to the
     primary alone. A source may be audio-only (an mp3 mix sharing the same t=0):
     it can be transcribed and pinned as audio, but never cut to as picture, and
     it is held out of speaker scoring.
+
+    **`speaker` groups several cameras onto one person.** Set it when a subject
+    has more than one angle (a tight and a wide, say) — two cameras sharing a
+    speaker are two angles on one voice, which is what lets you hide a jump cut
+    by changing angle instead of punching in. Everything that answers "who is
+    talking" then reasons about people: one transcription pass per speaker
+    (flag the best mic with `transcribe: true` to choose which), and that
+    person's mics merged into one loudness line. Omit it for the normal
+    one-camera-per-subject setup — a camera's speaker defaults to its own id.
+
+    Getting this wrong is expensive and quiet: leave two angles on one person
+    ungrouped and a diarized ingest transcribes both mics, both clear bleed
+    rejection, and every line that person says lands in the master twice — so
+    every caption is doubled. `create_project` warns when it sees a group.
+
+    **Set `language` here** — it is remembered and used by ingest, captions and
+    verification without being passed again. Ask which show this is if it isn't
+    stated:
+
+    * Gashtak (Uzbek) — `language="uz"`, `caption_preset="gashtak_2"`.
+      `uz` routes transcription to the Kotib Uzbek model with MMS alignment
+      (Whisper's own Uzbek is much weaker) and selects the Uzbek refinement
+      prompt, with its `o‘`/`g‘` orthography and Russian-code-switch rules.
+    * OTG (English) — `language="en"`, `caption_preset="otg_cyan"`.
+
+    Leaving `language` empty means auto-detect, which on Uzbek audio quietly
+    produces a mediocre English-prompt transcript. `caption_preset` defaults to
+    gashtak_2 at render time.
 
     The project is created as `clipper/` beside the media, so the episode folder
     stays self-contained and movable; pass project_dir to override. Returns
@@ -99,19 +148,67 @@ def create_project(name: str, cameras: List[dict],
     """
     with _quiet():
         project, warnings_ = create(name, cameras, primary_audio_camera,
-                                   project_dir=project_dir)
+                                   project_dir=project_dir,
+                                   language=language,
+                                   caption_preset=caption_preset,
+                                   master_xml=master_xml,
+                                   master_sequence=master_sequence)
+    if not project.language:
+        warnings_.append(
+            "no language set — transcription will auto-detect and captions "
+            "will use the English prompt; pass language='uz' for Gashtak")
     return {
         "project_id": project.id,
+        "language": project.language,
+        "caption_preset": project.caption_preset or captions_mod.DEFAULT_PRESET,
         "project_dir": str(project.dir),
         "media_dir": str(project.media_dir),
         "cameras": [{"id": c.id, "label": c.label, "duration": c.duration,
+                    "speaker": c.speaker_id,
+                    "source_track": c.source_track,
                     "fps": str(c.probe.get("fps")), "width": c.probe.get("width"),
                     "height": c.probe.get("height"),
                     "has_audio": c.probe.get("has_audio")}
                    for c in project.cameras],
+        "speakers": project.speaker_map(),
         "primary_audio_camera": project.primary_audio_camera,
+        "master_xml": project.master_xml,
         "warnings": warnings_,
     }
+
+
+@mcp.tool()
+def inspect_master_xml(xml_path: str, sequence: Optional[str] = None) -> dict:
+    """Look inside an FCP7 XML exported from Premiere before building a project.
+
+    Call this first when cutting from an episode timeline rather than from flat
+    per-angle exports. With no `sequence` it lists what the document holds; name
+    one and you get every track with its sources, how much of the timeline it
+    covers, and whether it is a nested sequence — which is how you work out
+    which V-track is which angle, and which A-tracks carry the sound.
+
+    What to look for:
+
+    * **All video tracks empty** — Premiere skipped multicam items instead of
+      flattening them. Flatten the multicams (or stack the angles as plain
+      clips) and export again; the translation-results log names the cause.
+    * **Coverage well under 100%** on a V-track means that angle has stretches
+      with no footage, and clips landing there will have no picture on it.
+    * **Audio coverage** is usually split across many tracks — an enhanced mix
+      often covers only part of the episode — which is why the reel takes the
+      whole bed rather than one pinned source.
+    """
+    from .xmeml.reader import list_sequences, read_master
+    if not sequence:
+        seqs = list_sequences(xml_path)
+        return {
+            "path": xml_path,
+            "sequences": seqs,
+            "note": ("name one of these as `sequence` for its tracks"
+                     if len(seqs) > 1 else
+                     "one sequence; pass its name for track detail"),
+        }
+    return read_master(xml_path, sequence).summary()
 
 
 @mcp.tool(name="list_projects")
@@ -121,12 +218,50 @@ def list_projects_tool() -> List[dict]:
 
 
 @mcp.tool()
+def set_project_defaults(project_id: str, language: Optional[str] = None,
+                        caption_preset: Optional[str] = None) -> dict:
+    """Set the project's language and/or caption preset after the fact.
+
+    For a project created before either was recorded, or created under the
+    wrong show. Both are what every later call defaults to, so this is the one
+    place to fix them — don't hand-edit project.json.
+
+    Gashtak is `language="uz"`, `caption_preset="gashtak_2"`; OTG is `"en"` and
+    `"otg_cyan"`. Changing the language does **not** re-transcribe: if the
+    transcript was produced with the wrong one, re-run ingest.
+    """
+    project = _load(project_id)
+    if caption_preset:
+        from caption_engine import presets as _presets
+        # Fail here rather than at render time, three steps later.
+        known = _presets.names()
+        if caption_preset not in known:
+            raise ValueError(f"unknown preset {caption_preset!r}; have {known}")
+        project.caption_preset = caption_preset
+    if language is not None:
+        project.language = language.strip().lower()
+    project.save()
+    return {"project_id": project.id, "language": project.language,
+           "caption_preset": project.caption_preset or captions_mod.DEFAULT_PRESET,
+           "note": ("transcript was produced under the previous language; "
+                    "re-run ingest if it was wrong")
+                   if language is not None and project.ingest_state.get(
+                       "state") == "done" else ""}
+
+
+@mcp.tool()
 def get_project(project_id: str) -> dict:
-    """Full project state: cameras, timebase, ingest status, EDL summary."""
+    """Full project state: cameras, timebase, speakers, ingest status, EDL
+    summary.
+
+    `speakers` is {person: [camera ids]} — a person with more than one entry has
+    a second angle you can cut to instead of leaving a jump cut.
+    """
     project = _load(project_id)
     d = project.to_dict()
     d["project_dir"] = str(project.dir)
     d["media_dir"] = str(project.media_dir)
+    d["speakers"] = project.speaker_map()
     edl = EDL.load(project.edl_path)
     d["edl_summary"] = ({"n_clips": len(edl.clips),
                          "clip_ids": [c.id for c in edl.clips]}
@@ -152,25 +287,42 @@ def ingest(project_id: str, model_size: str = "large-v3",
       speaker labels: who said what is inferred afterwards from the per-camera
       energy line, and two people talking at once collapse into one stream.
 
-    * **diarize=True** — transcribe every *camera* mic separately and merge them
-      into one speaker-labelled timeline. Costs one Whisper pass per camera and
-      needs at least two, but each line comes back attributed, overlapping
-      speech survives on both mics, and captions are cut from each speaker's own
-      isolated mic. Every mic hears the whole room, so bleed is rejected per
-      word against the energy envelopes; `ingest_status` reports how much of
-      each mic's transcript survived, under `diarization`.
+    * **diarize=True** — transcribe one mic per *speaker* separately and merge
+      them into one speaker-labelled timeline. Costs one Whisper pass per
+      speaker and needs at least two, but each line comes back attributed,
+      overlapping speech survives on both mics, and captions are cut from each
+      speaker's own isolated mic. Every mic hears the whole room, so bleed is
+      rejected per word against the energy envelopes; `ingest_status` reports
+      how much of each speaker's transcript survived, under `diarization`,
+      alongside `mics` (which camera spoke for which person) and
+      `picture_only` (angles that were never transcribed because a colleague
+      camera already covers that voice).
+
+      Two angles on one person count as **one** speaker, so grouping them via
+      the camera's `speaker` field is what keeps this from transcribing the same
+      voice twice and doubling every line they said.
 
     A combined mix is never a diarization target — it contains every voice at
     once and would win every bleed comparison. Register it as an audio-only
     source and it stays available to pin as the audio you hear.
 
     `cameras` filters which cameras this run touches.
+
+    `language` defaults to the project's own (set at create_project) and is
+    saved back when passed here, so a project created without one can be
+    corrected on the first ingest. "uz" transcribes with the Kotib Uzbek model
+    plus MMS forced alignment instead of WhisperX; anything else (including
+    empty, which auto-detects) goes through WhisperX.
     """
     project = _load(project_id)
+    language = (language or project.language or "").strip().lower()
+    if language and language != project.language:
+        project.language = language
+        project.save()
     with _quiet():
-        job = ingest_mod.start_ingest(project, model_size, language, cameras,
-                                      diarize=diarize)
-    return {"job_id": job.id}
+        job = ingest_mod.start_ingest(project, model_size, language or None,
+                                      cameras, diarize=diarize)
+    return {"job_id": job.id, "language": language or "auto-detect"}
 
 
 @mcp.tool()
@@ -185,11 +337,13 @@ def ingest_status(project_id: str) -> dict:
 def get_outline(project_id: str, bucket_sec: float = 20.0,
                 start: float = 0.0, end: Optional[float] = None) -> str:
     """A map of the whole episode: one line per ~20s bucket showing the likely
-    speaking camera, utterance count, and a text snippet. Read this before
+    speaker, utterance count, and a text snippet. Read this before
     get_transcript — a 1-hour episode outlines in about 2k tokens."""
     project = _load(project_id)
     utterances = transcript_mod.load_utterances(project)
-    envelopes = ingest_mod.load_envelopes(project)
+    # Who is talking is a question about people, so a speaker with two cameras
+    # is scored as one line rather than competing with themselves.
+    envelopes = ingest_mod.load_envelopes(project, by_speaker=True)
     return transcript_mod.build_outline(utterances, envelopes, bucket_sec,
                                         start, end)
 
@@ -198,13 +352,14 @@ def get_outline(project_id: str, bucket_sec: float = 20.0,
 def get_transcript(project_id: str, start: float = 0.0,
                    end: Optional[float] = None, max_chars: int = 8000) -> dict:
     """Word-adjacent transcript text for a time window, with a per-utterance
-    energy line (e.g. 'A88 B09 C04') showing which camera's mic was loudest —
-    that's the speaker-ID signal; there is no diarization model. Capped at
-    max_chars (hard ceiling 20000); truncated=True means call again with
+    energy line (e.g. 'A88 B09 C04') showing which speaker's mic was loudest —
+    that's the speaker-ID signal; there is no diarization model. Labels are
+    speakers, so a person with two cameras appears once. Capped at max_chars
+    (hard ceiling 20000); truncated=True means call again with
     start=next_start."""
     project = _load(project_id)
     utterances = transcript_mod.load_utterances(project)
-    envelopes = ingest_mod.load_envelopes(project)
+    envelopes = ingest_mod.load_envelopes(project, by_speaker=True)
     return transcript_mod.format_transcript(utterances, envelopes, start, end,
                                             min(max_chars, 20000))
 
@@ -219,12 +374,18 @@ def search_transcript(project_id: str, query: str, regex: bool = False,
 
 
 @mcp.tool()
-def get_energy(project_id: str, start: float, end: float) -> dict:
+def get_energy(project_id: str, start: float, end: float,
+              by_speaker: bool = False) -> dict:
     """Normalized 0-99 loudness per camera over a window — the raw signal
     behind the transcript's energy line, useful when you need a finer look
-    than one utterance's average."""
+    than one utterance's average.
+
+    `by_speaker=True` merges each person's cameras into one score. Use it to ask
+    *who is talking*; leave it off to ask which angle is hottest. They differ
+    only when a speaker owns more than one camera.
+    """
     project = _load(project_id)
-    envelopes = ingest_mod.load_envelopes(project)
+    envelopes = ingest_mod.load_envelopes(project, by_speaker=by_speaker)
     return energy_mod.speaker_scores(envelopes, start, end)
 
 
@@ -317,6 +478,11 @@ def check_segments(project_id: str, clip_ids: Optional[List[str]] = None,
 
     Everything here is a warning. English resists word lists, so read the
     findings and decide; don't apply them blindly.
+
+    The dangling/filler/continuation word lists are English. On an Uzbek project
+    only the language-neutral checks fire — punctuation, gaps, empty segments —
+    so a thin report means less here than it does in English; read the joins
+    yourself with get_transcript.
     """
     project = _load(project_id)
     edl = EDL.load(project.edl_path)
@@ -328,16 +494,24 @@ def check_segments(project_id: str, clip_ids: Optional[List[str]] = None,
 
     clips = [c for c in edl.clips if clip_ids is None or c.id in clip_ids]
     reports = [sanity_mod.check_clip(words, c) for c in clips]
+    partial = project.language not in ("", "en")
+    note = (f"note: the word-list checks are English-only; on a "
+            f"{project.language!r} project only punctuation and gap checks ran")
     if as_text:
-        return sanity_mod.format_report(reports, min_confidence)
-    return {"clips": reports,
-            "n_issues": sum(len(r["issues"]) for r in reports)}
+        text = sanity_mod.format_report(reports, min_confidence)
+        return f"{note}\n\n{text}" if partial else text
+    out = {"clips": reports,
+           "n_issues": sum(len(r["issues"]) for r in reports)}
+    if partial:
+        out["note"] = note
+    return out
 
 
 @mcp.tool()
 def verify_clip_audio(project_id: str, clip_ids: Optional[List[str]] = None,
                       model_size: str = "base", as_text: bool = True,
-                      min_confidence: str = "high"):
+                      min_confidence: str = "high",
+                      language: Optional[str] = None):
     """Render each clip's audio, transcribe it, and diff it against the plan.
 
     `check_segments` reasons about the cut from the transcript; this listens to
@@ -354,8 +528,16 @@ def verify_clip_audio(project_id: str, clip_ids: Optional[List[str]] = None,
     Read `mismatch` findings sceptically — ASR disagrees with itself on names
     and numbers, so a lone substitution is usually the recognizer wavering.
     `stutter` and anything landing next to a boundary are the real signal.
+
+    `language` defaults to the project's. It matters more here than elsewhere:
+    re-transcribing Uzbek audio with an auto-detecting Whisper produces a
+    "heard" transcript that shares almost no words with the plan, and every
+    line of the diff becomes a false mismatch. On "uz" the pass runs through
+    Kotib, and `model_size` is ignored (that backend has a fixed model), so it
+    costs the same as a full Uzbek transcription of each clip.
     """
     project = _load(project_id)
+    language = (language or project.language or "").strip().lower() or None
     edl = EDL.load(project.edl_path)
     if edl is None:
         raise ValueError("no EDL saved — call set_edl first")
@@ -368,10 +550,11 @@ def verify_clip_audio(project_id: str, clip_ids: Optional[List[str]] = None,
     results = []
     with _quiet():
         for clip in clips:
-            compiled = compile_edl(edl, project.camera_map(), [clip.id])[0]
+            compiled = compile_for_monitor(project, edl, [clip.id])[0]
             wav = verify_mod.export_clip_audio(compiled, work / f"{clip.id}.wav")
             heard = verify_mod.transcribe_file(
-                wav, work / f"{clip.id}.heard.json", model_size=model_size)
+                wav, work / f"{clip.id}.heard.json", model_size=model_size,
+                language=language)
             expected = captions_mod.words_for_clip(master, clip, edl.timebase)
             # Segment joins in program time — where an artifact would land.
             bounds, acc = [], 0.0
@@ -427,13 +610,17 @@ def get_clip_captions(project_id: str, clip_id: str,
     transcript remapped onto this clip's program time, so they already match the
     cut frame for frame.
 
-    Returns {words, prompt, duration, polished}. Read `prompt` — it carries the
-    project's own tuned rules (capitalization, number handling, Uzbek
-    orthography, emoji placement, line_break decisions) from prompts.txt — apply
-    them to `words`, then send the result to set_clip_captions. `polished` says
-    whether a refined version was already saved.
+    Returns {words, prompt, language, duration, polished}. Read `prompt` — it
+    carries the project's own tuned rules (capitalization, number handling,
+    Uzbek orthography, emoji placement, line_break decisions) from prompts.txt
+    — apply them to `words`, then send the result to set_clip_captions.
+    `polished` says whether a refined version was already saved.
+
+    `language` defaults to the project's, so an Uzbek project gets the Uzbek
+    prompt without asking; pass it only to override for one clip.
     """
     project = _load(project_id)
+    language = (language or project.language or "").strip().lower()
     edl = EDL.load(project.edl_path)
     if edl is None:
         raise ValueError("no EDL saved — call set_edl first")
@@ -452,7 +639,9 @@ def get_clip_captions(project_id: str, clip_id: str,
         "words": [{"text": w.text, "start": round(w.start, 3),
                   "end": round(w.end, 3), "line_break": w.line_break}
                  for w in words],
-        "prompt": captions_mod.refinement_prompt(words, use_emojis, language),
+        "prompt": captions_mod.refinement_prompt(words, use_emojis,
+                                                 language or None),
+        "language": language or "en",
         "duration": round(clip.duration, 3),
         "polished": existing is not None,
     }
@@ -498,8 +687,12 @@ def render_captions(project_id: str, clip_id: str,
     scale_to_width resizes the strip to the sequence width, scaling typography
     proportionally. Uses polished words if set_clip_captions has been called,
     otherwise the raw remapped transcript.
+
+    `preset` defaults to the project's own (set at create_project), and to
+    gashtak_2 if the project doesn't name one.
     """
     project = _load(project_id)
+    preset = preset or project.caption_preset or None
     edl = EDL.load(project.edl_path)
     if edl is None:
         raise ValueError("no EDL saved")
@@ -513,7 +706,7 @@ def render_captions(project_id: str, clip_id: str,
         master = transcript_mod.master_words(project)
         words = captions_mod.words_for_clip(master, clip, edl.timebase)
 
-    compiled = compile_edl(edl, project.camera_map(), [clip_id])[0]
+    compiled = compile_for(project, edl, [clip_id])[0]
     style = captions_mod.build_style(
         preset, edl.frame_size, round(float(edl.timebase.fps)),
         full_frame=full_frame, vertical_anchor=vertical_anchor,
@@ -523,6 +716,7 @@ def render_captions(project_id: str, clip_id: str,
             project, clip_id, words,
             duration=compiled.duration_seconds, style=style)
     return {"path": str(out), "polished": polished, "n_words": len(words),
+           "preset": preset or captions_mod.DEFAULT_PRESET,
            "duration_sec": compiled.duration_seconds,
            "canvas": [style.width, style.height],
            "vertical_anchor": style.vertical_anchor}
@@ -541,8 +735,11 @@ def render_all_captions(project_id: str, preset: Optional[str] = None,
     only_polished=True (default) renders just the clips whose captions you've
     reviewed via set_clip_captions — the raw transcript is rarely worth burning
     a render on. Set False to render everything regardless.
+
+    `preset` defaults to the project's own, then to gashtak_2.
     """
     project = _load(project_id)
+    preset = preset or project.caption_preset or None
     edl = EDL.load(project.edl_path)
     if edl is None:
         raise ValueError("no EDL saved")
@@ -568,7 +765,7 @@ def render_all_captions(project_id: str, preset: Optional[str] = None,
             skipped.append({"clip_id": clip.id, "reason": "no words"})
             continue
 
-        compiled = compile_edl(edl, project.camera_map(), [clip.id])[0]
+        compiled = compile_for(project, edl, [clip.id])[0]
         try:
             with _quiet():
                 out = captions_mod.render_captions(
@@ -582,6 +779,7 @@ def render_all_captions(project_id: str, preset: Optional[str] = None,
                         "duration_sec": compiled.duration_seconds})
 
     return {"rendered": rendered, "skipped": skipped, "failed": failed,
+           "preset": preset or captions_mod.DEFAULT_PRESET,
            "canvas": [style.width, style.height]}
 
 
@@ -650,7 +848,7 @@ def export_xml(project_id: str, out_path: Optional[str] = None,
         raise ValueError(f"EDL has errors, fix before export: {result['errors']}")
 
     movs = captions_mod.caption_movs(project, edl) if include_captions else {}
-    compiled = compile_edl(edl, project.camera_map(), clip_ids, movs)
+    compiled = compile_for(project, edl, clip_ids, movs)
 
     meta = dict(project.file_meta())
     meta.update(captions_mod.caption_file_meta(
@@ -694,7 +892,7 @@ def export_preview(project_id: str, clip_id: str,
     clip = edl.clip(clip_id)
     if clip is None:
         raise ValueError(f"no clip {clip_id!r} in EDL")
-    compiled = compile_edl(edl, project.camera_map(), [clip_id])[0]
+    compiled = compile_for_monitor(project, edl, [clip_id])[0]
     out = out_path or str(project.exports_dir / f"{clip_id}_preview.mp4")
     with _quiet():
         render_preview(compiled, out, quality)

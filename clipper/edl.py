@@ -130,8 +130,15 @@ class AudioPlan:
     camera carries the full conversation: every source lands on its own track to
     be mixed downstream. ``pinned_camera`` may name an audio-only source; camera
     *cuts* may not.
+
+    ``source_tracks`` reproduces the master timeline's own audio tracks under the
+    cut, one reel track per master track. It is the right mode whenever the
+    project has a master XML, because what the editor mixed is the *sum* of those
+    tracks — lavs, camera scratch, music and mix layers, each covering a
+    different part of the episode — and pinning any single one of them would drop
+    most of the sound. It reads no cameras at all, so ``pinned_camera`` is unused.
     """
-    mode: str = "pinned"          # "pinned" | "follow_video" | "multitrack"
+    mode: str = "pinned"   # "pinned" | "follow_video" | "multitrack" | "source_tracks"
     pinned_camera: str = ""
     channels: int = 2
 
@@ -256,7 +263,8 @@ def validate(edl: EDL, camera_ids: List[str],
     elif edl.default_camera and edl.default_camera not in with_video:
         errors.append(f"default_camera {edl.default_camera!r} has no video stream")
 
-    if edl.audio.mode not in ("pinned", "follow_video", "multitrack"):
+    if edl.audio.mode not in ("pinned", "follow_video", "multitrack",
+                              "source_tracks"):
         errors.append(f"audio.mode {edl.audio.mode!r} is not valid")
     if edl.audio.mode == "pinned":
         if not edl.audio.pinned_camera:
