@@ -43,6 +43,7 @@ async function init() {
   Object.keys(cfg.preset_groups).forEach(g => grpSel.add(new Option(g, g)));
 
   onLanguageChange();               // populates models + presets for the language
+  await Clipper.init(cfg);          // no-op (and hides its card) without clipper
   window.addEventListener("resize", () => painter.resize());
 }
 
@@ -195,6 +196,7 @@ async function browse() {
   const r = await fetch("/api/browse", { method: "POST" }).then(r => r.json());
   if (r.error) return setStatus("Browse failed: " + r.error, "error");
   if (!r.path) return;
+  Clipper.clear();          // picking a loose file means we're out of clipper mode
   state.inputPath = r.path;
   $("inputPath").value = r.path;
   $("outputPath").value = r.path.replace(/\.[^.\\/]+$/, "") + ".mov";
@@ -260,6 +262,10 @@ function truePreview() {
 // ── export ───────────────────────────────────────────────────────────────────
 function render() {
   if (!state.words.length) return setStatus("Nothing to export yet", "error");
+  // With a clipper clip open the destination isn't a path the user typed — it's
+  // the overlay the exported timeline already points at. Hand off rather than
+  // asking them to retype it and hope they match it exactly.
+  if (Clipper.active()) return Clipper.renderInPlace();
   const output = $("outputPath").value.trim() || "captions.mov";
   askNotifyPermission();
   setBusy(true); setStatus("Exporting…", "busy");

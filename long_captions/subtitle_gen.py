@@ -220,6 +220,7 @@ def transcribe_long(
     model_size: str = "base",
     window_s: float = DEFAULT_WINDOW_S,
     band_s: float = DEFAULT_BAND_S,
+    batch_size: int = 16,
     progress: bool = True,
 ) -> List[Word]:
     """Transcribe (with word timings) any-length media, bounding VRAM.
@@ -228,6 +229,10 @@ def transcribe_long(
     delegates to `caption_engine`'s `transcribe()`, whose backends
     (faster-whisper / WhisperX) already process long audio in streamed /
     VAD-selected chunks.
+
+    `batch_size` only reaches those delegated backends — the Uzbek path's VRAM
+    is set by `window_s` instead. It is exposed because WhisperX's default
+    overruns an 8 GB card on `large-v3`, so callers there need to lower it.
     """
     device = resolve_device(device)
 
@@ -247,6 +252,7 @@ def transcribe_long(
         model_size=model_size,
         language=language,
         device=device,
+        batch_size=batch_size,
         backend=backend,
     )
 

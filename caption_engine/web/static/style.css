@@ -207,3 +207,32 @@ input[readonly] { color: var(--muted); }
   transition: width .15s linear; }
 
 .hidden { display: none !important; }
+
+/* ── clipper project browser ──────────────────────────────────────────────── */
+/* The clip list is the sidebar the whole feature hangs off: one row per Premiere
+   sequence, with badges saying which ones still need a render. Capped in height
+   so a 16-clip episode doesn't push the rest of the workflow off-screen. */
+
+.clip-list { max-height: 260px; overflow-y: auto; margin-top: 8px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg); }
+.clip-list:empty { display: none; }
+
+.clip-row { padding: 7px 10px; cursor: pointer;
+  border-bottom: 1px solid var(--border); }
+.clip-row:last-child { border-bottom: none; }
+.clip-row:hover { background: var(--card-2); }
+.clip-row.active { background: var(--card-2); box-shadow: inset 3px 0 0 var(--accent); }
+
+.clip-title { font-size: 13px; line-height: 1.3; }
+.clip-meta { display: flex; gap: 6px; align-items: center;
+  margin-top: 3px; color: var(--muted); }
+
+.badge.ok { color: var(--ok); border-color: var(--ok); }
+.badge.warn { color: #e0a33c; border-color: #e0a33c; }
+
+/* Replaces the output-path field while a clip is open — the destination isn't
+   editable there, so showing a text input would invite typing into a dead end. */
+.clipper-target { flex: 1; font-size: 12px; padding: 6px 8px;
+  border: 1px dashed var(--border); border-radius: var(--radius);
+  background: var(--bg); }

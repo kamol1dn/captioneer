@@ -47,6 +47,11 @@ from .timebase import Timebase
 # Only used when full_frame=True; strip mode keeps the preset's own anchor.
 DEFAULT_VERTICAL_ANCHOR = 0.78
 
+# What a clip renders with when neither the call nor the project names a preset.
+# gashtak_2 is the house style for these shorts; the English projects set
+# ``caption_preset`` on the project instead of relying on this.
+DEFAULT_PRESET = "gashtak_2"
+
 
 def program_ranges(clip: Clip, tb: Timebase) -> List[Tuple[float, float, int]]:
     """(master_start, master_end, program_start_frame) per kept segment.
@@ -208,7 +213,7 @@ def build_style(preset: Optional[str], frame_size: Tuple[int, int],
     ``scale_to_width`` opts into resizing the strip to the sequence width,
     scaling typography proportionally so the design survives the change.
     """
-    style = presets.get(preset) if preset else presets.reels_classic()
+    style = presets.get(preset or DEFAULT_PRESET)
     style = CaptionStyle.from_dict(style.to_dict())     # copy, don't mutate
     style.fps = int(fps)
 

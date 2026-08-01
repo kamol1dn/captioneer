@@ -27,10 +27,15 @@ def start_ingest(project: Project, model_size: str = "large-v3",
     """Queue transcription plus an energy envelope for every camera. Returns
     immediately.
 
-    ``diarize`` transcribes every *camera* mic instead of the single primary
+    ``diarize`` transcribes one mic per *speaker* instead of the single primary
     source and merges them into one speaker-labelled timeline. It costs one
-    Whisper pass per camera rather than one per episode, and buys attributed
+    Whisper pass per speaker rather than one per episode, and buys attributed
     lines and overlapping speech — see ``clipper.diarize``.
+
+    One pass per speaker, not per camera: when a person owns two angles, both
+    their mics carry the same voice at nearly the same level, so transcribing
+    both would pass bleed rejection twice and put every line they said into the
+    master timeline twice. ``Project.transcription_mic`` picks the one.
     """
     wanted = set(cameras) if cameras else None
     targets = [c for c in project.cameras if wanted is None or c.id in wanted]
@@ -41,14 +46,30 @@ def start_ingest(project: Project, model_size: str = "large-v3",
     # hears every voice at once and would win every bleed comparison — is not a
     # transcription target here even when it is the primary source.
     video_ids = set(project.video_camera_ids)
+    mic_of: dict = {}              # speaker id -> the camera we transcribe
     if diarize:
-        speaker_ids = [c.id for c in targets if c.id in video_ids]
-        if len(speaker_ids) < 2:
+        in_scope = []
+        for c in targets:
+            if c.id in video_ids and c.speaker_id not in in_scope:
+                in_scope.append(c.speaker_id)
+        for spk in in_scope:
+            mic = project.transcription_mic(spk)
+            if mic is None:
+                raise ValueError(f"speaker {spk!r} has no camera with audio")
+            # Restrict to cameras this run was asked to touch, so a filtered
+            # re-ingest can't silently transcribe a camera outside its scope.
+            if wanted is not None and mic not in wanted:
+                raise ValueError(
+                    f"speaker {spk!r}'s transcription mic is {mic}, which is "
+                    f"not in this run's camera filter")
+            mic_of[spk] = mic
+        if len(mic_of) < 2:
             raise ValueError(
-                "diarize needs at least 2 camera mics; "
-                f"got {speaker_ids or 'none'}")
-    else:
-        speaker_ids = []
+                "diarize needs at least 2 speakers; got "
+                f"{sorted(mic_of) or 'none'} — two angles on one person are "
+                f"one speaker, not two")
+    speaker_of = project.camera_to_speaker()
+    mic_ids = set(mic_of.values())
 
     project.ingest_state = {"state": "running", "progress": 0.0, "message": ""}
     project.save()
@@ -56,14 +77,17 @@ def start_ingest(project: Project, model_size: str = "large-v3",
     def run(job: jobs.Job):
         total = len(targets)
         per_camera = {}
-        spoken: dict = {}          # camera id -> its own word list (diarize)
+        # Keyed by *speaker*, not camera: the merge compares each transcript
+        # against that speaker's own (group-merged) loudness line, and a second
+        # angle on the same person must not enter as a rival voice.
+        spoken: dict = {}
         try:
             for i, cam in enumerate(targets):
                 job.progress(i, total, f"energy: {cam.id}")
                 _ensure_energy(project, cam)
                 per_camera[cam.id] = "energy_only"
 
-                should_transcribe = (cam.id in speaker_ids if diarize
+                should_transcribe = (cam.id in mic_ids if diarize
                                      else cam.transcribe)
                 if should_transcribe:
                     job.progress(i, total, f"transcribing: {cam.id}")
@@ -77,10 +101,16 @@ def start_ingest(project: Project, model_size: str = "large-v3",
                     per_camera[cam.id] = "done"
 
                     if diarize:
-                        spoken[cam.id] = words
+                        spoken[speaker_of.get(cam.id, cam.id)] = words
                     elif cam.id == project.primary_audio_camera:
                         utterances = transcript_mod.build_utterances(words)
                         transcript_mod.save_utterances(utterances, project)
+                        # Drop any merged master left by an earlier diarized run.
+                        # ``transcript.master_words`` prefers that file when it
+                        # exists, so leaving it behind means this fresh
+                        # single-source transcript is written, reported as done,
+                        # and then silently ignored by captions.
+                        project.master_words_path.unlink(missing_ok=True)
 
                 project.ingest_state = {
                     "state": "running",
@@ -94,6 +124,13 @@ def start_ingest(project: Project, model_size: str = "large-v3",
             if diarize:
                 job.progress(total, total, "merging speakers")
                 merge_report = _merge_speakers(project, spoken)
+                # Which mic spoke for which person, and the angles that came
+                # along for picture only — otherwise a camera reported as
+                # "energy_only" looks like it failed to transcribe.
+                merge_report["mics"] = dict(mic_of)
+                merge_report["picture_only"] = sorted(
+                    c.id for c in targets
+                    if c.id in video_ids and c.id not in mic_ids)
 
             project.ingest_state = {"state": "done", "progress": 1.0,
                                     "message": "", "per_camera": per_camera,
@@ -161,7 +198,7 @@ def _merge_speakers(project: Project, spoken: dict) -> dict:
 
     from . import diarize as diarize_mod
 
-    envelopes = load_envelopes(project)
+    envelopes = load_envelopes(project, by_speaker=True)
     utterances, report = diarize_mod.merge_per_mic(spoken, envelopes)
     transcript_mod.save_utterances(utterances, project)
     save_words(diarize_mod.merged_words(utterances),
@@ -178,10 +215,16 @@ def _ensure_energy(project: Project, camera) -> None:
     energy_mod.save_envelope(env, out)
 
 
-def load_envelopes(project: Project, include_audio_only: bool = False) -> dict:
+def load_envelopes(project: Project, include_audio_only: bool = False,
+                   by_speaker: bool = False) -> dict:
     """Cached energy envelopes, keyed by camera id. Missing ones are skipped
     rather than raising — a camera that hasn't been ingested yet just drops out
     of speaker-score comparisons instead of failing the whole call.
+
+    ``by_speaker`` re-keys to speaker ids, merging each person's cameras into
+    one loudness line — the right question for "who is talking", and the
+    identity transform when every camera is its own speaker. Ask for it whenever
+    the answer is a person; leave it off when the answer is an angle.
 
     Audio-only sources are excluded by default. Every caller of this function
     feeds speaker scoring, and a combined mix contains all the other mics at
@@ -199,6 +242,8 @@ def load_envelopes(project: Project, include_audio_only: bool = False) -> dict:
         env = energy_mod.load_envelope(project.energy_path(cam.id))
         if env:
             out[cam.id] = env
+    if by_speaker:
+        return energy_mod.group_by_speaker(out, project.camera_to_speaker())
     return out
 
 

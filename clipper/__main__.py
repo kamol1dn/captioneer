@@ -25,7 +25,7 @@ from . import captions as captions_mod
 from . import energy as energy_mod
 from . import ingest as ingest_mod
 from . import transcript as transcript_mod
-from .compile import compile_edl
+from .compile import compile_for
 from .edl import EDL, validate
 from .preview import render_preview
 from .project import Project, create, list_projects
@@ -47,11 +47,18 @@ def cmd_create_project(args):
     cameras = []
     for spec in args.camera:
         cam_id, path = spec.split("=", 1)
-        cameras.append({"id": cam_id, "path": path})
+        # id[@speaker]=path — @speaker groups several angles onto one person.
+        speaker = ""
+        if "@" in cam_id:
+            cam_id, speaker = cam_id.split("@", 1)
+        cameras.append({"id": cam_id, "path": path, "speaker": speaker})
     project, warnings_ = create(args.name, cameras, args.primary or "",
-                                project_dir=args.project_dir)
+                                project_dir=args.project_dir,
+                                language=args.language or "",
+                                caption_preset=args.preset or "")
     _out({"project_id": project.id, "project_dir": str(project.dir),
          "media_dir": str(project.media_dir), "warnings": warnings_,
+         "language": project.language, "caption_preset": project.caption_preset,
          "cameras": [c.to_dict(project.dir) for c in project.cameras]})
 
 
@@ -61,7 +68,13 @@ def cmd_list_projects(args):
 
 def cmd_ingest(args):
     project = _load(args.project_id)
-    job = ingest_mod.start_ingest(project, args.model, args.language,
+    # Same rule as the MCP tool: the project remembers the language, and an
+    # explicit --language both wins and is saved back.
+    language = (args.language or project.language or "").strip().lower()
+    if language and language != project.language:
+        project.language = language
+        project.save()
+    job = ingest_mod.start_ingest(project, args.model, language or None,
                                   args.camera or None)
     if args.wait:
         job.done.wait()
@@ -155,7 +168,7 @@ def cmd_export_xml(args):
     # Rendered caption overlays ride along, same as the MCP path — an export
     # that silently dropped them would look identical until you scrubbed it.
     movs = {} if args.no_captions else captions_mod.caption_movs(project, edl)
-    compiled = compile_edl(edl, project.camera_map(), args.clip or None, movs)
+    compiled = compile_for(project, edl, args.clip or None, movs)
 
     meta = dict(project.file_meta())
     meta.update(captions_mod.caption_file_meta(
@@ -176,7 +189,7 @@ def cmd_export_preview(args):
     clip = edl.clip(args.clip)
     if clip is None:
         sys.exit(f"no clip {args.clip!r}")
-    compiled = compile_edl(edl, project.camera_map(), [args.clip])[0]
+    compiled = compile_for(project, edl, [args.clip])[0]
     out = args.out or str(project.exports_dir / f"{args.clip}_preview.mp4")
     render_preview(compiled, out, args.quality)
     _out({"path": out, "duration_sec": compiled.duration_seconds})
@@ -188,8 +201,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     c = sub.add_parser("create-project"); c.add_argument("name")
     c.add_argument("--camera", action="append", required=True,
-                   help="id=path, repeatable")
+                   help="id=path or id@speaker=path, repeatable; @speaker "
+                        "groups two angles onto one person")
     c.add_argument("--primary", help="primary audio camera id")
+    c.add_argument("--language", default=None,
+                   help="spoken language, e.g. uz (Gashtak) or en (OTG)")
+    c.add_argument("--preset", default=None,
+                   help="caption preset for this project's clips")
     c.add_argument("--project-dir", default=None,
                    help="override where the project is stored "
                         "(default: clipper/ beside the media)")

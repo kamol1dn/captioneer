@@ -307,6 +307,30 @@ def test_pinned_emits_no_links():
 
 # ── xmeml structure ──────────────────────────────────────────────────────────
 
+def test_sequence_names_carry_their_edl_position():
+    """Premiere sorts a bin by name, so the order has to be in the name."""
+    tb = Timebase(30)
+    clips = [Clip(id=f"c{i:02d}", title=f"clip {i}",
+                  segments=[Segment(i * 60.0, i * 60.0 + 20, id="s1")],
+                  camera_cuts=[CameraCut(at=i * 60.0, camera="A")])
+             for i in range(1, 4)]
+    edl = EDL(timebase=tb, frame_size=(1080, 1920), default_camera="A",
+              clips=clips, audio=AudioPlan(mode="pinned", pinned_camera="A"))
+
+    names = [compile_clip(edl, c, CAMERAS).name for c in clips]
+    check(names == ["01 clip 1", "02 clip 2", "03 clip 3"],
+          f"sequences should be numbered in EDL order, got {names}")
+    # Exporting one clip alone must keep its own number, not restart at 01.
+    check(compile_clip(edl, clips[2], CAMERAS).name == "03 clip 3",
+          "a clip's number comes from the EDL, not from the compiled subset")
+
+    xml = XmemlWriter().build([compile_clip(edl, c, CAMERAS) for c in clips], "t")
+    root = ET.fromstring(xml.split("<!DOCTYPE xmeml>\n")[1])
+    seq_names = [s.findtext("name") for s in root.findall("bin/children/sequence")]
+    check(seq_names == ["01 clip 1", "02 clip 2", "03 clip 3"],
+          f"the number has to reach the XML, got {seq_names}")
+
+
 def test_file_definitions_are_deduped():
     """14 clips off 3 cameras must yield 3 <file> definitions, not 42."""
     tb = Timebase(30)

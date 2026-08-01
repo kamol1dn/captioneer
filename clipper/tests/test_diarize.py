@@ -12,7 +12,7 @@ import sys
 from caption_engine.transcriber.word import Word
 
 from ..diarize import merge_per_mic, own_word_fraction
-from ..energy import RESOLUTION_HZ
+from ..energy import RESOLUTION_HZ, group_by_speaker, mean_db, speaker_scores
 
 _failures = []
 
@@ -100,6 +100,66 @@ def test_missing_envelope_keeps_the_transcript():
     """No evidence of bleed is not evidence of bleed — don't silently delete."""
     frac = own_word_fraction("A", words([("x", 0.0, 0.5)]), {})
     check(frac == 1.0, f"absent envelope should keep words, got {frac}")
+
+
+# ── two cameras on one speaker ───────────────────────────────────────────────
+
+def test_two_angles_on_one_speaker_merge_to_one_loudness_line():
+    """A person's cameras collapse to their best mic, not their average.
+
+    A2 is the same voice 25 dB down (a camera mic behind a lav). Averaging would
+    put the group halfway to silence and let the other speaker win windows where
+    the first person is plainly talking.
+    """
+    envs = {"A1": envelope([(0, 3)]), "A2": envelope([(0, 3)], hot=-37.0),
+            "B": envelope([(5, 8)])}
+    grouped = group_by_speaker(envs, {"A1": "host", "A2": "host", "B": "guest"})
+
+    check(set(grouped) == {"host", "guest"},
+          f"cameras should collapse to people, got {sorted(grouped)}")
+    scores = speaker_scores(grouped, 0.5, 2.5)
+    check(scores["host"] > scores["guest"],
+          f"the host should own their own window, got {scores}")
+    check(mean_db(grouped["host"], 0.5, 2.5) > -13.0,
+          "the group should stay as loud as its best mic, not average down to "
+          f"the weak one (got {mean_db(grouped['host'], 0.5, 2.5):.1f} dB)")
+
+
+def test_one_transcript_per_speaker_not_per_camera():
+    """The regression the speaker grouping exists to prevent.
+
+    Two mics on one person hear that person within a decibel of each other, so
+    both clear the bleed margin on every word. Passed in as separate rivals — a
+    per-*camera* merge — every line the host says survives twice and lands in the
+    master timeline twice, which is a doubled caption on every clip.
+    """
+    envs = {"A1": envelope([(0, 3)]), "A2": envelope([(0, 3)], hot=-13.0),
+            "B": envelope([(5, 8)])}
+    spoken = words([("hello", 0.2, 0.8), ("there", 1.0, 1.6)])
+
+    # What the old per-camera path did: one entry per mic, both the same voice.
+    per_camera, _ = merge_per_mic({"A1": spoken, "A2": spoken}, envs)
+    check(len(per_camera) == 2,
+          "per-camera keying should double the host's line — if it no longer "
+          "does, this test has stopped guarding anything")
+
+    # What ingest does now: one entry per person, envelopes merged per person.
+    grouped = group_by_speaker(envs, {"A1": "host", "A2": "host", "B": "guest"})
+    per_speaker, report = merge_per_mic({"host": spoken}, grouped)
+    check(len(per_speaker) == 1,
+          f"the host's line should appear once, got {len(per_speaker)}: "
+          f"{[u.text for u in per_speaker]}")
+    check(per_speaker[0].speaker == "host",
+          f"attributed to the person, not a camera: {per_speaker[0].speaker}")
+    check(report["_totals"]["overlaps"] == 0,
+          "one person's two mics must not be reported as simultaneous speech")
+
+
+def test_grouping_is_identity_for_one_camera_per_speaker():
+    """The default path must be untouched, so callers can group unconditionally."""
+    envs = {"A": envelope([(0, 3)]), "B": envelope([(5, 8)])}
+    grouped = group_by_speaker(envs, {"A": "A", "B": "B"})
+    check(grouped == envs, "one camera per speaker should pass through unchanged")
 
 
 def main():

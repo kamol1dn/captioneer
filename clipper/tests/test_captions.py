@@ -135,7 +135,8 @@ def test_strip_is_default_and_preserves_preset():
     """Strip is the default: positioning by hand is the preferred workflow, and
     presets are hand-tuned at their own canvas width."""
     from caption_engine import presets as _presets
-    base = _presets.reels_classic()
+    from ..captions import DEFAULT_PRESET
+    base = _presets.get(DEFAULT_PRESET)
 
     style = build_style(None, (1080, 1920), 30)
     check(style.height < 1920,
@@ -167,7 +168,8 @@ def test_full_frame_opt_in():
 def test_scale_to_width_scales_typography():
     """Resizing the canvas without scaling type would change the design."""
     from caption_engine import presets as _presets
-    base = _presets.reels_classic()
+    from ..captions import DEFAULT_PRESET
+    base = _presets.get(DEFAULT_PRESET)
     target_w = int(base.width * 0.75)
 
     style = build_style(None, (target_w, 1920), 30, scale_to_width=True)

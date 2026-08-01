@@ -83,12 +83,63 @@ def mean_db(env: dict, start: float, end: float) -> float:
     return float(10.0 * np.log10(max(power.mean(), 1e-12)))
 
 
+def merge_envelopes(envs: List[dict]) -> dict:
+    """Collapse several mics into one envelope by taking the loudest at each bin.
+
+    This is how a *speaker* who owns more than one camera gets a single loudness
+    line. Max, not mean: two cameras on one person are rarely matched — a lav and
+    a camera mic 20 dB behind it are both "that person present", and averaging
+    them would halve their presence and hand the comparison to whoever happens
+    to be miked once. Max keeps the group as loud as its best mic, which is what
+    "is this person talking" means.
+
+    Bins are positional (all envelopes are computed at the same resolution from
+    sources sharing t=0), and the result is as long as the longest input — a
+    shorter mic simply contributes nothing past its end.
+    """
+    usable = [e for e in envs if e and e.get("db")]
+    if not usable:
+        return {"resolution_hz": RESOLUTION_HZ, "db": [], "duration": 0.0}
+    if len(usable) == 1:
+        return usable[0]
+
+    hz = usable[0].get("resolution_hz", RESOLUTION_HZ)
+    n = max(len(e["db"]) for e in usable)
+    out = np.full(n, _SILENCE_FLOOR_DB, dtype=np.float64)
+    for e in usable:
+        db = np.asarray(e["db"], dtype=np.float64)
+        out[:db.size] = np.maximum(out[:db.size], db)
+    return {
+        "resolution_hz": hz,
+        "duration": max(float(e.get("duration") or 0.0) for e in usable),
+        "db": [round(float(x), 1) for x in out],
+    }
+
+
+def group_by_speaker(envs: Dict[str, dict],
+                     speaker_of: Dict[str, str]) -> Dict[str, dict]:
+    """Re-key per-camera envelopes to per-speaker, merging each speaker's mics.
+
+    With one camera per speaker — the default, where a camera's speaker is its
+    own id — this is the identity, so callers can group unconditionally.
+    """
+    grouped: Dict[str, List[dict]] = {}
+    for cam, env in envs.items():
+        grouped.setdefault(speaker_of.get(cam, cam), []).append(env)
+    return {spk: merge_envelopes(group) for spk, group in grouped.items()}
+
+
 def speaker_scores(envs: Dict[str, dict], start: float, end: float) -> Dict[str, int]:
-    """Normalize each camera's loudness over a window to 0-99.
+    """Normalize each track's loudness over a window to 0-99.
 
     Relative, not absolute: mic gain varies per camera, so the useful question
-    is "which track is hottest right now", not "how many dB". The top camera is
-    always 99, so the agent reads the *gap* between cameras as its confidence.
+    is "which track is hottest right now", not "how many dB". The top track is
+    always 99, so the agent reads the *gap* between tracks as its confidence.
+
+    Keys are whatever the caller keyed ``envs`` by — camera ids for "which angle
+    is hottest", speaker ids (via ``group_by_speaker``) for "who is talking".
+    Speaker-keyed is the right question whenever one person owns two cameras,
+    where per-camera scoring splits that person's evidence in two.
     """
     raw = {cam: mean_db(env, start, end) for cam, env in envs.items()}
     if not raw:
