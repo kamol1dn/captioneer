@@ -480,10 +480,9 @@ def create(name: str, cameras: List[dict], primary_audio_camera: str = "",
         track_label = str(spec.get("source_track", "") or "").strip().upper()
         if track_label:
             # A track-backed angle costs no export: its picture is whatever the
-            # master timeline's V-track already points at. It has no media file
-            # of its own, so there is nothing to probe — the shape comes from the
-            # timeline, and the per-clip source metadata is copied out of the XML
-            # at write time.
+            # master timeline's V-track already points at. Its shape comes from
+            # the timeline rather than from a probe, and the per-clip source
+            # metadata is copied out of the XML at write time.
             if master is None:
                 raise ValueError(
                     f"camera {spec['id']} names source_track {track_label!r} but "
@@ -504,17 +503,45 @@ def create(name: str, cameras: List[dict], primary_audio_camera: str = "",
                     f"camera {spec['id']} ({track_label}) covers "
                     f"{covered:.1%} of the timeline — clips landing in the "
                     f"remainder will have no picture on this angle")
+            # A track-backed angle may still name a ``path``: the isolated mic
+            # that person is *listened* to on. Picture comes off the timeline
+            # either way — but the file is what supplies this camera's loudness
+            # envelope, and on a diarized ingest its transcript. Without one the
+            # angle has no audio at all, so it can never be a speaker's mic and
+            # ``diarize`` rejects the whole run.
+            mic = str(spec.get("path", "") or "").strip()
+            mic_probe: dict = {}
+            if mic:
+                mic = str(Path(mic).resolve())
+                if not Path(mic).exists():
+                    raise FileNotFoundError(f"camera source not found: {mic}")
+                mic_probe = probe(mic)
+                if not mic_probe.get("has_audio"):
+                    warnings.append(
+                        f"camera {spec['id']}: {Path(mic).name} carries no "
+                        f"audio stream, so this angle has no mic")
+                mic_dur = float(mic_probe.get("duration") or 0.0)
+                if mic_dur and abs(mic_dur - master.duration_seconds) > 0.5:
+                    warnings.append(
+                        f"camera {spec['id']}: mic {Path(mic).name} runs "
+                        f"{mic_dur:.2f}s but {track_label} covers "
+                        f"{master.duration_seconds:.2f}s — the mic and the "
+                        f"timeline may not share t=0")
             cams.append(Camera(
-                id=spec["id"], path="",
+                id=spec["id"], path=mic,
                 label=spec.get("label", "") or track.name,
                 speaker=str(spec.get("speaker", "") or ""),
+                transcribe=bool(spec.get("transcribe", False)),
                 source_track=track_label,
-                probe={"has_video": True, "has_audio": False,
+                # Shape from the timeline, sound from the mic (if any).
+                probe={"has_video": True,
+                       "has_audio": bool(mic_probe.get("has_audio", False)),
                        "width": master.frame_size[0],
                        "height": master.frame_size[1],
                        "fps": master.timebase.fps,
                        "duration": master.duration_seconds,
-                       "channels": 0, "sample_rate": 0,
+                       "channels": mic_probe.get("channels") or 0,
+                       "sample_rate": mic_probe.get("sample_rate") or 0,
                        "start_timecode": None},
             ))
             continue
