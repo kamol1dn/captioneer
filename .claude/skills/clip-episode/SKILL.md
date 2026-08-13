@@ -41,9 +41,15 @@ For the timeline route:
    is named `rahimovv2`), and a swap here silently gives every clip the wrong
    secondary angle.
 2. **`create_project(..., master_xml=..., master_sequence=...)`** with
-   `{"id": "H1", "source_track": "V1", "speaker": "host"}` instead of a `path`.
-   The transcription source (the mix) is still a normal `path` camera and stays
-   the `primary_audio_camera`.
+   `{"id": "H1", "source_track": "V1", "speaker": "host"}` in place of the flat
+   export. The transcription source (the mix) is still a normal `path` camera
+   and stays the `primary_audio_camera`.
+
+   **Give each angle a `path` as well when you plan to diarize** — the isolated
+   mic that person is heard on. Picture still comes off the timeline; the file
+   is what supplies that camera's loudness envelope and its own transcript. A
+   track-backed angle with no `path` has no audio at all, so it can never be a
+   speaker's mic and `diarize=True` rejects the run outright.
 3. **Set the EDL's audio mode to `source_tracks`**, which reproduces the
    timeline's own audio bed under the cut — one reel track per master A-track,
    **including each clip's mute state**. Do not pin a single source: what the

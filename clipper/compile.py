@@ -472,11 +472,29 @@ def _source_track_audio(tracks: List[SourceTrack], clip: Clip,
 
     Cuts land only at segment boundaries and wherever the master itself already
     cut, never at a camera switch, so toggling an angle can't disturb the sound.
+
+    A track the editor muted comes through muted. Premiere writes that mute on
+    the *track*, leaving every clipitem on it reading TRUE, so honouring only
+    the per-clip flag un-mutes exactly the camera scratch tracks the enhanced
+    mix was laid in to replace — and the reel plays both lavs summed on top of
+    the mix.
     """
     out: List[List[ClipItem]] = []
+    seen: set = set()
     for tr in tracks:
         if not tr.segments:
             continue
+        # A stereo source arrives from Premiere as *two* master tracks holding
+        # the same clips at the same times, differing only in which source
+        # channel each takes. Reproducing both asks for source track 2 of a file
+        # whose <file> declares a single stereo track, and Premiere answers with
+        # the whole pair twice — which plays as that source doubled. One source
+        # is one track: keep the first of each layout and drop its channel twin.
+        layout = tuple((getattr(s.source, "key", None), s.start, s.end, s.in_)
+                       for s in tr.segments)
+        if layout in seen:
+            continue
+        seen.add(layout)
         items: List[ClipItem] = []
         for seg in sorted(clip.segments, key=lambda s: s.start):
             covering = [(ms, me, ps) for ms, me, ps in prog_of_master
@@ -488,8 +506,13 @@ def _source_track_audio(tracks: List[SourceTrack], clip: Clip,
                                        - tb.to_frames(covering[-1][0]))
             items.extend(_track_items(
                 tr, "", tb.to_frames(covering[0][0]), p_end - p_start, p_start,
-                tb, media_type="audio", role="audio"))
+                tb, media_type="audio", role="audio", enabled=tr.enabled))
         if items:
+            # The surviving track carries the source's whole stereo pair, so it
+            # must reference source track 1 regardless of which channel the
+            # master track it came from was taking.
+            for it in items:
+                it.source_channel = 1
             out.append(items)
     return out
 

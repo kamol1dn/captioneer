@@ -331,6 +331,39 @@ def test_source_tracks_audio_reproduces_the_master_bed():
               "bed items should carry their master source, not a camera path")
 
 
+def _muted_bed_master() -> str:
+    """The shape Premiere actually writes for a muted track.
+
+    Pressing M mutes the *track*; the clipitems on it are untouched and still
+    read TRUE. The fixture's own scratch track is disabled the other way (per
+    clipitem), so it can't catch this.
+    """
+    head, tail = _master_xml().split("<audio>", 1)
+    return head + "<audio>" + tail.replace(
+        "<enabled>TRUE</enabled></track>", "<enabled>FALSE</enabled></track>", 1)
+
+
+def test_track_level_mute_reaches_the_reel():
+    with tempfile.TemporaryDirectory() as td:
+        m = read_master(_write(Path(td), _muted_bed_master()))
+    check(not m.audio[0].enabled, "fixture: the first bed track should be muted")
+    check(all(s.enabled for s in m.audio[0].segments),
+          "fixture: its clipitems must still read enabled, as Premiere writes them")
+
+    edl, clip = _edl()
+    c = compile_clip(edl, clip, _cameras(m), audio_tracks=m.audio)
+    muted = c.audio_tracks[0]
+    check(muted and not any(i.enabled for i in muted),
+          "a track the editor muted must arrive muted — otherwise the reel "
+          "plays the camera scratch the enhanced mix was there to replace")
+    with tempfile.TemporaryDirectory() as td:
+        plain = _load(Path(td))
+    base = compile_clip(edl, clip, _cameras(plain), audio_tracks=plain.audio)
+    check([i.enabled for i in c.audio_tracks[1]]
+          == [i.enabled for i in base.audio_tracks[1]],
+          "muting one track must not disturb the others")
+
+
 # ── writer ───────────────────────────────────────────────────────────────────
 
 def test_nest_is_defined_once_and_referenced_after():
