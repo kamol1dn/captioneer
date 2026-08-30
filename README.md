@@ -1,3 +1,5 @@
+this is totally vibecoded project, but literally saves 95% of my time, idk if it fits your workflow
+
 # Caption Engine
 
 Offline, word-by-word caption generator. Produces transparent **ProRes 4444 .mov**
@@ -156,6 +158,42 @@ python -m long_captions.subtitle_gen lecture.mp4 -o lecture.srt --language uz
 python -m long_captions.gui        # small Tkinter front-end
 ```
 
+## Multicam clipper (`clipper/`)
+
+A second sidecar tool: turn a long **multicam episode** into a set of short
+vertical clips and export them as a Premiere-importable FCP7 XML timeline. You
+(or Claude) make the edit decisions from the transcript; Premiere does the
+rendering.
+
+The flow: create a project from the camera exports (or straight from an episode
+`.xml` timeline, one V-track per angle), `ingest` to compute per-camera loudness
+envelopes and a word-level — optionally speaker-diarized — transcript, pick
+moments and camera cuts into an **EDL** (kept ranges in master seconds plus
+`{at, camera, why}` switches), snap every boundary to silence, sanity-check the
+joins (`check_segments`) and the concatenated audio (`verify_clip_audio`), then
+render word-by-word captions through the same `caption_engine` and export one
+XML with every clip as its own sequence. Each sequence stacks one video track
+per camera with only the live angle enabled, so the editor can flip an angle in
+Premiere with a track toggle and no re-export.
+
+Two front-ends, same plain functions underneath:
+
+```bash
+# CLI mirror of every tool — real Python tracebacks for debugging
+python -m clipper create-project "EP12" --camera A=CamA.mp4 --camera B=CamB.mp4 --primary A
+python -m clipper ingest 2026-07-20_ep12 --diarize --wait
+python -m clipper outline 2026-07-20_ep12
+python -m clipper set-edl 2026-07-20_ep12 --file edl.json
+python -m clipper export-xml 2026-07-20_ep12
+```
+
+- **`clipper-engine` MCP server** (`clipper/mcp_server.py`, wired in `.mcp.json`)
+  — the tool surface Claude Code drives via the bundled `clip-episode` skill.
+- The browser caption editor can also open a clipper project directly to fix one
+  clip's words and re-render its overlay in place — Premiere picks the
+  overwritten `.mov` up on its next refresh, no re-export
+  (`caption_engine/web/clipper_api.py`).
+
 ## Architecture
 
 ```
@@ -171,6 +209,13 @@ caption_engine/
   engine.py      orchestrator (public API)
   cli.py         command-line interface
   web/           Flask app + browser UI (the default front-end)
+    clipper_api.py  opens a clipper project to re-render one clip's captions
+clipper/         multicam episode -> vertical clips -> Premiere FCP7 XML
+  ingest.py / diarize.py / energy.py   loudness envelopes + word-level transcript
+  edl.py / compile.py / xmeml/         EDL -> compiled clips -> FCP7 XML
+  captions.py                          per-clip overlays via caption_engine
+  mcp_server.py                        clipper-engine MCP server (clip-episode skill)
+  __main__.py                          CLI mirror of every tool
 long_captions/   long-form .srt/.vtt subtitle generator (separate tool)
 ffmpeg-7.1/      bundled FFmpeg binaries
 assets-fonts/    bundled Helvetica, Montserrat, Apple Color Emoji
@@ -182,7 +227,7 @@ data types that pass between them.
 
 ## Manual setup (non-Windows / developers)
 
-`run.bat` automates this on Windows. To do it by hand:
+`run.bat` automates this on Windows (`run.command` on macOS). To do it by hand:
 
 ```bash
 py -3.12 -m venv venv
@@ -213,6 +258,8 @@ Shipped:
 - [x] Command-line interface
 - [x] Local web UI (browser app)
 - [x] Persistence — user-editable presets & settings in `preferences.json`
+- [x] Multicam clipper — episode → vertical clips → Premiere FCP7 XML
+      (`clipper/`, driven by the `clip-episode` skill over its MCP server)
 
 Next:
 

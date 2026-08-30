@@ -219,6 +219,51 @@ def test_transition_anchored_edges_are_recovered_not_dropped():
           "the wholly-hidden item should not have been placed")
 
 
+def test_clip_flanked_by_transitions_is_placed_from_its_neighbour():
+    """A dissolve on *both* sides leaves no edge to measure the length from.
+
+    Not an exotic shape: an episode cut entirely with dissolves has one on every
+    join, so on ep15 all but 3 of 280 items on each angle track were flanked and
+    the reel got 34s of picture out of 47 minutes. The frame is on the preceding
+    transitionitem — the incoming clip starts where the transition starts.
+    """
+    v = ('<clipitem id="c1"><name>ANGLE</name><start>0</start><end>-1</end>'
+         '<in>100</in><out>400</out>'
+         '<file id="file-9"><name>a.mp4</name>'
+         '<pathurl>file://localhost/D%3a/f/a.mp4</pathurl>'
+         '<media><video/></media></file></clipitem>'
+         '<transitionitem><start>296</start><end>300</end>'
+         '<effect><name>Cross Dissolve</name></effect></transitionitem>'
+         # Flanked on both sides: the old reader dropped this one outright.
+         '<clipitem id="c2"><name>ANGLE</name><start>-1</start><end>-1</end>'
+         '<in>500</in><out>800</out><file id="file-9"/></clipitem>'
+         '<transitionitem><start>592</start><end>596</end>'
+         '<effect><name>Cross Dissolve</name></effect></transitionitem>'
+         '<clipitem id="c3"><name>ANGLE</name><start>-1</start><end>900</end>'
+         '<in>900</in><out>1208</out><file id="file-9"/></clipitem>')
+    xml = ('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE xmeml>'
+           '<xmeml version="4"><sequence id="sequence-1"><name>episode</name>'
+           '<duration>900</duration>'
+           '<rate><timebase>30</timebase><ntsc>FALSE</ntsc></rate>'
+           '<media><video>'
+           f'<track>{v}<enabled>TRUE</enabled></track>'
+           '</video></media></sequence></xmeml>')
+    with tempfile.TemporaryDirectory() as td:
+        m = read_master(_write(Path(td), xml))
+    v1 = m.track("V1")
+    check(len(v1.segments) == 3,
+          f"every clip should be placed, got {len(v1.segments)}: "
+          f"{[(s.start, s.end) for s in v1.segments]}")
+    check(v1.coverage == 900,
+          f"the track should tile 0..900 with no holes, got {v1.coverage}")
+    # Butt-joined at each dissolve's start, and the source range travels with it
+    # so the middle clip still shows the frames the editor chose.
+    starts = [s.start for s in v1.segments]
+    check(starts == [0, 296, 592], f"recovered starts are wrong: {starts}")
+    check(v1.segments[1].in_ == 500,
+          f"the flanked clip must keep its source in, got {v1.segments[1].in_}")
+
+
 def test_source_mute_state_is_preserved():
     """The editor muted that scratch track on purpose."""
     with tempfile.TemporaryDirectory() as td:
@@ -329,6 +374,68 @@ def test_source_tracks_audio_reproduces_the_master_bed():
               "each bed track must cover the whole program")
         check(all(i.source is not None for i in items),
               "bed items should carry their master source, not a camera path")
+
+
+def _partial_twin_master() -> str:
+    """One Premiere track holding a stereo clip *and* a mono one.
+
+    Premiere splits only the stereo clip across two exported tracks, so the twin
+    holds a strict subset of its parent's clips rather than the same layout. This
+    is ep15's host track: 56 stereo DJI clips plus 163 mono lav clips, twinned
+    56-of-219.
+    """
+    stereo = ('<file id="file-20"><name>dji.mp4</name>'
+              '<pathurl>file://localhost/D%3a/f/dji.mp4</pathurl>'
+              '<media><audio><channelcount>2</channelcount></audio></media></file>')
+    mono = ('<file id="file-21"><name>lav.wav</name>'
+            '<pathurl>file://localhost/D%3a/f/lav.wav</pathurl>'
+            '<media><audio/></media></file>')
+    parent = (_clipitem(0, 300, 0, "DJI", "file", "file-20", define=stereo,
+                        channel=1)
+              + _clipitem(300, 900, 0, "LAV", "file", "file-21", define=mono,
+                          channel=1))
+    twin = _clipitem(0, 300, 0, "DJI", "file", "file-20", channel=2)
+    return _master_xml().replace(
+        "</audio>",
+        f"<track>{parent}<enabled>TRUE</enabled></track>"
+        f"<track>{twin}<enabled>TRUE</enabled></track></audio>")
+
+
+def test_stereo_twin_is_dropped_even_when_it_is_a_subset():
+    """The twin doubles its source, and matching whole tracks misses it.
+
+    Reproducing both tracks asks for source track 2 of a file whose <file>
+    declares one stereo track, and Premiere answers with the whole pair — so the
+    source plays twice. Keying the check on the entire track layout only catches
+    the case where a Premiere track is *purely* stereo; on ep15 the host track
+    was mixed, so the DJI doubled for the 22 minutes the guest was in the room.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        m = read_master(_write(Path(td), _partial_twin_master()))
+    populated = [t for t in m.audio if t.segments]
+    check(len(populated) == 4, f"fixture should have 4 bed tracks, got {len(populated)}")
+
+    edl, clip = _edl()
+    c = compile_clip(edl, clip, _cameras(m), audio_tracks=m.audio)
+    check(len(c.audio_tracks) == 3,
+          f"the channel twin must not become its own bed track, got "
+          f"{len(c.audio_tracks)}")
+    # Nothing may be placed twice at one position — that is the doubling itself.
+    placed = [(i.path, i.in_, i.start) for tr in c.audio_tracks for i in tr]
+    check(len(placed) == len(set(placed)),
+          f"a source is placed twice in the bed: "
+          f"{sorted(p for p in placed if placed.count(p) > 1)}")
+    # Dropping the twin must not cost the mono half of the track it twinned.
+    kept = next(tr for tr in c.audio_tracks
+                if any("dji" in (i.path or "") for i in tr))
+    check(any("lav" in (i.path or "") for i in kept),
+          f"the mono clips on the same Premiere track were dropped with the "
+          f"twin: {[i.path for i in kept]}")
+    check(sum(i.length for i in kept) == c.duration,
+          "the surviving track must still cover the whole program")
+    check(all(i.source_channel == 1 for i in kept),
+          "the survivor carries the whole stereo pair, so it must ask for "
+          "source track 1")
 
 
 def _muted_bed_master() -> str:

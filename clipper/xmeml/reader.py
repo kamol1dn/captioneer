@@ -93,7 +93,14 @@ def _read_track(tr: ET.Element, kind: str, index: int, label: str,
     )
     names: Dict[str, int] = {}
 
-    for c in tr.findall("clipitem"):
+    # Document order, not findall("clipitem"): a clipitem's missing edge is
+    # written on the transitionitem beside it, so the neighbours have to survive
+    # the walk.
+    kids = list(tr)
+
+    for i, c in enumerate(kids):
+        if c.tag != "clipitem":
+            continue
         start = int(c.findtext("start") or -1)
         end = int(c.findtext("end") or -1)
         in_ = int(c.findtext("in") or 0)
@@ -102,12 +109,22 @@ def _read_track(tr: ET.Element, kind: str, index: int, label: str,
         length = out - in_
 
         # A -1 endpoint does NOT mean "no position" — it means "this edge is
-        # defined by the transition next to me", and the value is recoverable
-        # from the other edge plus the source length. Treating -1 as unplaceable
+        # defined by the transition next to me". Treating -1 as unplaceable
         # silently drops a third of a track that has crossfades on it (112 of 333
         # items on one real lav track), which sounds exactly like audio randomly
-        # cutting out. Only an item with *both* edges at -1 is genuinely
-        # unplaceable: it sits entirely inside a transition.
+        # cutting out.
+        #
+        # Two ways back to the frame, in order of how little they assume. The
+        # cheap one is the *other* edge plus the source length. It stops working
+        # when a clip has a dissolve at both ends, because then there is no edge
+        # left to measure from — and that is not an exotic shape: an episode cut
+        # entirely with dissolves has one on every join, so on ep15's V1 all but
+        # 3 of 280 items were flanked on both sides and the reel got 34s of
+        # picture out of 47 minutes. The incoming clip starts where the
+        # transition starts, so read the frame off the preceding transitionitem
+        # and let the length carry the far edge as before.
+        if start < 0 and i and kids[i - 1].tag == "transitionitem":
+            start = int(kids[i - 1].findtext("start") or -1)
         if start < 0 and end < 0:
             continue
         if start < 0:

@@ -207,6 +207,55 @@ Never pull the full transcript in one call. It's capped server-side; if
 Cut filler and dead air by using **multiple segments** for one clip rather than
 one long take: keep 124.3–141.8 and 208.0–240.5, drop the tangent between.
 
+### Every clip must stand alone
+
+Standing direction from Sam (OTG creative group, 2026-08-27) after clip
+viewership dropped. The diagnosis was that clips only made sense to someone who
+had already watched the full episode or the earlier clips — so treat these as
+requirements, not preferences:
+
+- **Assume the viewer has never seen the podcast.** Within the clip itself they
+  must get *what is being discussed*, *why it matters*, and *the key point*. A
+  clip that leans on context from the episode or from a sibling clip has failed,
+  however good the exchange is.
+- **This is a named instruction for AI tools in the editing process** — it is
+  aimed at this pipeline, so apply it when selecting, not as an afterthought.
+- **Fewer clips is explicitly fine.** Said twice in the same message. If the
+  episode only supports 8 standalone moments, deliver 8 and say why — do not
+  reach the requested number by including clips that need context. This
+  overrides a requested clip count: report the shortfall rather than pad.
+- **Prioritise breaking news, timely stories, and strong points tied to the news
+  being discussed.** These grab attention; evergreen commentary does not. The
+  same test applies to guest segments — a guest's point about a current story, a
+  viral topic, or a major market development beats a better-argued but timeless
+  one. Rank candidates by this before trimming to the final set.
+- **The copy matters as much as the cut.** The headline and accompanying text
+  are part of what makes someone stop and watch, so they must communicate the
+  clip's *relevance*, not just label its topic. This is what the clip `title`
+  carries into the sequence name (see step 7) — the editor copies it out from
+  there, so write it as publishable copy rather than an internal description.
+
+Two ways to satisfy this, and the cut is only one of them:
+
+1. **In the cut** — keep the *setup line* that names the company and the event,
+   even when the punchy reaction alone would cut tighter. Opening on "so it's
+   quite aggressive from Stripe" tests worse than spending four seconds on what
+   Stripe just did first.
+2. **On top, in Premiere** — b-roll, a title card, or on-screen context supplies
+   the same information without spending clip time on it. This is the user's
+   preferred fix and it is often the better one: it keeps the cut tight and the
+   hook early.
+
+So a clip whose *audio* leans on prior context is not automatically rejected —
+ask whether it can be established visually instead. What is not acceptable is
+shipping it with neither. Flag which clips need that treatment when presenting
+the rundown, so they can be handled deliberately rather than found later during
+a bulk edit.
+
+Out of scope for this skill but part of the same direction: thumbnails get three
+test versions, and those should differ in hook, layout and angle — not be small
+variations of one design.
+
 **5. Choose angles.** With `diarize=True` the transcript states the speaker
 (`A:` / `B:`) — cut to whoever the line belongs to and skip the guesswork. Fall
 back to the energy line (`A88 B09 C04`) for an unlabelled transcript: the

@@ -489,12 +489,23 @@ def _source_track_audio(tracks: List[SourceTrack], clip: Clip,
         # channel each takes. Reproducing both asks for source track 2 of a file
         # whose <file> declares a single stereo track, and Premiere answers with
         # the whole pair twice — which plays as that source doubled. One source
-        # is one track: keep the first of each layout and drop its channel twin.
-        layout = tuple((getattr(s.source, "key", None), s.start, s.end, s.in_)
-                       for s in tr.segments)
-        if layout in seen:
+        # is one track, so a clip already placed by an earlier track is dropped.
+        #
+        # Matched per *segment*, not per whole track: one Premiere track can hold
+        # a mix of stereo and mono clips, and then only the stereo ones get a twin
+        # track. On ep15 the host track was 56 stereo DJI clips plus 163 mono lav
+        # clips, so the twin held 56 of the parent's 219 — no layout in common,
+        # and comparing whole tracks let the DJI double for the entire 22 minutes
+        # the guest was in the room.
+        fresh = [s for s in tr.segments
+                 if (getattr(s.source, "key", None), s.start, s.end, s.in_)
+                 not in seen]
+        if not fresh:
             continue
-        seen.add(layout)
+        seen.update((getattr(s.source, "key", None), s.start, s.end, s.in_)
+                    for s in fresh)
+        tr = copy.copy(tr)          # shallow: only the segment list is narrowed
+        tr.segments = fresh
         items: List[ClipItem] = []
         for seg in sorted(clip.segments, key=lambda s: s.start):
             covering = [(ms, me, ps) for ms, me, ps in prog_of_master

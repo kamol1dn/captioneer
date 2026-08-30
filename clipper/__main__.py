@@ -43,19 +43,30 @@ def _load(project_id: str) -> Project:
     return project
 
 
+def _camera_spec(spec: str) -> dict:
+    """``id[@speaker][:V1]=path`` -> the dict ``create`` wants.
+
+    ``@speaker`` groups several angles onto one person. ``:V1`` names the master
+    timeline's V-track this angle takes its picture from — the timeline route,
+    where ``path`` is then the isolated mic that person is *heard* on rather than
+    a flat vertical export. Either half may be omitted; ``path`` may be empty for
+    a track-backed angle with no mic of its own.
+    """
+    cam_id, _, path = spec.partition("=")
+    cam_id, _, track = cam_id.partition(":")
+    cam_id, _, speaker = cam_id.partition("@")
+    return {"id": cam_id, "path": path, "speaker": speaker,
+            "source_track": track}
+
+
 def cmd_create_project(args):
-    cameras = []
-    for spec in args.camera:
-        cam_id, path = spec.split("=", 1)
-        # id[@speaker]=path — @speaker groups several angles onto one person.
-        speaker = ""
-        if "@" in cam_id:
-            cam_id, speaker = cam_id.split("@", 1)
-        cameras.append({"id": cam_id, "path": path, "speaker": speaker})
+    cameras = [_camera_spec(s) for s in args.camera]
     project, warnings_ = create(args.name, cameras, args.primary or "",
                                 project_dir=args.project_dir,
                                 language=args.language or "",
-                                caption_preset=args.preset or "")
+                                caption_preset=args.preset or "",
+                                master_xml=args.master_xml or "",
+                                master_sequence=args.master_sequence or "")
     _out({"project_id": project.id, "project_dir": str(project.dir),
          "media_dir": str(project.media_dir), "warnings": warnings_,
          "language": project.language, "caption_preset": project.caption_preset,
@@ -75,7 +86,7 @@ def cmd_ingest(args):
         project.language = language
         project.save()
     job = ingest_mod.start_ingest(project, args.model, language or None,
-                                  args.camera or None)
+                                  args.camera or None, args.diarize)
     if args.wait:
         job.done.wait()
     _out({"job_id": job.id, "state": project.ingest_state})
@@ -201,9 +212,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     c = sub.add_parser("create-project"); c.add_argument("name")
     c.add_argument("--camera", action="append", required=True,
-                   help="id=path or id@speaker=path, repeatable; @speaker "
-                        "groups two angles onto one person")
+                   help="id[@speaker][:V1]=path, repeatable; @speaker groups "
+                        "two angles onto one person, :V1 takes picture from "
+                        "that master V-track instead of a flat export")
     c.add_argument("--primary", help="primary audio camera id")
+    c.add_argument("--master-xml", default=None,
+                   help="FCP7 XML of the episode timeline, for :V1 angles")
+    c.add_argument("--master-sequence", default=None,
+                   help="which sequence in --master-xml to cut from")
     c.add_argument("--language", default=None,
                    help="spoken language, e.g. uz (Gashtak) or en (OTG)")
     c.add_argument("--preset", default=None,
@@ -219,6 +235,9 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--model", default="large-v3")
     c.add_argument("--language", default=None)
     c.add_argument("--camera", action="append", help="restrict to these camera ids")
+    c.add_argument("--diarize", action="store_true",
+                   help="transcribe one mic per speaker and merge into a "
+                        "speaker-labelled timeline (needs two+ speakers)")
     c.add_argument("--wait", action="store_true")
     c.set_defaults(func=cmd_ingest)
 
