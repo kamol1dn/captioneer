@@ -7,7 +7,7 @@ export type LowerThirdProps = { name: string; role: string; position?: Position 
 // Not a card: a name plate with an accent bar that draws in first, then the
 // text slides out from behind it. Lighter than a card, because a person's name
 // should not cover more of them than it has to.
-export const LowerThird: React.FC<LowerThirdProps> = ({ name, role, position = "top" }) => {
+export const LowerThird: React.FC<LowerThirdProps> = ({ name, role, position = "bottom" }) => {
   const u = useUnit();
   const { enter, exit } = useEnterExit(16, 9);
   const bar = interpolate(enter, [0, 0.5], [0, 1], { extrapolateRight: "clamp" });
