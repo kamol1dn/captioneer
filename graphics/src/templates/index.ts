@@ -1,0 +1,27 @@
+import React from "react";
+import { Bars } from "./Bars";
+import { Explainer } from "./Explainer";
+import { Breakdown, Chart, Compare, Quote, Scroll, Timeline } from "./full";
+import { Headline } from "./Headline";
+import { ImageCard } from "./ImageCard";
+import { LowerThird } from "./LowerThird";
+import { Stat } from "./Stat";
+
+// Names must match the keys of templates.json — that file is what the clipper
+// engine lists and validates against; this is only where the components live.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const TEMPLATES: Record<string, React.FC<any>> = {
+  LowerThird,
+  Headline,
+  Stat,
+  Explainer,
+  ImageCard,
+  Bars,
+  // Full-screen: these replace the picture, and go on footage entries.
+  Breakdown,
+  Timeline,
+  Compare,
+  Chart,
+  Quote,
+  Scroll,
+};

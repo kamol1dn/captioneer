@@ -45,3 +45,7 @@ Thumbs.db
 # fallback location used when cameras span different drives.
 clipper_projects.json
 /projects/
+# Graphics renderer (Remotion). node_modules is `npm install` in graphics/;
+# _assets is images staged for a render, copied from wherever they live.
+graphics/node_modules/
+graphics/public/_assets/

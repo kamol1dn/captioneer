@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from .edl import EDL, AudioPlan, Clip, iter_shots
+from .edl import BROLL_KINDS, EDL, AudioPlan, Clip, iter_shots
 from .sources import SourceRef, SourceTrack
 from .timebase import Timebase
 
@@ -229,8 +229,10 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
             return 0
         return total
 
-    # ── V2: b-roll overlays, only where real footage is attached ─────────────
-    v2: List[ClipItem] = []
+    # ── B-roll: footage covers the picture, overlays sit on top of it ────────
+    # One track per kind, because the two can legitimately run at once — a stat
+    # card over a stock shot — and a single track cannot carry both.
+    broll_tracks: Dict[str, List[ClipItem]] = {k: [] for k in BROLL_KINDS}
     markers: List[CompiledMarker] = [
         CompiledMarker(frame=master_to_prog(m.at), name=m.name or "marker",
                        comment=m.comment)
@@ -242,23 +244,35 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
         p_end = master_to_prog(b.end)
         if p_end <= p_start:
             continue
+        # Anything not explicitly an overlay is treated as footage, so a
+        # hand-edited EDL with a typo'd kind still lands somewhere visible
+        # rather than being silently dropped from the export.
+        kind = "overlay" if b.kind == "overlay" else "footage"
+        label = "overlay" if kind == "overlay" else "broll"
         if b.source:
             length = p_end - p_start
             in_f = tb.to_frames(b.source_in)
-            v2.append(ClipItem(
-                name=f"broll {b.id}" if b.id else "broll",
+            broll_tracks[kind].append(ClipItem(
+                name=f"{label} {b.id}" if b.id else label,
                 camera="", path=b.source,
                 start=p_start, end=p_end,
                 in_=in_f, out=in_f + length,
                 media_type="video", role="broll",
+                scale=fill_scale(b.media, edl.frame_size),
             ))
         else:
             # Placeholder: a marker carries the intent without making Premiere
             # nag about offline media on every import.
+            comment = (f"{label.upper()}: {b.query}" if b.query
+                       else label.upper())
+            # Stock candidates ride along, so an editor filling the gap by hand
+            # starts from the shortlist instead of searching again.
+            for c in (b.candidates or [])[:3]:
+                comment += f"\n- {c.get('title') or ''} {c.get('url', '')}".rstrip()
             markers.append(CompiledMarker(
                 frame=p_start, duration=p_end - p_start,
-                name=f"BROLL {b.id}".strip(),
-                comment=f"BROLL: {b.query}" if b.query else "BROLL",
+                name=f"{label.upper()} {b.id}".strip(),
+                comment=comment,
             ))
 
     # ── Audio ────────────────────────────────────────────────────────────────
@@ -276,9 +290,9 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
             media_type="video", role="caption",
         ))
 
-    # Bottom -> top: camera stack, then b-roll, then captions on top.
+    # Bottom -> top: camera stack, b-roll footage, overlays, captions on top.
     video_tracks = ([cam_tracks[cid] for cid in stack_cams]
-                    + ([v2] if v2 else [])
+                    + [broll_tracks[k] for k in BROLL_KINDS if broll_tracks[k]]
                     + ([caption_track] if caption_track else []))
     return CompiledClip(
         id=clip.id, name=_clip_name(edl, clip),
@@ -570,6 +584,21 @@ def compile_edl(edl: EDL, cameras: Dict[str, dict],
     movs = caption_movs or {}
     return [compile_clip(edl, c, cameras, movs.get(c.id), audio_tracks)
             for c in wanted]
+
+
+def fill_scale(media: Optional[dict], frame_size) -> float:
+    """Percent scale that makes a b-roll file cover the whole frame.
+
+    Stock footage is mostly 16:9 and the sequences are 9:16, so at 100% a 4K
+    clip sits as a band across the middle with black above and below. Cover,
+    not fit: the sides crop, which is what a vertical cutaway wants, and the
+    editor can still slide it across in Premiere since the full frame is there.
+    Unknown size (an entry attached before probing existed) stays at 100.
+    """
+    if not media or not media.get("width") or not media.get("height"):
+        return 100.0
+    w, h = frame_size
+    return round(max(w / media["width"], h / media["height"]) * 100.0, 3)
 
 
 def compile_for(project, edl: EDL, clip_ids: Optional[List[str]] = None,

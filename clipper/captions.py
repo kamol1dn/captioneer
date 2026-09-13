@@ -69,6 +69,40 @@ def program_ranges(clip: Clip, tb: Timebase) -> List[Tuple[float, float, int]]:
     return out
 
 
+# Master <-> program conversion lives here, beside ``program_ranges``, rather
+# than in a module of its own: it is the same round-then-accumulate rule, and a
+# second implementation of it somewhere else is exactly how captions and picture
+# would drift a frame apart. The graphics pass needs it because it reads a clip
+# in *program* time — the words, as heard, counted from the start of the short —
+# and everything it writes to the EDL is in *master* time.
+
+
+def to_program(clip: Clip, tb: Timebase, master_t: float) -> Optional[float]:
+    """Master seconds -> seconds into the finished short.
+
+    None when the moment was trimmed out of this clip, which is a real answer,
+    not a failure: it means the thing being pointed at is not in the short.
+    """
+    for m_start, m_end, p_start in program_ranges(clip, tb):
+        if m_start - 1e-9 <= master_t <= m_end + 1e-9:
+            return tb.to_seconds(p_start + tb.to_frames(master_t)
+                                 - tb.to_frames(m_start))
+    return None
+
+
+def to_master(clip: Clip, tb: Timebase, program_t: float) -> Optional[float]:
+    """Seconds into the finished short -> master seconds.
+
+    None when the time is past the end of the clip.
+    """
+    target = tb.to_frames(program_t)
+    for m_start, m_end, p_start in program_ranges(clip, tb):
+        length = tb.to_frames(m_end) - tb.to_frames(m_start)
+        if p_start <= target <= p_start + length:
+            return tb.to_seconds(tb.to_frames(m_start) + target - p_start)
+    return None
+
+
 def words_for_clip(master_words: List[Word], clip: Clip,
                    tb: Timebase) -> List[Word]:
     """Remap master-timeline words onto a clip's program timeline.
