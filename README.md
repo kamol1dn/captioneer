@@ -193,6 +193,17 @@ python -m clipper export-xml 2026-07-20_ep12
   clip's words and re-render its overlay in place — Premiere picks the
   overwritten `.mov` up on its next refresh, no re-export
   (`caption_engine/web/clipper_api.py`).
+- **Second pass: b-roll and graphics** (`broll-pass` skill), run in a fresh
+  session over a finished cut. Animated graphics — cards over the speaker and
+  full-screen frames — render from Remotion templates in `graphics/` to alpha
+  ProRes and attach to the clip; Envato stock is shortlisted by Claude,
+  downloaded by you, and picked up from Downloads by `collect_broll`. One-time
+  setup, needs Node 18+:
+
+```
+cd graphics
+npm install
+```
 
 ## Architecture
 
@@ -214,8 +225,10 @@ clipper/         multicam episode -> vertical clips -> Premiere FCP7 XML
   ingest.py / diarize.py / energy.py   loudness envelopes + word-level transcript
   edl.py / compile.py / xmeml/         EDL -> compiled clips -> FCP7 XML
   captions.py                          per-clip overlays via caption_engine
-  mcp_server.py                        clipper-engine MCP server (clip-episode skill)
+  graphics.py / stock.py               rendered graphics and stock footage for b-roll
+  mcp_server.py                        clipper-engine MCP server (clip-episode, broll-pass)
   __main__.py                          CLI mirror of every tool
+graphics/        Remotion templates -> alpha ProRes overlays (templates.json lists them)
 long_captions/   long-form .srt/.vtt subtitle generator (separate tool)
 ffmpeg-7.1/      bundled FFmpeg binaries
 assets-fonts/    bundled Helvetica, Montserrat, Apple Color Emoji

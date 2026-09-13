@@ -417,6 +417,23 @@ remapped onto the clip's program time, frame-exact against picture.
 **10. Export.** `export_xml(project_id)` writes one XML with every clip as its
 own sequence. Tell the user: File > Import in Premiere.
 
+**Then stop, and offer the b-roll pass.** Graphics, footage and on-screen
+context are a separate skill — `broll-pass` — run in a **fresh session** over
+this finished EDL. The cut is decided by then, and dressing it reads better from
+a context that meets the clips the way a viewer does rather than remembering why
+each boundary sits where it does.
+
+Mention it *at export time*, not later: it wants to run before the user imports,
+because adding b-roll changes the timeline and needs a re-export. Once they have
+imported and started editing by hand, a re-import lands a duplicate copy of every
+sequence beside the work in progress.
+
+**Leave that pass something to work from.** When a clip only stands alone with
+visual help — the case flagged under "Every clip must stand alone" above — put
+one line in that clip's `note` saying what is missing: `"needs establishing:
+what Stripe announced"`. Not a b-roll plan; the second pass decides that. Just
+the thing you knew and it would otherwise have to guess.
+
 ### What lands on the timeline
 
 Each sequence is built so the editor can change decisions without a re-export:
@@ -455,27 +472,18 @@ A3   camera B mic   — disabled  (scratch)
 - Changing an angle via toggle does **not** update the EDL. If the user wants
   the change recorded, edit `camera_cuts` and re-export.
 
-### What the user adds on top (from a finished ep11 timeline)
+### What hand-finishing tells us about the cut
 
-The engine delivers V1/V2 + audio; everything below is hand-finishing done in
-Premiere afterwards. Don't try to reproduce it, but leave room for it and don't
-fight it:
-
-- **Graphics tracks above the captions** — a title card over the hook, images
-  and an Essential Graphics "Watch the full video on YouTube!" end card. These
-  are `GraphicAndType` effects carrying an opaque blob; they cannot be authored
-  from XML.
-- **Cross Dissolve with `start-black` / `end-black` alignment** on every graphic
-  and image track, roughly 7-42 frames. That is how graphics enter and leave.
-- **A blurred Adjustment Layer** (~138% scale) behind scaled-down imagery — the
-  standard vertical-video background treatment.
-- **Opacity** at 60-95% on overlay imagery.
-
-Two things this tells us, both load-bearing:
+The engine delivers the camera stack, captions and audio; graphics and b-roll go
+on afterwards. Cataloguing what lands up there is the **b-roll pass**'s job — a
+separate skill, run in a fresh session (see the handoff at step 10) — so the
+detail lives with it rather than here. Two things it tells us that belong in
+this pass, both load-bearing:
 
 1. **The picture edit and the audio are hard cuts — no transitions anywhere on
    V1 or the audio tracks.** Don't add dissolves between camera shots or fades
-   at audio splices; that is not the house style.
+   at audio splices; that is not the house style. Graphics *do* get dissolves —
+   that is the other pass's business, not this one's.
 2. Premiere-native effects (Lumetri, Gaussian Blur, Warp Stabilizer, synthetic
    Black Video) do **not** survive an FCP7 XML round trip. A re-exported
    reference will list them as "not translated" — that is expected and harmless,

@@ -65,10 +65,12 @@ def render_preview(clip: CompiledClip, out_path, quality: str = "fast") -> Path:
         idx = _idx(b.path)
         s, e = b.in_ / fps, b.out / fps
         start_t, end_t = b.start / fps, b.end / fps
+        # Cover, not fit — the same rule the export's Basic Motion scale uses,
+        # so a 16:9 stock shot previews cropped the way Premiere will show it.
         filt.append(
             f"[{idx}:v]trim=start={s:.6f}:end={e:.6f},setpts=PTS-STARTPTS+"
-            f"{start_t:.6f}/TB,scale={w}:{h}:force_original_aspect_ratio=decrease,"
-            f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1[br{j}]"
+            f"{start_t:.6f}/TB,scale={w}:{h}:force_original_aspect_ratio=increase,"
+            f"crop={w}:{h},setsar=1[br{j}]"
         )
         filt.append(
             f"[{vout}][br{j}]overlay=enable='between(t,{start_t:.6f},"

@@ -1,0 +1,331 @@
+{
+  "_comment": "The one list of templates. Read by clipper/graphics.py (to list, check and stage props) and by src/Root.tsx (studio defaults). A template added here must also be registered in src/templates/index.ts. frame='card' renders onto overlay entries (sits over the speaker); frame='full' renders onto footage entries (replaces the picture).",
+  "templates": {
+    "LowerThird": {
+      "description": "Name + role for someone mentioned or speaking. The standard way to establish who a person is.",
+      "props": {
+        "name": "Person's name, as it should read on screen.",
+        "role": "One line: title and organisation, e.g. 'Co-founder & CEO, Spade'.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top' — captions usually sit low."
+      },
+      "required": [
+        "name",
+        "role"
+      ],
+      "image_props": [],
+      "example": {
+        "name": "Oban McTavish",
+        "role": "Co-founder & CEO, Spade",
+        "position": "top"
+      },
+      "frame": "card"
+    },
+    "Headline": {
+      "description": "A news card: where the story is from, the headline, and when. For establishing a story the audio refers to as already known.",
+      "props": {
+        "source": "Outlet or issuer, short: 'Reuters', 'OCC', 'OpenAI'.",
+        "headline": "The headline itself. Keep it under ~90 characters; it is read, not skimmed.",
+        "date": "Optional. When it happened, e.g. '3 Sept 2026'.",
+        "logo": "Optional. Absolute path to a logo image (png/svg/jpg) shown beside the source.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+      },
+      "required": [
+        "source",
+        "headline"
+      ],
+      "image_props": [
+        "logo"
+      ],
+      "example": {
+        "source": "OCC",
+        "headline": "Revolut wins conditional US national bank charter",
+        "date": "Sept 2026",
+        "position": "top"
+      },
+      "frame": "card"
+    },
+    "Stat": {
+      "description": "One number that matters, counting up to its value, with what it measures. For a figure the speaker says that has no scale on its own.",
+      "props": {
+        "value": "The number (not a string). 6 for '6%'.",
+        "prefix": "Optional. Before the number: '$', '£'.",
+        "suffix": "Optional. After the number: '%', 'B', 'x'.",
+        "decimals": "Optional. Decimal places to show. Default 0.",
+        "label": "What the number is, one line: 'of US card payments'.",
+        "sublabel": "Optional. Source or qualifier in small type.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "image_props": [],
+      "example": {
+        "value": 6,
+        "suffix": "%",
+        "label": "claimed share of agent-led checkouts",
+        "sublabel": "company figure",
+        "position": "top"
+      },
+      "frame": "card"
+    },
+    "Explainer": {
+      "description": "A short context card: a title and up to three lines, revealed one by one. For 'what is X' when a thing is named but never explained.",
+      "props": {
+        "title": "The question or thing being explained: 'What is X Money?'.",
+        "lines": "1-3 short strings, each one fact. Longer lines shrink the type.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+      },
+      "required": [
+        "title",
+        "lines"
+      ],
+      "image_props": [],
+      "example": {
+        "title": "What is X Money?",
+        "lines": [
+          "X's own digital wallet",
+          "Since 2 Sept, US creator payouts land here",
+          "Replacing Stripe for payouts"
+        ],
+        "position": "top"
+      },
+      "frame": "card"
+    },
+    "ImageCard": {
+      "description": "A screenshot or image in a framed card with a slow push-in: an article, a tweet, a chart, a product. The image carries the content; the caption is optional.",
+      "props": {
+        "image": "Absolute path to the image (png/jpg/webp).",
+        "caption": "Optional. One line under the image.",
+        "credit": "Optional. Small source credit, e.g. 'via Bloomberg'.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'center' — images want the room."
+      },
+      "required": [
+        "image"
+      ],
+      "image_props": [
+        "image"
+      ],
+      "example": {
+        "image": "",
+        "caption": "The OCC's conditional approval letter",
+        "credit": "occ.gov",
+        "position": "center"
+      },
+      "frame": "card"
+    },
+    "Bars": {
+      "description": "A horizontal bar chart that grows in. For comparing 2-5 values the speaker lists — market shares, fees, valuations.",
+      "props": {
+        "title": "Optional. What is being compared.",
+        "items": "2-5 of {label, value, highlight?}. value is a number; highlight=true draws that bar in the accent colour.",
+        "prefix": "Optional. Before each value: '$'.",
+        "suffix": "Optional. After each value: '%', 'B'.",
+        "decimals": "Optional. Decimal places. Default 0.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+      },
+      "required": [
+        "items"
+      ],
+      "image_props": [],
+      "example": {
+        "title": "Valuation, $B",
+        "items": [
+          {
+            "label": "Revolut",
+            "value": 75,
+            "highlight": true
+          },
+          {
+            "label": "Monzo",
+            "value": 5.9
+          },
+          {
+            "label": "Chime",
+            "value": 11.6
+          }
+        ],
+        "decimals": 0,
+        "position": "top"
+      },
+      "frame": "card"
+    },
+    "Breakdown": {
+      "description": "Full screen. A numbered list of 2-6 points revealed one by one. For conditions, reasons, steps — anything the speaker enumerates that a viewer would lose track of by ear.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "points": "2-6 short strings, one idea each. Under ~60 characters reads well."
+      },
+      "required": [
+        "points"
+      ],
+      "image_props": [],
+      "example": {
+        "kicker": "The conditions",
+        "title": "What the OCC demanded",
+        "points": [
+          "Hold far more capital than a normal bank",
+          "No new products for 3 years without approval",
+          "A US-based board and management team"
+        ],
+        "source": "Source: OCC conditional approval"
+      },
+      "frame": "full"
+    },
+    "Timeline": {
+      "description": "Full screen. 2-6 dated events on a line that draws down. For how something unfolded — a sequence the audio compresses into one sentence.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "events": "2-6 of {date, text}. date is short ('Mar 2024'); text one line."
+      },
+      "required": [
+        "events"
+      ],
+      "image_props": [],
+      "example": {
+        "kicker": "Timeline",
+        "title": "Revolut's road to a US charter",
+        "events": [
+          {
+            "date": "2021",
+            "text": "First applies, then withdraws"
+          },
+          {
+            "date": "Mar 2025",
+            "text": "Re-files with the OCC"
+          },
+          {
+            "date": "Sept 2026",
+            "text": "Conditional approval granted"
+          }
+        ]
+      },
+      "frame": "full"
+    },
+    "Compare": {
+      "description": "Full screen. Two columns side by side with up to 5 points each, plus an optional one-line verdict. For A vs B — two products, two banks, before vs after.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "left": "{name, points: [..]} — the first side. Points short: the column is half the frame.",
+        "right": "{name, points: [..]} — the second side, drawn in the accent colour.",
+        "verdict": "Optional. One line under both columns: the takeaway."
+      },
+      "required": [
+        "left",
+        "right"
+      ],
+      "image_props": [],
+      "example": {
+        "title": "Payouts: before vs after",
+        "left": {
+          "name": "Stripe",
+          "points": [
+            "Bank transfer",
+            "2-3 day settlement"
+          ]
+        },
+        "right": {
+          "name": "X Money",
+          "points": [
+            "Stays inside X",
+            "Instant, in-app"
+          ]
+        },
+        "verdict": "X keeps the money in its own wallet."
+      },
+      "frame": "full"
+    },
+    "Chart": {
+      "description": "Full screen. Horizontal bars for 2-8 values, growing in. For a comparison with more items or more weight than the Bars card can carry.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "items": "2-8 of {label, value, highlight?}. value is a number; highlight=true draws it in the accent colour.",
+        "prefix": "Optional. Before each value: '$'.",
+        "suffix": "Optional. After each value: '%', 'B'.",
+        "decimals": "Optional. Decimal places. Default 0."
+      },
+      "required": [
+        "items"
+      ],
+      "image_props": [],
+      "example": {
+        "title": "Fintech valuations, $B",
+        "items": [
+          {
+            "label": "Revolut",
+            "value": 75,
+            "highlight": true
+          },
+          {
+            "label": "Chime",
+            "value": 11.6
+          },
+          {
+            "label": "Monzo",
+            "value": 5.9
+          },
+          {
+            "label": "N26",
+            "value": 9
+          }
+        ],
+        "prefix": "$",
+        "suffix": "B",
+        "decimals": 0,
+        "source": "Latest reported rounds"
+      },
+      "frame": "full"
+    },
+    "Quote": {
+      "description": "Full screen. A quotation with attribution. For something someone else said or wrote — a regulator, a CEO, an official statement — that the speaker is reacting to.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "quote": "The quotation, without quote marks. Under ~200 characters.",
+        "author": "Who said it.",
+        "role": "Optional. Their title or where it was said."
+      },
+      "required": [
+        "quote",
+        "author"
+      ],
+      "image_props": [],
+      "example": {
+        "quote": "We will not allow AI agents to transact without a human in the loop.",
+        "author": "Jane Doe",
+        "role": "Head of Payments, Visa"
+      },
+      "frame": "full"
+    },
+    "Scroll": {
+      "description": "Full screen. A tall screenshot — an article, a filing, a thread — scrolling top to bottom through a window. For showing the real document the speaker is talking about.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "image": "Absolute path to a tall image (png/jpg/webp). Crop it to the part worth reading; the whole height scrolls past."
+      },
+      "required": [
+        "image"
+      ],
+      "image_props": [
+        "image"
+      ],
+      "example": {
+        "kicker": "The filing",
+        "image": "",
+        "source": "occ.gov"
+      },
+      "frame": "full"
+    }
+  }
+}

@@ -29,13 +29,17 @@ sys.stdout = sys.stderr
 
 import contextlib  # noqa: E402
 import io  # noqa: E402
+import time  # noqa: E402
 import warnings as _warnings  # noqa: E402
+from pathlib import Path  # noqa: E402
 from typing import List, Optional  # noqa: E402
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from . import captions as captions_mod  # noqa: E402
 from . import energy as energy_mod  # noqa: E402
+from . import graphics as graphics_mod  # noqa: E402
+from . import stock as stock_mod  # noqa: E402
 from . import paths  # noqa: E402
 from . import sanity as sanity_mod  # noqa: E402
 from . import verify as verify_mod  # noqa: E402
@@ -44,6 +48,7 @@ from . import transcript as transcript_mod  # noqa: E402
 from caption_engine.transcriber.word import load_words  # noqa: E402
 
 from .compile import compile_for, compile_for_monitor  # noqa: E402
+from . import edl as edl_mod  # noqa: E402
 from .edl import EDL, validate  # noqa: E402
 from .preview import render_preview  # noqa: E402
 from .project import Project, create
@@ -854,12 +859,15 @@ def export_xml(project_id: str, out_path: Optional[str] = None,
     meta.update(captions_mod.caption_file_meta(
         movs, edl.frame_size, edl.timebase,
         {c.id: c.duration for c in compiled}))
+    broll_meta, broll_warnings = stock_mod.broll_file_meta(edl)
+    meta.update(broll_meta)
 
     out = out_path or str(project.exports_dir / f"{project.id}.xml")
     write_xmeml(compiled, out, project_name=project.name, file_meta=meta)
 
     captioned = [c.id for c in compiled if c.id in movs]
-    warnings_ = list(result["warnings"])
+    warnings_ = (list(result["warnings"]) + broll_warnings
+                 + graphics_mod.stale_graphics(edl))
     uncaptioned = [c.id for c in compiled if c.id not in movs]
     if include_captions and uncaptioned:
         warnings_.append(
@@ -899,30 +907,405 @@ def export_preview(project_id: str, clip_id: str,
     return {"path": out, "duration_sec": compiled.duration_seconds}
 
 
-@mcp.tool()
-def attach_broll(project_id: str, clip_id: str, broll_id: str,
-                 source_path: str, source_in: float = 0.0) -> dict:
-    """Fill in a b-roll placeholder with real footage — the seam for a future
-    b-roll pull pipeline. Turns the placeholder marker into a real V2 clip on
-    the next export."""
-    project = _load(project_id)
-    edl = EDL.load(project.edl_path)
+# ── B-roll and graphics ──────────────────────────────────────────────────────
+#
+# The graphics pass is a second session over a finished cut, so these tools reach
+# ``broll`` and ``markers`` and nothing else. ``set_edl`` would work too, but it
+# replaces the whole document: a session that never watched the cut being snapped
+# would be rewriting every segment boundary to change one overlay, and a slightly
+# wrong reconstruction still validates. Narrow tools make that mistake
+# unavailable rather than merely unlikely.
+
+
+def _clip_or_raise(project, edl, clip_id: str):
     if edl is None:
-        raise ValueError("no EDL saved")
+        raise ValueError("no EDL saved — call set_edl first")
     clip = edl.clip(clip_id)
     if clip is None:
         raise ValueError(f"no clip {clip_id!r} in EDL")
+    return clip
+
+
+def _save_graphics_edit(project, edl, clip, **extra) -> dict:
+    """Validate, persist only if clean, and echo the clip's graphics either way.
+
+    Same contract as ``set_edl`` — a rejected edit is not written. Echoing the
+    lists back means the caller sees the state it just produced without a second
+    round trip, which is most of what a b-roll pass spends calls on.
+    """
+    result = validate(edl, project.camera_ids, project.master_duration,
+                      project.video_camera_ids)
+    if result["ok"]:
+        edl.save(project.edl_path)
+    return {"ok": result["ok"], "saved": result["ok"],
+            "errors": result["errors"],
+            "warnings": result["warnings"] + graphics_mod.stale_graphics(edl),
+            "clip_id": clip.id,
+            "broll": [dict(vars(b)) for b in clip.broll],
+            "markers": [dict(vars(m)) for m in clip.markers],
+            **extra}
+
+
+@mcp.tool()
+def convert_clip_times(project_id: str, clip_id: str, times: List[float],
+                       to: str = "master") -> dict:
+    """Convert between a clip's program time and master time.
+
+    **The graphics pass reads in one and writes in the other**, which is the
+    easiest way to place something 30 seconds from where you meant it. The words
+    from `get_clip_captions` are in *program* time — seconds from the start of
+    the short, what you hear. Everything in the EDL, `add_broll` included, is in
+    *master* time on the original episode timeline. A clip made of three
+    segments has three different offsets between them.
+
+    `to="master"` converts caption/player times into what `add_broll` wants;
+    `to="program"` goes the other way, for reading an existing entry against the
+    words. Frame-exact, by the same rule the compiler uses for picture.
+
+    A null in the result means that time isn't in this clip — trimmed out, or
+    past the end. That is an answer, not an error: don't substitute a nearby
+    value for it.
+    """
+    if to not in ("master", "program"):
+        raise ValueError(f"to must be 'master' or 'program', not {to!r}")
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    fn = captions_mod.to_master if to == "master" else captions_mod.to_program
+    converted = [fn(clip, edl.timebase, t) for t in times]
+    return {"clip_id": clip_id, "to": to,
+            "times": [None if v is None else round(v, 3) for v in converted],
+            "clip_duration": round(clip.duration, 3)}
+
+
+@mcp.tool()
+def add_broll(project_id: str, clip_id: str, start: float, end: float,
+              kind: str = "footage", query: str = "", broll_id: str = "",
+              source: Optional[str] = None, source_in: float = 0.0,
+              audio: str = "mute") -> dict:
+    """Add one b-roll or graphic to a clip without touching the cut.
+
+    `kind` is "footage" (full-frame, replaces the picture for its duration) or
+    "overlay" (an alpha graphic on top of it — a stat animation, a screenshot
+    card, a lower third). They compile to separate tracks, so an overlay may run
+    over footage; two of the same kind may not overlap.
+
+    `start`/`end` are **master seconds**, like everything else in the EDL, and
+    must fall inside one of the clip's kept segments — not program seconds
+    counted from the start of the short.
+
+    Leave `source` empty for a placeholder: it exports as a timeline marker
+    carrying `query`, so the intent reaches the editor without Premiere nagging
+    about offline media. Fill it in later with `attach_broll`.
+
+    Returns the clip's full b-roll list. Rejected edits are not saved.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    b = edl_mod.add_broll(clip, start=start, end=end, kind=kind, query=query,
+                          broll_id=broll_id, source=source,
+                          source_in=source_in, audio=audio)
+    return _save_graphics_edit(project, edl, clip, added=b.id)
+
+
+@mcp.tool()
+def remove_broll(project_id: str, clip_id: str, broll_id: str) -> dict:
+    """Drop one b-roll entry from a clip. Leaves the cut untouched."""
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    edl_mod.remove_broll(clip, broll_id)
+    return _save_graphics_edit(project, edl, clip, removed=broll_id)
+
+
+@mcp.tool()
+def set_clip_broll(project_id: str, clip_id: str, broll: List[dict]) -> dict:
+    """Replace one clip's entire b-roll list, leaving the cut untouched.
+
+    Use this when laying out a whole clip's graphics at once; `add_broll` is the
+    better call for a single addition. Each entry takes {start, end, kind, query,
+    id, source, source_in, audio} — see `add_broll` for what they mean. An empty
+    list clears the clip's b-roll.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    clip.broll = edl_mod.parse_broll(broll)
+    return _save_graphics_edit(project, edl, clip)
+
+
+@mcp.tool()
+def set_clip_markers(project_id: str, clip_id: str, markers: List[dict]) -> dict:
+    """Replace one clip's timeline markers, leaving the cut untouched.
+
+    Each entry is {at, name, comment}, `at` in master seconds. Markers are how an
+    idea reaches the editor without committing to a file — a note about what a
+    moment needs, readable in Premiere's timeline. An empty list clears them.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    clip.markers = edl_mod.parse_markers(markers)
+    return _save_graphics_edit(project, edl, clip)
+
+
+@mcp.tool()
+def attach_broll(project_id: str, clip_id: str, broll_id: str,
+                 source_path: str, source_in: float = 0.0) -> dict:
+    """Fill in a b-roll placeholder with a real file — the seam the footage and
+    animation passes deliver through. Turns the placeholder marker into a real
+    clip on its kind's track at the next export.
+
+    `source_in` is where to start inside the source file, in seconds."""
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
     b = next((x for x in clip.broll if x.id == broll_id), None)
     if b is None:
         raise ValueError(f"no b-roll {broll_id!r} in clip {clip_id!r}")
     b.source = source_path
     b.source_in = source_in
     b.status = "attached"
-    edl.save(project.edl_path)
-    return {"ok": True,
-            "edl_summary": validate(edl, project.camera_ids,
-                                    project.master_duration,
-                                    project.video_camera_ids)["clips"]}
+    # A hand-attached file is not the template render any more; keeping the
+    # record would let a later re-render silently replace it.
+    b.graphic = None
+    try:
+        b.media = stock_mod.media_info(source_path)
+    except Exception:
+        b.media = None  # export probes again; a failed probe is not fatal here
+    return _save_graphics_edit(project, edl, clip, attached=broll_id)
+
+
+@mcp.tool()
+def set_broll_candidates(project_id: str, clip_id: str, broll_id: str,
+                         candidates: List[dict]) -> dict:
+    """Record the stock shortlist for a footage placeholder.
+
+    Each candidate is {url, title, note}: the item page, its title as the site
+    shows it, and one line on why it fits. They travel into the placeholder's
+    Premiere marker, and `collect_broll` uses them to match downloads back to
+    this entry — so record them for every placeholder you shortlist for, in the
+    order you hand them to the user.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    b = next((x for x in clip.broll if x.id == broll_id), None)
+    if b is None:
+        raise ValueError(f"no b-roll {broll_id!r} in clip {clip_id!r}")
+    cleaned = []
+    for i, c in enumerate(candidates):
+        unknown = sorted(set(c) - {"url", "title", "note"})
+        if unknown or not c.get("url"):
+            raise ValueError(f"candidate #{i}: needs a url; allowed fields are "
+                             f"url, title, note (got {sorted(c)})")
+        cleaned.append({k: str(v) for k, v in c.items() if v})
+    b.candidates = cleaned or None
+    return _save_graphics_edit(project, edl, clip, updated=broll_id)
+
+
+@mcp.tool()
+def collect_broll(project_id: str, assign: Optional[List[dict]] = None,
+                  folders: Optional[List[str]] = None,
+                  since_hours: float = 12.0) -> dict:
+    """Pick up stock footage the user downloaded and attach it to placeholders.
+
+    **Without `assign`** — look, don't touch: lists video files that arrived in
+    `folders` (default: the user's Downloads) in the last `since_hours`, each
+    with its size, rate, length and a `sheet` — three frames side by side — plus
+    the footage placeholders still waiting and a suggested pairing. **Read every
+    sheet** before assigning: names on stock downloads rarely match the item,
+    and suggestions marked "download order" are guesses.
+
+    **With `assign`** — [{file, clip_id, broll_id, source_in?}]: moves each file
+    into the episode's `broll/` folder, conforms its frame rate to the sequence
+    if it differs, records its size so the export scales it to fill the vertical
+    frame, and attaches it. `source_in` (seconds into the file) defaults to 1s
+    in, where there is room. Rejected edits are not saved.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    if edl is None:
+        raise ValueError("no EDL saved — call set_edl first")
+    broll_dir = project.media_dir / "broll"
+
+    if not assign:
+        dirs = [Path(f) for f in folders] if folders else stock_mod.default_folders()
+        since = time.time() - since_hours * 3600
+        files = stock_mod.scan(dirs, since, broll_dir / "_unzipped")
+        listed = []
+        for f in files:
+            try:
+                info = stock_mod.media_info(f)
+            except Exception as e:
+                listed.append({"file": str(f), "error": f"could not probe: {e}"})
+                continue
+            sheet = stock_mod.contact_sheet(
+                f, project.dir / "stock_sheets" / f"{f.stem}.jpg", info["duration"])
+            listed.append({"file": str(f),
+                           "size_mb": round(f.stat().st_size / 1e6, 1),
+                           **info, "sheet": str(sheet) if sheet else None})
+        slots = stock_mod.pending_slots(edl)
+        return {
+            "files": listed,
+            "waiting": [{"clip_id": c.id, "broll_id": b.id, "query": b.query,
+                         "seconds": round(b.end - b.start, 2),
+                         "candidates": b.candidates or []} for c, b in slots],
+            "suggested": stock_mod.suggest(files, slots),
+            "searched": [str(d) for d in dirs],
+        }
+
+    results, touched = [], {}
+    for i, a in enumerate(assign):
+        unknown = sorted(set(a) - {"file", "clip_id", "broll_id", "source_in"})
+        if unknown:
+            raise ValueError(f"assign #{i}: unknown field(s) {', '.join(unknown)}")
+        f = Path(a.get("file", ""))
+        if not f.is_file():
+            raise ValueError(f"assign #{i}: {f} is not a file")
+        clip = _clip_or_raise(project, edl, a.get("clip_id", ""))
+        b = next((x for x in clip.broll if x.id == a.get("broll_id")), None)
+        if b is None:
+            raise ValueError(f"assign #{i}: no b-roll {a.get('broll_id')!r} on "
+                             f"clip {clip.id!r}")
+        with _quiet():
+            results.append(stock_mod.take(f, broll_dir, clip, b, edl.timebase,
+                                          a.get("source_in")))
+        touched[clip.id] = clip
+
+    result = validate(edl, project.camera_ids, project.master_duration,
+                      project.video_camera_ids)
+    if result["ok"]:
+        edl.save(project.edl_path)
+    return {"ok": result["ok"], "saved": result["ok"], "attached": results,
+            "errors": result["errors"], "warnings": result["warnings"]}
+
+
+@mcp.tool()
+def list_graphic_templates() -> dict:
+    """The animated graphics `render_graphics` can make, with their props.
+
+    Each renders as an alpha ProRes overlay sized to the sequence and timed to
+    the b-roll entry it fills, with its entrance and exit animation baked in —
+    so nothing needs a dissolve applied by hand in Premiere.
+    """
+    return {"templates": {
+        name: {k: spec[k] for k in ("description", "props", "required", "example")}
+        for name, spec in graphics_mod.manifest().items()}}
+
+
+@mcp.tool()
+def render_graphics(project_id: str, items: List[dict]) -> dict:
+    """Render animated graphics onto overlay b-roll entries and attach them.
+
+    Each item is {clip_id, broll_id, template, props}. The entry must already
+    exist (`add_broll` with kind="overlay"); its length on the finished short
+    decides the file's length, frame-exact, and size and rate come from the
+    sequence. Omit `template`/`props` to **re-render** an entry from what it was
+    last rendered with — the thing to do after moving or resizing one.
+
+    Image props (a screenshot, a logo) take an absolute path on disk.
+
+    Batch them: the renderer bundles once per call, which is most of the cost.
+    Every item is checked before anything renders, and nothing is attached
+    unless the whole batch validates.
+
+    Returns per item the .mov and a `check` PNG — the graphic composited over
+    the camera frame it will sit on. **Look at the checks** before calling it
+    done: that is where a card covering a face or an overflowing headline shows.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    if edl is None:
+        raise ValueError("no EDL saved — call set_edl first")
+
+    # Fill re-render requests from what each entry was last rendered with.
+    resolved = []
+    for i, item in enumerate(items):
+        item = dict(item)
+        if not item.get("template"):
+            clip = edl.clip(item.get("clip_id", ""))
+            b = clip and next((x for x in clip.broll
+                               if x.id == item.get("broll_id")), None)
+            if not b or not b.graphic:
+                raise ValueError(f"item #{i}: no template given and "
+                                 f"{item.get('clip_id')}/{item.get('broll_id')} "
+                                 f"has never been rendered")
+            item["template"] = b.graphic["template"]
+            item.setdefault("props", b.graphic.get("props") or {})
+        resolved.append(item)
+
+    out_dir = project.dir / "graphics"
+    jobs, errors = graphics_mod.plan_jobs(edl, resolved, out_dir)
+    if errors:
+        return {"ok": False, "rendered": 0, "errors": errors}
+
+    with _quiet():
+        results = graphics_mod.render(jobs, edl)
+
+    # Re-read before writing: a render takes minutes, and the EDL on disk is the
+    # one to attach to, not the copy loaded before it started.
+    edl = EDL.load(project.edl_path)
+    compiled = {}
+    report, touched = [], set()
+    for job, r in zip(jobs, results):
+        entry = {"clip_id": job.clip_id, "broll_id": job.broll_id,
+                 "template": job.template}
+        if not r.get("ok"):
+            report.append({**entry, "ok": False, "error": r.get("error")})
+            continue
+        clip = edl.clip(job.clip_id)
+        b = clip and next((x for x in clip.broll if x.id == job.broll_id), None)
+        if b is None:
+            report.append({**entry, "ok": False,
+                           "error": "entry was removed while rendering"})
+            continue
+        b.source, b.source_in, b.status = str(job.out), 0.0, "attached"
+        b.graphic = {"template": job.template, "props": job.props,
+                     "frames": job.frames}
+        # Known exactly, so no probe: the renderer was told all of it.
+        b.media = {"width": edl.frame_size[0], "height": edl.frame_size[1],
+                   "fps": round(float(edl.timebase.fps), 5),
+                   "duration": round(edl.timebase.to_seconds(job.frames), 3),
+                   "has_audio": False}
+        touched.add(job.clip_id)
+
+        # The check image: the still over the frame it will cover.
+        mid = job.program_start + int(job.frames * 0.6)
+        if job.clip_id not in compiled:
+            try:
+                compiled[job.clip_id] = compile_for_monitor(
+                    project, edl, [job.clip_id])[0]
+            except Exception:  # a check image is a nicety, never a failure
+                compiled[job.clip_id] = None
+        check, check_note = job.out.with_suffix(".check.png"), None
+        try:
+            bg = (graphics_mod.grab_program_frame(
+                      compiled[job.clip_id], mid,
+                      job.out.with_suffix(".bg.png"))
+                  if compiled[job.clip_id] else None)
+            if bg is None:
+                check_note = "camera frame unavailable — check is over grey"
+            graphics_mod.composite_check(job.still, bg, check, edl.frame_size)
+            if bg:
+                bg.unlink(missing_ok=True)
+        except Exception as e:
+            check, check_note = job.still, f"check composite failed ({e}); bare still"
+        report.append({**entry, "ok": True, "path": str(job.out),
+                       "check": str(check), "frames": job.frames,
+                       "seconds": round(edl.timebase.to_seconds(job.frames), 2),
+                       **({"check_note": check_note} if check_note else {})})
+
+    result = validate(edl, project.camera_ids, project.master_duration,
+                      project.video_camera_ids)
+    if touched and result["ok"]:
+        edl.save(project.edl_path)
+    return {"ok": result["ok"] and all(x["ok"] for x in report),
+            "saved": bool(touched) and result["ok"],
+            "rendered": sum(1 for x in report if x["ok"]),
+            "items": report, "errors": result["errors"],
+            "warnings": result["warnings"] + graphics_mod.stale_graphics(edl)}
 
 
 async def _run_stdio() -> None:

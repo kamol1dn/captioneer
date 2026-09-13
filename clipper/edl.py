@@ -33,6 +33,8 @@ SCHEMA_VERSION = 1
 MIN_SHOT_SEC = 0.5
 # Below this a segment isn't a thought, it's a fragment.
 MIN_SEGMENT_SEC = 0.4
+# What a BRoll may be. Order is bottom-to-top on the timeline.
+BROLL_KINDS = ("footage", "overlay")
 
 
 @dataclass
@@ -59,20 +61,44 @@ class CameraCut:
 
 @dataclass
 class BRoll:
-    """An overlay on V2. Never changes clip duration — it covers, not extends.
+    """Something laid over the camera stack. Never changes clip duration — it
+    covers or decorates, it does not extend.
+
+    ``kind`` distinguishes two genuinely different things, which is why they get
+    their own tracks:
+
+    * ``footage`` — full-frame stock or cutaway that *replaces* the picture for
+      its duration. What a b-roll pull produces.
+    * ``overlay`` — an alpha graphic sitting *on top* of the picture: a stat
+      animation, a screenshot card, a lower third. It augments rather than
+      covers, so it may legitimately run at the same time as footage. Two of the
+      same kind may not — one track cannot carry both.
 
     ``source is None`` means placeholder: the agent knows what it wants but the
-    footage doesn't exist yet. Placeholders export as sequence markers rather
-    than offline clips (offline items make Premiere nag on every import).
+    file doesn't exist yet. Placeholders export as sequence markers rather than
+    offline clips (offline items make Premiere nag on every import).
     """
     start: float
     end: float
     id: str = ""
     query: str = ""
+    kind: str = "footage"        # "footage" | "overlay"
     source: Optional[str] = None
     source_in: float = 0.0
     audio: str = "mute"          # "mute" | "keep"
     status: str = "placeholder"  # "placeholder" | "attached"
+    # Set when ``source`` was rendered from a template: {template, props, frames}.
+    # Kept so the file can be re-rendered after the entry moves, rather than the
+    # graphic having to be re-authored from a description.
+    graphic: Optional[dict] = None
+    # The attached file as probed: {width, height, fps, duration, has_audio}.
+    # The compiler needs the size to scale footage to fill a vertical frame, and
+    # the XML needs all of it for the <file> element — stock footage is rarely
+    # the sequence's size, and declaring it wrong makes Premiere scale it.
+    media: Optional[dict] = None
+    # Stock candidates found for a placeholder: [{url, title, note}]. Carried
+    # into the placeholder's marker so the editor sees them too.
+    candidates: Optional[List[dict]] = None
 
 
 @dataclass
@@ -238,6 +264,78 @@ def _clean(d: dict) -> dict:
             if v not in ("", None) or k in ("start", "end", "at")}
 
 
+# ── b-roll and marker editing ────────────────────────────────────────────────
+#
+# The graphics pass runs in its own session, after the cut is settled, and has no
+# business rewriting ``segments`` or ``camera_cuts``. Those were snapped to
+# silence and checked against the rendered audio; a session that never saw that
+# work cannot reconstruct it faithfully through a whole-document JSON round trip,
+# and a near-miss reconstruction is worse than a loud failure because it still
+# validates. So that pass edits through these instead, and the parts of the EDL
+# it must not touch are simply not reachable from here.
+
+
+def next_broll_id(clip: Clip) -> str:
+    """``b1``, ``b2``, … — the lowest id not already used on this clip."""
+    used = {b.id for b in clip.broll}
+    n = 1
+    while f"b{n}" in used:
+        n += 1
+    return f"b{n}"
+
+
+def add_broll(clip: Clip, start: float, end: float, kind: str = "footage",
+              query: str = "", broll_id: str = "", source: Optional[str] = None,
+              source_in: float = 0.0, audio: str = "mute") -> BRoll:
+    """Append one b-roll entry to ``clip`` and return it.
+
+    An explicit ``broll_id`` that is already taken raises rather than updating in
+    place: silently overwriting an entry the caller believed it was adding is
+    exactly how a second pass loses the first pass's work.
+    """
+    if broll_id and any(b.id == broll_id for b in clip.broll):
+        raise ValueError(f"b-roll {broll_id!r} already exists on clip {clip.id!r}")
+    b = BRoll(start=start, end=end, id=broll_id or next_broll_id(clip),
+              query=query, kind=kind, source=source, source_in=source_in,
+              audio=audio, status="attached" if source else "placeholder")
+    clip.broll.append(b)
+    return b
+
+
+def remove_broll(clip: Clip, broll_id: str) -> BRoll:
+    """Drop one b-roll entry from ``clip`` and return what was removed."""
+    b = next((x for x in clip.broll if x.id == broll_id), None)
+    if b is None:
+        raise ValueError(f"no b-roll {broll_id!r} on clip {clip.id!r}")
+    clip.broll.remove(b)
+    return b
+
+
+def parse_broll(items: List[dict]) -> List[BRoll]:
+    """Build a b-roll list from plain dicts, naming a bad field clearly.
+
+    ``BRoll(**d)`` on a stray key raises a bare TypeError naming the constructor,
+    which tells an agent nothing about which entry it got wrong.
+    """
+    return [_parse(BRoll, d, i, "b-roll") for i, d in enumerate(items)]
+
+
+def parse_markers(items: List[dict]) -> List[Marker]:
+    return [_parse(Marker, d, i, "marker") for i, d in enumerate(items)]
+
+
+def _parse(cls, d: dict, i: int, what: str):
+    allowed = set(cls.__dataclass_fields__)
+    unknown = sorted(set(d) - allowed)
+    if unknown:
+        raise ValueError(f"{what} #{i}: unknown field(s) {', '.join(unknown)} — "
+                         f"allowed: {', '.join(sorted(allowed))}")
+    try:
+        return cls(**d)
+    except TypeError as e:
+        raise ValueError(f"{what} #{i}: {e}") from None
+
+
 # ── validation ───────────────────────────────────────────────────────────────
 
 def validate(edl: EDL, camera_ids: List[str],
@@ -315,6 +413,7 @@ def validate(edl: EDL, camera_ids: List[str],
                 warnings.append(f"{tag}: {shot_end - shot_start:.2f}s shot on "
                                 f"cam {cam} at {shot_start:.2f}s reads as a glitch")
 
+        broll_ids = set()
         for b in clip.broll:
             if b.end <= b.start:
                 errors.append(f"{tag}: b-roll {b.id!r} is empty or inverted")
@@ -322,8 +421,27 @@ def validate(edl: EDL, camera_ids: List[str],
                        for s in segs):
                 errors.append(f"{tag}: b-roll {b.id!r} ({b.start:.2f}-{b.end:.2f}) "
                               f"is not inside a kept segment")
+            if b.kind not in BROLL_KINDS:
+                errors.append(f"{tag}: b-roll {b.id!r} has unknown kind "
+                              f"{b.kind!r} (expected one of "
+                              f"{', '.join(BROLL_KINDS)})")
+            if b.id in broll_ids:
+                errors.append(f"{tag}: duplicate b-roll id {b.id!r}")
+            broll_ids.add(b.id)
             if b.source and not Path(b.source).exists():
                 warnings.append(f"{tag}: b-roll source {b.source!r} does not exist")
+
+        # Each kind is one video track, so two of a kind may not overlap — that
+        # would be two clipitems on one track, which is not a valid timeline.
+        # Across kinds it is the whole point: a stat card over a stock shot.
+        for kind in BROLL_KINDS:
+            same = sorted((b for b in clip.broll if b.kind == kind),
+                          key=lambda b: b.start)
+            for a, nxt in zip(same, same[1:]):
+                if nxt.start < a.end - 1e-6:
+                    errors.append(f"{tag}: {kind} {a.id!r} and {nxt.id!r} overlap "
+                                  f"at {nxt.start:.2f}s — one track can't carry "
+                                  f"both")
 
     return {
         "errors": errors,
