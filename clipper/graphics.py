@@ -43,8 +43,9 @@ def manifest() -> Dict[str, dict]:
 
 
 def template_kind(template: str) -> str:
-    """The b-roll kind a template's file belongs on: "overlay" or "footage"."""
-    return "footage" if manifest()[template].get("frame") == "full" else "overlay"
+    """Where a template's file belongs: "overlay", "footage" or "title" (hook)."""
+    frame = manifest()[template].get("frame")
+    return {"full": "footage", "title": "title"}.get(frame, "overlay")
 
 
 def ensure_installed() -> None:
@@ -128,6 +129,47 @@ def broll_frames(clip: Clip, tb: Timebase, b: BRoll) -> Tuple[int, int]:
                      f"one kept segment of clip {clip.id!r}")
 
 
+def program_frames(clip: Clip, tb: Timebase) -> int:
+    """Length of the finished short in frames, by the compiler's own rule."""
+    ranges = program_ranges(clip, tb)
+    if not ranges:
+        return 0
+    m_start, m_end, p_start = ranges[-1]
+    return p_start + tb.to_frames(m_end) - tb.to_frames(m_start)
+
+
+def hook_frames(clip: Clip, tb: Timebase) -> int:
+    """How long the clip's hook runs, in frames — never past the clip's end."""
+    if not clip.hook:
+        return 0
+    return min(program_frames(clip, tb),
+               tb.to_frames(float(clip.hook.get("seconds") or 0)))
+
+
+def hook_conflicts(edl: EDL) -> List[str]:
+    """Warnings for b-roll that starts while a clip's hook is still up.
+
+    Legal — the hook has its own track — but two things landing in the first
+    three seconds split the one moment the viewer gives the clip. A card that
+    starts under the hook should wait for it to finish.
+    """
+    out = []
+    for clip in edl.clips:
+        n = hook_frames(clip, edl.timebase)
+        if not n:
+            continue
+        for b in clip.broll:
+            try:
+                start, _ = broll_frames(clip, edl.timebase, b)
+            except ValueError:
+                continue
+            if start < n:
+                out.append(f"clip {clip.id}: {b.kind} {b.id!r} starts at "
+                           f"{edl.timebase.to_seconds(start):.2f}s, under the hook "
+                           f"(0-{edl.timebase.to_seconds(n):.2f}s) — start it after")
+    return out
+
+
 def stale_graphics(edl: EDL) -> List[str]:
     """Warnings for rendered graphics whose entry has since changed length.
 
@@ -137,6 +179,11 @@ def stale_graphics(edl: EDL) -> List[str]:
     """
     out = []
     for clip in edl.clips:
+        h = clip.hook or {}
+        if h.get("source") and h.get("frames") != hook_frames(clip, edl.timebase):
+            out.append(f"clip {clip.id}: hook was rendered for {h.get('frames')} "
+                       f"frames but now runs {hook_frames(clip, edl.timebase)} — "
+                       f"re-render it with render_hooks")
         for b in clip.broll:
             if not b.graphic or not b.source:
                 continue
@@ -196,6 +243,10 @@ def plan_jobs(edl: EDL, items: List[dict], out_dir: Path) -> Tuple[List[Job], Li
         # The other way round still renders, but lands on the wrong track — a
         # full-screen frame on overlay would hide any card meant to sit on it.
         want = template_kind(template)
+        if want == "title":
+            errors.append(f"{tag}: {template} is the clip's opening title — set "
+                          f"it with set_clip_hook, not on a b-roll entry")
+            continue
         if b.kind != want:
             errors.append(f"{tag}: {template} is a "
                           f"{'full-screen' if want == 'footage' else 'card'} "
@@ -213,6 +264,37 @@ def plan_jobs(edl: EDL, items: List[dict], out_dir: Path) -> Tuple[List[Job], Li
                         frames=frames, program_start=p_start,
                         out=out_dir / f"{stem}.mov",
                         still=out_dir / f"{stem}.still.png"))
+    return jobs, errors
+
+
+def plan_hooks(edl: EDL, clip_ids: Optional[List[str]],
+               out_dir: Path) -> Tuple[List[Job], List[str]]:
+    """Render jobs for clip hooks: every clip with one, or just ``clip_ids``."""
+    jobs, errors = [], []
+    wanted = [c for c in edl.clips if clip_ids is None or c.id in clip_ids]
+    if clip_ids:
+        missing = sorted(set(clip_ids) - {c.id for c in wanted})
+        errors.extend(f"no clip {cid!r}" for cid in missing)
+    for clip in wanted:
+        if not clip.hook:
+            if clip_ids:
+                errors.append(f"clip {clip.id}: no hook set — use set_clip_hook")
+            continue
+        template = clip.hook.get("template", "Hook")
+        props = clip.hook.get("props") or {}
+        problems = check_props(template, props)
+        if problems:
+            errors.extend(f"clip {clip.id}: {p}" for p in problems)
+            continue
+        n = hook_frames(clip, edl.timebase)
+        if n <= 0:
+            errors.append(f"clip {clip.id}: hook has no duration")
+            continue
+        jobs.append(Job(clip_id=clip.id, broll_id="hook", template=template,
+                        props=props, render_props=stage_images(template, props),
+                        frames=n, program_start=0,
+                        out=out_dir / f"{clip.id}_hook.mov",
+                        still=out_dir / f"{clip.id}_hook.still.png"))
     return jobs, errors
 
 

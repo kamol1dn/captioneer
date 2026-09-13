@@ -35,6 +35,8 @@ MIN_SHOT_SEC = 0.5
 MIN_SEGMENT_SEC = 0.4
 # What a BRoll may be. Order is bottom-to-top on the timeline.
 BROLL_KINDS = ("footage", "overlay")
+# A hook is read in the scroll-or-stay window; much longer and it is a banner.
+HOOK_MAX_SEC = 5.0
 
 
 @dataclass
@@ -118,6 +120,12 @@ class Clip:
     broll: List[BRoll] = field(default_factory=list)
     markers: List[Marker] = field(default_factory=list)
     note: str = ""
+    # The opening title: {template, props, seconds, source?, frames?}. Not a
+    # BRoll because it is anchored to the start of the *short*, not to a moment
+    # on the master timeline — and it routinely spans the first cuts, which a
+    # master-time range cannot express (the gap between two kept segments does
+    # not exist in the finished clip).
+    hook: Optional[dict] = None
 
     @property
     def duration(self) -> float:
@@ -218,6 +226,7 @@ class EDL:
                     "camera_cuts": [_clean(vars(x)) for x in c.camera_cuts],
                     "broll": [_clean(vars(b)) for b in c.broll],
                     "markers": [_clean(vars(m)) for m in c.markers],
+                    **({"hook": c.hook} if c.hook else {}),
                 }
                 for c in self.clips
             ],
@@ -244,6 +253,7 @@ class EDL:
                     camera_cuts=[CameraCut(**x) for x in c.get("camera_cuts", [])],
                     broll=[BRoll(**b) for b in c.get("broll", [])],
                     markers=[Marker(**m) for m in c.get("markers", [])],
+                    hook=c.get("hook") or None,
                 )
                 for c in d.get("clips", [])
             ],
@@ -442,6 +452,23 @@ def validate(edl: EDL, camera_ids: List[str],
                     errors.append(f"{tag}: {kind} {a.id!r} and {nxt.id!r} overlap "
                                   f"at {nxt.start:.2f}s — one track can't carry "
                                   f"both")
+
+        if clip.hook:
+            secs = float(clip.hook.get("seconds") or 0)
+            if secs <= 0:
+                errors.append(f"{tag}: hook has no duration")
+            elif secs > clip.duration:
+                errors.append(f"{tag}: hook runs {secs:.2f}s, longer than the "
+                              f"clip ({clip.duration:.2f}s)")
+            elif secs > HOOK_MAX_SEC:
+                warnings.append(f"{tag}: hook holds {secs:.1f}s — past "
+                                f"{HOOK_MAX_SEC:.0f}s it stops being a hook and "
+                                f"becomes a banner")
+            if not (clip.hook.get("props") or {}).get("text"):
+                errors.append(f"{tag}: hook has no text")
+            src = clip.hook.get("source")
+            if src and not Path(src).exists():
+                warnings.append(f"{tag}: hook source {src!r} does not exist")
 
     return {
         "errors": errors,

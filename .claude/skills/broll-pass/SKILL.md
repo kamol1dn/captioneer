@@ -279,6 +279,42 @@ Build it on `Card`/`Band`/`useEnterExit` (cards) or `FullFrame`/`useStagger`
 the manifest to `"card"` or `"full"`. Worth it when a graphic will recur across
 episodes; a one-off is better as a marker for the editor.
 
+## Hooks — every clip opens with one
+
+The first 2-3 seconds of each short carry a hook title: the line a scrolling
+viewer reads before deciding to stay. The user edits these shorts themselves and
+used to build this card by hand in Essential Graphics on every clip — so it is
+now part of this pass, **one per clip, done first**, before anything else is
+placed.
+
+```
+set_clip_hook(project_id, clip_id, text, seconds=3.0)
+render_hooks(project_id)          # all clips in one batch
+```
+
+It is not a b-roll entry: it is anchored to the start of the short and runs
+across the first cuts, which a master-time range cannot express. It renders onto
+its own track above the cards and below the captions.
+
+Writing it:
+
+- **7 words or fewer, the number or the tension first.** "$177M raised. Still
+  shut down." — not the clip's title, which is written for the upload and runs
+  15 words.
+- **One phrase in `*asterisks*`** goes on the yellow highlighter and lands last.
+  Pick the words that make it a hook — the number, the twist, the verdict.
+- It must be **true to the clip** and land in the clip's own audio. A hook the
+  short doesn't pay off is clickbait, and the user's audience is people who care
+  about fintech news.
+- The wrap balances itself; a newline in `text` forces a break when it still
+  splits a thought badly.
+- **Propose all the hook lines to the user as a list before rendering.** They
+  are the headline of each clip, and cheap to change as text, not as files.
+
+Then **no card starts under it** — begin the clip's first overlay after the hook
+has finished (`hook_conflicts` warns otherwise). An early `Headline` or
+`LowerThird` that the clip needs right away moves to start at the hook's end.
+
 ## Stock footage (Envato)
 
 The user has an Envato Elements subscription. The split is fixed: **you find

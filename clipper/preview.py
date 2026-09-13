@@ -33,7 +33,8 @@ def render_preview(clip: CompiledClip, out_path, quality: str = "fast") -> Path:
     v1 = clip.program_video()
     if not v1:
         raise ValueError(f"clip {clip.id!r} has no video to render")
-    broll = clip.items_by_role("broll")
+    # Bottom track first, so a card lands over footage and the hook over both.
+    broll = clip.layered("broll", "title")
     audio = clip.program_audio()
 
     inputs, input_index = [], {}

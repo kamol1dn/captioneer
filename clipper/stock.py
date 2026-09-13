@@ -59,6 +59,14 @@ def broll_file_meta(edl: EDL) -> Tuple[Dict[str, dict], List[str]]:
     tb = edl.timebase
     meta, warnings = {}, []
     for clip in edl.clips:
+        h = clip.hook or {}
+        if h.get("source") and Path(h["source"]).exists():
+            # Rendered by us to the sequence's own size and rate, silent.
+            meta[str(Path(h["source"]).resolve())] = {
+                "width": edl.frame_size[0], "height": edl.frame_size[1],
+                "has_video": True, "has_audio": False,
+                "duration_frames": h.get("frames"),
+            }
         for b in clip.broll:
             if not b.source:
                 continue

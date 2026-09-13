@@ -3,6 +3,7 @@ import { Bars } from "./Bars";
 import { Explainer } from "./Explainer";
 import { Breakdown, Chart, Compare, Quote, Scroll, Timeline } from "./full";
 import { Headline } from "./Headline";
+import { Hook } from "./Hook";
 import { ImageCard } from "./ImageCard";
 import { LowerThird } from "./LowerThird";
 import { Stat } from "./Stat";
@@ -24,4 +25,6 @@ export const TEMPLATES: Record<string, React.FC<any>> = {
   Chart,
   Quote,
   Scroll,
+  // Title: the clip's opening hook, on its own track at the very start.
+  Hook,
 };
