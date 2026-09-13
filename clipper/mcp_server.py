@@ -867,7 +867,8 @@ def export_xml(project_id: str, out_path: Optional[str] = None,
 
     captioned = [c.id for c in compiled if c.id in movs]
     warnings_ = (list(result["warnings"]) + broll_warnings
-                 + graphics_mod.stale_graphics(edl))
+                 + graphics_mod.stale_graphics(edl)
+                 + graphics_mod.hook_conflicts(edl))
     uncaptioned = [c.id for c in compiled if c.id not in movs]
     if include_captions and uncaptioned:
         warnings_.append(
@@ -939,7 +940,8 @@ def _save_graphics_edit(project, edl, clip, **extra) -> dict:
         edl.save(project.edl_path)
     return {"ok": result["ok"], "saved": result["ok"],
             "errors": result["errors"],
-            "warnings": result["warnings"] + graphics_mod.stale_graphics(edl),
+            "warnings": (result["warnings"] + graphics_mod.stale_graphics(edl)
+                         + graphics_mod.hook_conflicts(edl)),
             "clip_id": clip.id,
             "broll": [dict(vars(b)) for b in clip.broll],
             "markers": [dict(vars(m)) for m in clip.markers],
@@ -1075,6 +1077,93 @@ def attach_broll(project_id: str, clip_id: str, broll_id: str,
     except Exception:
         b.media = None  # export probes again; a failed probe is not fatal here
     return _save_graphics_edit(project, edl, clip, attached=broll_id)
+
+
+@mcp.tool()
+def set_clip_hook(project_id: str, clip_id: str, text: str,
+                  seconds: float = 3.0, kicker: str = "",
+                  position: str = "") -> dict:
+    """Set a clip's opening hook title — the line read in the first seconds.
+
+    Separate from b-roll on purpose: the hook is anchored to the start of the
+    short, not to a moment on the master timeline, and runs across the first
+    cuts. It renders onto its own track above the cards (`render_hooks`), so an
+    early card can't collide with it on the timeline — but hook_conflicts still
+    warns when one starts underneath it.
+
+    `text`: 7 words or fewer, the number or the tension first. Wrap the phrase
+    that carries the tension in *asterisks* to put it on the highlighter; a
+    newline forces a line break. `seconds`: how long it holds (2.5-3.5 is the
+    window). Empty `text` removes the hook. Setting it clears any rendered file,
+    so render_hooks afterwards.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    if not text.strip():
+        clip.hook = None
+        return _save_graphics_edit(project, edl, clip, hook=None)
+    props = {"text": text.strip()}
+    if kicker:
+        props["kicker"] = kicker
+    if position:
+        props["position"] = position
+    problems = graphics_mod.check_props("Hook", props)
+    if problems:
+        raise ValueError("; ".join(problems))
+    clip.hook = {"template": "Hook", "props": props, "seconds": float(seconds)}
+    return _save_graphics_edit(project, edl, clip, hook=clip.hook)
+
+
+@mcp.tool()
+def render_hooks(project_id: str, clip_ids: Optional[List[str]] = None) -> dict:
+    """Render the hook titles set with set_clip_hook and attach them.
+
+    Every clip with a hook, or just `clip_ids`. One call renders them all —
+    bundling is most of the cost. Returns a `check` PNG per clip (the hook over
+    the clip's own frame at about two seconds in); read them.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    if edl is None:
+        raise ValueError("no EDL saved — call set_edl first")
+    jobs, errors = graphics_mod.plan_hooks(edl, clip_ids, project.dir / "graphics")
+    if errors or not jobs:
+        return {"ok": False, "rendered": 0,
+                "errors": errors or ["no hooks set — use set_clip_hook"]}
+    with _quiet():
+        results = graphics_mod.render(jobs, edl)
+
+    edl = EDL.load(project.edl_path)
+    report = []
+    for job, r in zip(jobs, results):
+        clip = edl.clip(job.clip_id)
+        if not r.get("ok") or clip is None or not clip.hook:
+            report.append({"clip_id": job.clip_id, "ok": False,
+                           "error": r.get("error") or "hook removed while rendering"})
+            continue
+        clip.hook.update(source=str(job.out), frames=job.frames)
+        check = job.out.with_suffix(".check.png")
+        try:
+            compiled = compile_for_monitor(project, edl, [job.clip_id])[0]
+            bg = graphics_mod.grab_program_frame(
+                compiled, int(job.frames * 0.6), job.out.with_suffix(".bg.png"))
+            graphics_mod.composite_check(job.still, bg, check, edl.frame_size)
+            if bg:
+                bg.unlink(missing_ok=True)
+        except Exception:
+            check = job.still
+        report.append({"clip_id": job.clip_id, "ok": True, "path": str(job.out),
+                       "check": str(check), "frames": job.frames})
+    result = validate(edl, project.camera_ids, project.master_duration,
+                      project.video_camera_ids)
+    if result["ok"]:
+        edl.save(project.edl_path)
+    return {"ok": result["ok"] and all(x["ok"] for x in report),
+            "saved": result["ok"], "rendered": sum(x["ok"] for x in report),
+            "items": report, "errors": result["errors"],
+            "warnings": (result["warnings"] + graphics_mod.stale_graphics(edl)
+                         + graphics_mod.hook_conflicts(edl))}
 
 
 @mcp.tool()

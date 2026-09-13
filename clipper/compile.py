@@ -39,7 +39,7 @@ class ClipItem:
     source_channel: int = 1  # audio only: 1-based source track index
     link_group: Optional[int] = None   # members of a group get <link> elements
     enabled: bool = True     # FALSE -> imported muted/hidden, toggleable in Premiere
-    role: str = "camera"     # "camera" | "broll" | "caption" | "audio"
+    role: str = "camera"     # "camera" | "broll" | "title" | "caption" | "audio"
     scale: float = 100.0     # percent; != 100 emits a Basic Motion filter
     # Set when this item came off a master timeline rather than a flat export.
     # It carries the source definition (a file, or a nested sequence with its own
@@ -104,6 +104,16 @@ class CompiledClip:
         return sorted((it for tr in self.video_tracks for it in tr
                        if it.role == "camera" and it.enabled),
                       key=lambda i: i.start)
+
+    def layered(self, *roles: str) -> List[ClipItem]:
+        """Items of ``roles`` bottom track first, then by time within a track.
+
+        The order to composite in. ``items_by_role`` sorts by time across
+        tracks, which would lay a footage shot starting at 2s over a card that
+        started at 0.3s — the opposite of what the timeline stacks.
+        """
+        return [it for tr in self.video_tracks
+                for it in sorted(tr, key=lambda i: i.start) if it.role in roles]
 
     def items_by_role(self, role: str) -> List[ClipItem]:
         return sorted((it for tr in self.video_tracks + self.audio_tracks
@@ -290,9 +300,30 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
             media_type="video", role="caption",
         ))
 
-    # Bottom -> top: camera stack, b-roll footage, overlays, captions on top.
+    # ── Hook: the opening title, program frame 0, on its own track ───────────
+    # Anchored to the short rather than the master timeline, so it is placed by
+    # program frames directly and may span the first cuts. Its own track, above
+    # the cards, so an early card can never knock it off the timeline.
+    title_track: List[ClipItem] = []
+    hook = clip.hook or {}
+    hook_frames = min(total, tb.to_frames(float(hook.get("seconds") or 0)))
+    if hook and hook_frames > 0:
+        if hook.get("source"):
+            title_track.append(ClipItem(
+                name=f"hook {clip.id}", camera="", path=hook["source"],
+                start=0, end=hook_frames, in_=0, out=hook_frames,
+                media_type="video", role="title",
+            ))
+        else:
+            markers.append(CompiledMarker(
+                frame=0, duration=hook_frames, name="HOOK",
+                comment=f"HOOK: {(hook.get('props') or {}).get('text', '')}",
+            ))
+
+    # Bottom -> top: camera stack, b-roll footage, overlays, hook, captions.
     video_tracks = ([cam_tracks[cid] for cid in stack_cams]
                     + [broll_tracks[k] for k in BROLL_KINDS if broll_tracks[k]]
+                    + ([title_track] if title_track else [])
                     + ([caption_track] if caption_track else []))
     return CompiledClip(
         id=clip.id, name=_clip_name(edl, clip),

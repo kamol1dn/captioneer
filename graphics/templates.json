@@ -326,6 +326,22 @@
         "source": "occ.gov"
       },
       "frame": "full"
+    },
+    "Hook": {
+      "description": "The clip's opening title: the hook line a scrolling viewer reads in the first 2-3 seconds. Big type, no card, words landing one by one; the phrase that carries the tension goes in *asterisks* and lands last on a yellow highlighter. One per clip, always at the start — set with set_clip_hook, not add_broll.",
+      "props": {
+        "text": "The hook, 7 words or fewer. Lead with the number or the tension. Mark one phrase with *asterisks* to highlight it.",
+        "kicker": "Optional. Small label above, e.g. the show or topic. Leave empty by default.",
+        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+      },
+      "required": [
+        "text"
+      ],
+      "image_props": [],
+      "example": {
+        "text": "Meta wants your inbox *and your card*"
+      },
+      "frame": "title"
     }
   }
 }
