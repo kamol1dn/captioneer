@@ -6,7 +6,7 @@
       "props": {
         "name": "Person's name, as it should read on screen.",
         "role": "One line: title and organisation, e.g. 'Co-founder & CEO, Spade'.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top' — captions usually sit low."
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
       },
       "required": [
         "name",
@@ -15,8 +15,7 @@
       "image_props": [],
       "example": {
         "name": "Oban McTavish",
-        "role": "Co-founder & CEO, Spade",
-        "position": "top"
+        "role": "Co-founder & CEO, Spade"
       },
       "frame": "card"
     },
@@ -27,7 +26,7 @@
         "headline": "The headline itself. Keep it under ~90 characters; it is read, not skimmed.",
         "date": "Optional. When it happened, e.g. '3 Sept 2026'.",
         "logo": "Optional. Absolute path to a logo image (png/svg/jpg) shown beside the source.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
       },
       "required": [
         "source",
@@ -39,8 +38,7 @@
       "example": {
         "source": "OCC",
         "headline": "Revolut wins conditional US national bank charter",
-        "date": "Sept 2026",
-        "position": "top"
+        "date": "Sept 2026"
       },
       "frame": "card"
     },
@@ -53,7 +51,7 @@
         "decimals": "Optional. Decimal places to show. Default 0.",
         "label": "What the number is, one line: 'of US card payments'.",
         "sublabel": "Optional. Source or qualifier in small type.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
       },
       "required": [
         "value",
@@ -64,8 +62,7 @@
         "value": 6,
         "suffix": "%",
         "label": "claimed share of agent-led checkouts",
-        "sublabel": "company figure",
-        "position": "top"
+        "sublabel": "company figure"
       },
       "frame": "card"
     },
@@ -74,7 +71,7 @@
       "props": {
         "title": "The question or thing being explained: 'What is X Money?'.",
         "lines": "1-3 short strings, each one fact. Longer lines shrink the type.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
       },
       "required": [
         "title",
@@ -87,8 +84,7 @@
           "X's own digital wallet",
           "Since 2 Sept, US creator payouts land here",
           "Replacing Stripe for payouts"
-        ],
-        "position": "top"
+        ]
       },
       "frame": "card"
     },
@@ -98,7 +94,7 @@
         "image": "Absolute path to the image (png/jpg/webp).",
         "caption": "Optional. One line under the image.",
         "credit": "Optional. Small source credit, e.g. 'via Bloomberg'.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'center' — images want the room."
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'center'."
       },
       "required": [
         "image"
@@ -109,8 +105,7 @@
       "example": {
         "image": "",
         "caption": "The OCC's conditional approval letter",
-        "credit": "occ.gov",
-        "position": "center"
+        "credit": "occ.gov"
       },
       "frame": "card"
     },
@@ -122,7 +117,7 @@
         "prefix": "Optional. Before each value: '$'.",
         "suffix": "Optional. After each value: '%', 'B'.",
         "decimals": "Optional. Decimal places. Default 0.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
       },
       "required": [
         "items"
@@ -145,8 +140,7 @@
             "value": 11.6
           }
         ],
-        "decimals": 0,
-        "position": "top"
+        "decimals": 0
       },
       "frame": "card"
     },
@@ -332,7 +326,7 @@
       "props": {
         "text": "The hook, 7 words or fewer. Lead with the number or the tension. Mark one phrase with *asterisks* to highlight it.",
         "kicker": "Optional. Small label above, e.g. the show or topic. Leave empty by default.",
-        "position": "Vertical band: 'top' | 'center' | 'bottom'. Default 'top'."
+        "position": "Default 'top' — just under the logo/sponsor zone, the title slot."
       },
       "required": [
         "text"

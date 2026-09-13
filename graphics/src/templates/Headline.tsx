@@ -10,7 +10,7 @@ export type HeadlineProps = {
   position?: Position;
 };
 
-export const Headline: React.FC<HeadlineProps> = ({ source, headline, date, logo, position = "top" }) => {
+export const Headline: React.FC<HeadlineProps> = ({ source, headline, date, logo, position = "bottom" }) => {
   const u = useUnit();
   const { enter } = useEnterExit();
   // The headline lands a beat after the card, so the eye reads source first.

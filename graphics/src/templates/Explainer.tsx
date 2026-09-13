@@ -4,7 +4,7 @@ import { Band, COLORS, Card, Position, fitSize, useUnit } from "../theme";
 
 export type ExplainerProps = { title: string; lines: string[]; position?: Position };
 
-export const Explainer: React.FC<ExplainerProps> = ({ title, lines, position = "top" }) => {
+export const Explainer: React.FC<ExplainerProps> = ({ title, lines, position = "bottom" }) => {
   const u = useUnit();
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();

@@ -33,6 +33,8 @@ export const COLORS = {
   // The caption highlight colour, so graphics and captions read as one system.
   accent: "#FFDC00",
   accentInk: "#0E0F12",
+  // The OTG caption highlight, the second colour on full-screen frames.
+  cyan: "#19E0D6",
 };
 
 export type Position = "top" | "center" | "bottom";
@@ -63,19 +65,36 @@ export const useEnterExit = (enterFrames = 14, exitFrames = 9) => {
   return { enter, exit, visible: Math.min(enter, exit) };
 };
 
-/** Vertical centre of each band, as a fraction of frame height. */
-const BAND_CENTRE: Record<Position, number> = { top: 0.14, center: 0.45, bottom: 0.72 };
+/**
+ * The frame's reserved zones, as fractions of height.
+ *
+ * The top 20% carries the show's logo and the sponsor overlay, added in
+ * Premiere — transparent and small, but graphics that sit under them read as
+ * clutter. The captions sit around 66-78%, positioned by hand. Everything we
+ * draw lives in the gap between.
+ */
+export const SAFE = { top: 0.215, bottom: 0.635, captions: [0.64, 0.8] as const };
 
 /**
- * Places its child horizontally centred at the band's height. The child keeps
- * its own size; this only positions it.
+ * Where each band puts a graphic. Anchored by an edge, not a centre, so a
+ * taller card grows *away* from the zone it must not enter: "top" hangs from
+ * just under the logo zone, "bottom" stands on just above the captions.
+ */
+const BAND_STYLE = (position: Position, height: number): React.CSSProperties => {
+  if (position === "bottom") return { bottom: (1 - SAFE.bottom) * height };
+  if (position === "center") return { top: 0.45 * height, transform: "translateY(-50%)" };
+  return { top: SAFE.top * height };
+};
+
+/**
+ * Places its child horizontally centred in the band. The child keeps its own
+ * size; this only positions it.
  */
 export const Band: React.FC<{ position?: Position; children: React.ReactNode }> = ({
   position = "top",
   children,
 }) => {
   const { height } = useVideoConfig();
-  const centre = BAND_CENTRE[position] ?? BAND_CENTRE.top;
   return (
     <AbsoluteFill>
       <div
@@ -83,10 +102,9 @@ export const Band: React.FC<{ position?: Position; children: React.ReactNode }> 
           position: "absolute",
           left: 0,
           right: 0,
-          top: centre * height,
-          transform: "translateY(-50%)",
           display: "flex",
           justifyContent: "center",
+          ...BAND_STYLE(position, height),
         }}
       >
         {children}
@@ -150,19 +168,19 @@ export const useStagger = (i: number, n: number, share = 0.4, startAt = 12) => {
 /**
  * Full-screen frame: replaces the picture for its duration.
  *
- * Laid out around the captions rather than under them — the content lives in
- * the upper 60% and the band where captions usually sit is left as quiet
- * background, so the words stay readable over it. The panel slides up over the
- * speaker and fades back off them; both are in the file's alpha, so the graphic
- * needs no transition in Premiere.
+ * Laid out around the reserved zones rather than under them: the logo and
+ * sponsor overlay own the top 20%, the captions own a band lower down, and the
+ * whole block — title and content together — is centred in the space between.
+ * Both zones are left as quiet background, so the overlay and the captions stay
+ * readable over it. The panel slides up over the speaker and fades back off
+ * them; both are in the file's alpha, so it needs no transition in Premiere.
  */
 export const FullFrame: React.FC<{
   kicker?: string;
   title?: string;
   source?: string;
-  align?: "start" | "center";
   children: React.ReactNode;
-}> = ({ kicker, title, source, align = "start", children }) => {
+}> = ({ kicker, title, source, children }) => {
   const u = useUnit();
   const frame = useCurrentFrame();
   const { height, width, durationInFrames, fps } = useVideoConfig();
@@ -172,94 +190,114 @@ export const FullFrame: React.FC<{
     extrapolateRight: "clamp",
   });
   const head = interpolate(enter, [0.5, 1], [0, 1], { extrapolateLeft: "clamp" });
-  // A slow drift so a long, text-heavy frame never looks frozen.
-  const drift = interpolate(frame, [0, durationInFrames], [0, 1]);
+  const rule = interpolate(frame, [10, 28], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  // Slow drift on every layer, so a long text-heavy frame never looks frozen.
+  const t = frame / Math.max(1, durationInFrames);
+  const orb = (x: number, y: number, size: number, rgb: string, a: number): React.CSSProperties => ({
+    position: "absolute",
+    left: x * width - (size * width) / 2,
+    top: y * height - (size * width) / 2,
+    width: size * width,
+    height: size * width,
+    borderRadius: "50%",
+    background: `radial-gradient(circle, rgba(${rgb},${a}) 0%, rgba(${rgb},0) 62%)`,
+  });
   return (
     <AbsoluteFill style={{ opacity: exit }}>
       <AbsoluteFill
         style={{
           transform: `translateY(${(1 - enter) * height}px)`,
-          background: "#0B0C10",
+          background: "linear-gradient(170deg, #0D1017 0%, #07080C 55%, #0A0D14 100%)",
           overflow: "hidden",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            width: width * 1.4,
-            height: width * 1.4,
-            left: -width * 0.2 + drift * 60 * u,
-            top: -width * 0.55,
-            background: `radial-gradient(circle, rgba(255,220,0,0.16) 0%, rgba(255,220,0,0) 60%)`,
-          }}
-        />
+        {/* Two colour pools: the graphics' yellow and the captions' cyan, so
+            the frame and the words over it read as one palette. */}
+        <div style={orb(0.88 - t * 0.06, 0.3 + t * 0.03, 1.25, "255,220,0", 0.2)} />
+        <div style={orb(0.08 + t * 0.07, 0.62 - t * 0.04, 1.15, "25,224,214", 0.13)} />
         <div
           style={{
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
-            backgroundSize: `${90 * u}px ${90 * u}px`,
-            backgroundPosition: `0 ${-drift * 90 * u}px`,
+              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: `${96 * u}px ${96 * u}px`,
+            backgroundPosition: `0 ${-t * 96 * u}px`,
+            // The grid fades toward the edges and the reserved zones.
+            maskImage: "radial-gradient(ellipse 75% 45% at 50% 42%, #000 30%, transparent 100%)",
+            WebkitMaskImage: "radial-gradient(ellipse 75% 45% at 50% 42%, #000 30%, transparent 100%)",
           }}
         />
         <div
           style={{
             position: "absolute",
-            left: 72 * u,
-            right: 72 * u,
-            top: height * 0.075,
-            bottom: height * 0.37,
+            left: 64 * u,
+            right: 64 * u,
+            top: height * SAFE.top,
+            bottom: height * (1 - SAFE.bottom),
             fontFamily: FONT,
             color: COLORS.text,
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
           }}
         >
-        <div style={{ flex: "none", opacity: head, transform: `translateY(${(1 - head) * 20 * u}px)` }}>
-          {kicker ? (
-            <div
-              style={{
-                display: "inline-block",
-                background: COLORS.accent,
-                color: COLORS.accentInk,
-                fontWeight: 800,
-                fontSize: 30 * u,
-                letterSpacing: 2 * u,
-                textTransform: "uppercase",
-                padding: `${8 * u}px ${18 * u}px`,
-                borderRadius: 10 * u,
-                marginBottom: 22 * u,
-              }}
-            >
-              {kicker}
+          {kicker || title ? (
+            <div style={{ flex: "none", opacity: head, transform: `translateY(${(1 - head) * 20 * u}px)` }}>
+              {kicker ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14 * u,
+                    color: COLORS.accent,
+                    fontWeight: 800,
+                    fontSize: 30 * u,
+                    letterSpacing: 3 * u,
+                    textTransform: "uppercase",
+                    marginBottom: 16 * u,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14 * u,
+                      height: 14 * u,
+                      borderRadius: 7 * u,
+                      background: COLORS.accent,
+                      boxShadow: `0 0 ${18 * u}px ${COLORS.accent}`,
+                    }}
+                  />
+                  {kicker}
+                </div>
+              ) : null}
+              {title ? (
+                <div style={{ fontWeight: 900, fontSize: fitSize(title, 84, 24, 54) * u, lineHeight: 1.08, letterSpacing: -1 * u }}>
+                  {title}
+                </div>
+              ) : null}
+              <div
+                style={{
+                  marginTop: 22 * u,
+                  height: 8 * u,
+                  width: `${rule * 26}%`,
+                  borderRadius: 4 * u,
+                  background: `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.cyan})`,
+                }}
+              />
             </div>
           ) : null}
-          {title ? (
-            <div style={{ fontWeight: 800, fontSize: fitSize(title, 88, 24, 56) * u, lineHeight: 1.1 }}>{title}</div>
-          ) : null}
-        </div>
-        {/* Content follows the header rather than centring in what is left:
-            a gap between title and list reads as two unrelated things. */}
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            marginTop: (title || kicker ? 64 : 0) * u,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: align === "center" ? "center" : "flex-start",
-          }}
-        >
-          {children}
-        </div>
+          <div style={{ flex: "none", marginTop: (title || kicker ? 44 : 0) * u }}>{children}</div>
         </div>
         {source ? (
           <div
             style={{
               position: "absolute",
-              left: 72 * u,
-              right: 72 * u,
+              left: 64 * u,
+              right: 64 * u,
               bottom: height * 0.055,
               fontFamily: FONT,
               color: COLORS.muted,
@@ -272,6 +310,33 @@ export const FullFrame: React.FC<{
         ) : null}
       </AbsoluteFill>
     </AbsoluteFill>
+  );
+};
+
+/** A frosted panel — the unit the full-screen templates build their content from. */
+export const Glass: React.FC<{
+  children: React.ReactNode;
+  tint?: "none" | "accent" | "cyan";
+  padding?: number;
+  style?: React.CSSProperties;
+}> = ({ children, tint = "none", padding = 30, style }) => {
+  const u = useUnit();
+  const bg = { none: "rgba(255,255,255,0.055)", accent: "rgba(255,220,0,0.09)", cyan: "rgba(25,224,214,0.08)" }[tint];
+  const edge = { none: "rgba(255,255,255,0.12)", accent: "rgba(255,220,0,0.45)", cyan: "rgba(25,224,214,0.4)" }[tint];
+  return (
+    <div
+      style={{
+        position: "relative",
+        background: bg,
+        border: `${2 * u}px solid ${edge}`,
+        borderRadius: 28 * u,
+        padding: padding * u,
+        boxShadow: `inset 0 ${2 * u}px 0 rgba(255,255,255,0.07), 0 ${20 * u}px ${50 * u}px rgba(0,0,0,0.35)`,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
   );
 };
 

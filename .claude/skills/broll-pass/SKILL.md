@@ -154,10 +154,47 @@ setup. So:
 - **Earliest is best.** Context that arrives after the viewer has decided to
   leave did not work. If a clip needs establishing, it needs it in the first few
   seconds.
-- **A proper noun with nothing on screen is a candidate**, not an obligation.
-  Placing something on every company name reads as a stock-footage reel.
+- **A proper noun with nothing on screen is a candidate.** Most are worth taking
+  — a lower third for a person, an explainer for a company, a stat for a number.
 - **Leave the reaction alone.** When the value of a moment is a face — a laugh, a
   pause, someone being caught out — covering it with footage is a downgrade.
+
+## Rhythm — hook, then keep the screen moving
+
+The user wants these used **often**. A short that is a talking head for 50
+seconds loses the scroll; the graphics are what keep it. Every clip follows the
+same shape:
+
+1. **Hook** — 0 to ~3s, always (see "Hooks" below).
+2. **Then a visual beat every 6-10 seconds** until the end: a card, a
+   full-screen frame, or footage. For a 45-60s clip that is **hook + 4-6
+   placements**, and **one full-screen frame** wherever the audio lists,
+   compares, quotes or sequences anything.
+3. **The first beat lands soon after the hook** — often the lower third for
+   whoever is speaking, or the context the hook raised.
+
+What still holds: one new thing on screen at a time (don't open a card while
+another is up unless one is footage underneath), don't cover a reaction, and
+every placement says something the viewer benefits from reading. Density comes
+from finding more of those, not from decoration — an empty stretch usually has
+a number, a name, a claim or a list in it that deserves a card.
+
+## Where things go on the frame
+
+The frame has two reserved zones, and everything drawn stays out of them:
+
+- **The top 20%: logo and sponsor overlay.** The user adds these in Premiere —
+  transparent and small, but a graphic under them reads as clutter. The
+  templates already hang every card, hook and full-screen block from just below
+  it (21.5%), so this is automatic; just never add something that reaches up.
+- **The caption band, ~64-80%.** Positioned by hand per clip. Cards and hooks
+  stand above it; full-screen frames leave it as plain background.
+
+Cards default to `position: "bottom"` — standing just above the caption band,
+over the chest. **The user repositions cards in Premiere themselves**, per shot,
+so don't spend re-renders or passes chasing position: leave the default unless a
+card would sit squarely on a face in the check image. The hook stays at the top
+(the title slot), and full-screen content centres itself between the two zones.
 
 ## Placement craft
 
@@ -227,12 +264,13 @@ are two families, and each renders onto its own kind of entry:
 **Card or full screen?** A card when the point fits in about a dozen words and
 the speaker's delivery still matters. Full screen when the viewer has to *read*
 something the audio is enumerating — three conditions said aloud in eight
-seconds are lost by ear and kept on screen. Full-screen frames lay out in the
-top 60% and keep the caption band as plain background, so the captions stay
-readable over them; the speaker keeps talking underneath, which is the point.
-Give them time: about a second per point plus two, so a three-point
-`Breakdown` wants 5-6s. More than one full-screen frame in a short is rare —
-past that it stops being a podcast clip.
+seconds are lost by ear and kept on screen. Full-screen frames centre their
+content between the logo zone and the caption band and leave both as plain
+background, so the overlay and the captions stay readable over them; the
+speaker keeps talking underneath, which is the point. Give them time: about a
+second per point plus two, so a three-point `Breakdown` wants 5-6s. One per
+clip is the norm; two works in a longer clip if they are well apart and the
+face gets real time in between.
 
 The flow:
 
@@ -250,10 +288,9 @@ The flow:
 
 What the checks from the first real run taught:
 
-- **"top" clears the head in the OTG framing** — it was moved up after the first
-  checks showed cards on the speakers' foreheads. A tall card (an `Explainer`
-  with three long lines) can still reach the hairline; cut it to two lines
-  before moving it lower, since "bottom" is where the captions are.
+- **Position is the editor's call** — cards land low by default and the user
+  moves them per shot. What the checks are for is content: an overflowing line,
+  a wrong number, a card that says too much.
 - **Length is reading time.** About one second per four words on the card plus a
   second for the entrance; under 2.5s nothing gets read, over 5s it is wallpaper.
 - **Words on a card should be fewer than the words being spoken over it.** It
@@ -388,6 +425,7 @@ office exterior, 3s"` is useful and `"visual for this bit"` is not.
 ## Judgment
 
 Propose a full plan per clip and explain the picks briefly rather than asking
-about each placement. But **fewer, better-earned placements beat coverage** —
-the same standard the cutting pass applies to clips applies here. A clip that
-genuinely needs nothing should get nothing, and saying so is a real answer.
+about each placement. Aim for the rhythm above — **hook, then a beat every 6-10
+seconds** — because the user has asked for more graphics, not fewer. Every beat
+still has to earn its place by saying something; when a stretch genuinely has
+nothing worth putting on screen, leave it on the face and say why.

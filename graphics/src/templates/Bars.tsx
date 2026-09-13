@@ -12,7 +12,7 @@ export type BarsProps = {
   position?: Position;
 };
 
-export const Bars: React.FC<BarsProps> = ({ title, items, prefix = "", suffix = "", decimals = 0, position = "top" }) => {
+export const Bars: React.FC<BarsProps> = ({ title, items, prefix = "", suffix = "", decimals = 0, position = "bottom" }) => {
   const u = useUnit();
   const frame = useCurrentFrame();
   const shown = items.slice(0, 5);
