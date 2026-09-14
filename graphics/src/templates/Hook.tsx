@@ -6,7 +6,7 @@
 // and lands last, on a yellow highlighter, with a little overshoot.
 import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { Band, COLORS, FONT, Position, fitSize, useUnit } from "../theme";
+import { Band, COLORS, FONT, Position, SAFE_W, fitSize, useUnit } from "../theme";
 
 export type HookProps = { text: string; kicker?: string; position?: Position };
 
@@ -52,7 +52,7 @@ export const Hook: React.FC<HookProps> = ({ text, kicker, position = "top" }) =>
       <div
         style={{
           position: "relative",
-          width: 980 * u,
+          width: SAFE_W * u,
           textAlign: "center",
           fontFamily: FONT,
           opacity: exit,

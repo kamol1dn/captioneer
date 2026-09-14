@@ -166,10 +166,12 @@ seconds loses the scroll; the graphics are what keep it. Every clip follows the
 same shape:
 
 1. **Hook** — 0 to ~3s, always (see "Hooks" below).
-2. **Then a visual beat every 6-10 seconds** until the end: a card, a
-   full-screen frame, or footage. For a 45-60s clip that is **hook + 4-6
-   placements**, and **one full-screen frame** wherever the audio lists,
-   compares, quotes or sequences anything.
+2. **Then a visual beat every 5-8 seconds** until the end: a card, a
+   sticker, a full-screen frame, or footage. For a 45-60s clip that is **hook +
+   6-8 placements**, with **two or three full-screen frames** (a Website to
+   establish the story, then wherever the audio lists, compares, quotes or
+   sequences anything). EP19's first import at hook + 1-3 cards read as empty
+   to the user; this density is the corrected bar.
 3. **The first beat lands soon after the hook** — often the lower third for
    whoever is speaking, or the context the hook raised.
 
@@ -181,7 +183,7 @@ a number, a name, a claim or a list in it that deserves a card.
 
 ## Where things go on the frame
 
-The frame has two reserved zones, and everything drawn stays out of them:
+The frame has three reserved zones, and everything drawn stays out of them:
 
 - **The top 20%: logo and sponsor overlay.** The user adds these in Premiere —
   transparent and small, but a graphic under them reads as clutter. The
@@ -189,6 +191,11 @@ The frame has two reserved zones, and everything drawn stays out of them:
   it (21.5%), so this is automatic; just never add something that reaches up.
 - **The caption band, ~64-80%.** Positioned by hand per clip. Cards and hooks
   stand above it; full-screen frames leave it as plain background.
+- **The outer ~9% of each side.** On a tall phone (19.5:9, 20:9) Reels, TikTok
+  and Shorts scale a 9:16 video to fill the height and crop the left and right
+  edges — ~130 px each side at 1440 wide. `SAFE.side`/`SAFE_W` in
+  `graphics/src/theme.tsx` keep every card, hook and full-screen block inside
+  the middle 880 of 1080 design units; a new template must size to them too.
 
 Cards default to `position: "bottom"` — standing just above the caption band,
 over the chest. **The user repositions cards in Premiere themselves**, per shot,
@@ -249,6 +256,9 @@ are two families, and each renders onto its own kind of entry:
 | `Explainer` | "what is X" — a title and up to three facts |
 | `ImageCard` | a screenshot or image in a card, slow push-in |
 | `Bars` | 2-5 values being compared |
+| `Punch` | the line a clip turns on, as white/yellow stickers popping in — heard and read |
+| `Ring` | a percentage as a filling ring — 72% of people, under 5% of spend |
+| `Checklist` | 2-4 items ticking ✓ or crossing ✗ — what something has and lacks |
 
 **Full screen** — `kind="footage"`, replace the picture for their duration:
 
@@ -260,6 +270,27 @@ are two families, and each renders onto its own kind of entry:
 | `Chart` | 2-8 values as big bars |
 | `Quote` | what someone else said or wrote, attributed |
 | `Scroll` | a tall screenshot — article, filing, thread — scrolling past |
+| `Website` | the real article in a browser window: the phrase highlighted, a push-in on it, a takeaway sticker |
+| `BigNumber` | the number the clip is about, at full size — $177M, 12 lenders |
+| `Flow` | 2-5 boxes joined by drawing arrows — how money or data moves |
+| `NewsStack` | 2-4 headline cards piling up — a pattern across stories |
+| `Chat` | an AI chat thread, typing then answering — what asking the agent looks like |
+
+**Website cards.** The strongest establishing beat: the viewer sees the story is
+real. Capture the page in phone layout, then build the props:
+
+```
+python -m longform.shoot "<ep>/longform/shots/mobile/<name>.png" <url> --mobile --height 3400 --mark "exact phrase"
+python -m clipper.webcard <that png> --seconds 6 --mark 0:marker@0.12 --caption "*$100M* into Kraken"
+```
+
+`--mobile` matters: a desktop page shrunk into the 880-unit window is
+unreadable; the phone layout's column reads at full width. `webcard` crops the
+capture, plans the scroll so each phrase is in view before it draws, sets the
+push-in, and prints props for `render_graphics` with template `Website`. A
+phrase the shoot reports as not found, or whose `y` in the json is past 1.0
+(below the capture), can't be marked — pick another sentence. Many establishing
+beats in EP19 were a Website right after the hook (3.1s on).
 
 **Card or full screen?** A card when the point fits in about a dozen words and
 the speaker's delivery still matters. Full screen when the viewer has to *read*

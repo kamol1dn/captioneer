@@ -144,6 +144,70 @@
       },
       "frame": "card"
     },
+    "Punch": {
+      "description": "A line of the audio punched up on screen: white sticker boxes, black type, the marked phrase on yellow, words popping in with a tilt. For the line a clip turns on, so it lands heard and read. Mid-clip, never over the hook.",
+      "props": {
+        "text": "3-8 words, ideally words the speaker says there. Mark one phrase with *asterisks* for the yellow box; a newline forces a break.",
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
+      },
+      "required": [
+        "text"
+      ],
+      "image_props": [],
+      "example": {
+        "text": "Necessary and *absolutely irrelevant*"
+      },
+      "frame": "card"
+    },
+    "Ring": {
+      "description": "A share as a ring that fills, with what it measures. For a percentage the speaker says: 72% of people, under 5% of spend.",
+      "props": {
+        "value": "The number, 0-100 (not a string). Tiny shares still draw a sliver.",
+        "label": "What it is a share of, one line. *asterisks* highlight.",
+        "sublabel": "Optional. Source or qualifier in small type.",
+        "prefix": "Optional. Before the number, e.g. '<'.",
+        "suffix": "Optional. Default '%'.",
+        "decimals": "Optional. Decimal places. Default 0.",
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "image_props": [],
+      "example": {
+        "value": 72,
+        "label": "won't give an AI agent their *card details*",
+        "sublabel": "World Business Survey"
+      },
+      "frame": "card"
+    },
+    "Checklist": {
+      "description": "2-4 items that tick (✓) or cross (✗) in one by one. For what something has and lacks — 'acts like a bank ✓ / has a licence ✗' — or conditions being met.",
+      "props": {
+        "title": "Optional. What is being checked, one line.",
+        "items": "2-4 of {text, ok}. ok=true draws a cyan tick, false a red cross.",
+        "position": "Where it sits: 'bottom' stands just above the captions — over the chest in OTG framing, the least face it can cover; 'top' hangs just under the logo/sponsor zone (the top 20% is reserved); 'center' sits mid-frame, which in a tight shot is the face. Default 'bottom'."
+      },
+      "required": [
+        "items"
+      ],
+      "image_props": [],
+      "example": {
+        "title": "Revolut in the UK",
+        "items": [
+          {
+            "text": "Millions of current accounts",
+            "ok": true
+          },
+          {
+            "text": "Full UK banking licence",
+            "ok": false
+          }
+        ]
+      },
+      "frame": "card"
+    },
     "Breakdown": {
       "description": "Full screen. A numbered list of 2-6 points revealed one by one. For conditions, reasons, steps — anything the speaker enumerates that a viewer would lose track of by ear.",
       "props": {
@@ -318,6 +382,166 @@
         "kicker": "The filing",
         "image": "",
         "source": "occ.gov"
+      },
+      "frame": "full"
+    },
+    "Website": {
+      "description": "Full screen. The real web page in a browser window: URL bar and source chip, the page scrolled to the passage, a highlighter/underline drawing over the exact phrase and a push-in on it, then an optional takeaway sticker. Build props with `python -m clipper.webcard` from a longform.shoot screenshot — it crops, plans the scroll and places the marks.",
+      "props": {
+        "image": "Absolute path to the screenshot (pre-cropped by clipper.webcard).",
+        "imgW": "Image width in px.",
+        "imgH": "Image height in px.",
+        "url": "Shown in the URL bar, without https://.",
+        "source": "Chip beside the URL bar, e.g. 'CNBC · 10 SEP'.",
+        "x0": "Image fraction at the window's left edge. Default 0.",
+        "x1": "Image fraction at the window's right edge. Default 1.",
+        "path": "[[fraction of duration, image fraction at the window top], ...] scroll keyframes.",
+        "marks": "[{x,y,w,h, style: marker|underline|box, at}] in image fractions; at = fraction of duration when it draws. The first is where the push-in goes.",
+        "focus": "Optional {x,y,w,h,at}: the phrase the push-in centres on (all its lines). Default: the first mark.",
+        "zoom": "End scale of the push-in on the first mark. Default 1.25.",
+        "caption": "Optional takeaway sticker over the bottom of the window, <= ~12 words, *asterisks* highlight."
+      },
+      "required": [
+        "image",
+        "imgW",
+        "imgH"
+      ],
+      "image_props": [
+        "image"
+      ],
+      "example": {
+        "image": "",
+        "imgW": 1440,
+        "imgH": 2400,
+        "url": "cnbc.com/2026/09/10/nasdaq-invests-100-million",
+        "source": "CNBC · 10 SEP",
+        "caption": "Nasdaq puts *$100M* into Kraken's parent"
+      },
+      "frame": "full"
+    },
+    "BigNumber": {
+      "description": "Full screen. One figure at full size, counting up and landing with a pulse, the label under it and an optional context chip. For the number a clip is about — $177M, $21B, 21 banks — when a card would undersell it.",
+      "props": {
+        "value": "The number (not a string).",
+        "prefix": "Optional. '$', '€', '<'.",
+        "suffix": "Optional. 'M', 'B', '%', 'x'.",
+        "decimals": "Optional. Default 0.",
+        "label": "What it is, one line. *asterisks* highlight.",
+        "context": "Optional. One line of scale or contrast in a cyan chip: 'and it still shut down'.",
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'."
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "image_props": [],
+      "example": {
+        "value": 177,
+        "prefix": "$",
+        "suffix": "M",
+        "label": "raised by Hokodo",
+        "context": "Shut down after *eight years*",
+        "kicker": "B2B BNPL"
+      },
+      "frame": "full"
+    },
+    "Flow": {
+      "description": "Full screen. 2-5 boxes stacked top to bottom, joined by arrows that draw in with a packet running down them. For how money or data moves — who pays whom, what feeds what.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "nodes": "2-5 of {label, sub?, highlight?}. label 1-4 words; sub one short line.",
+        "edges": "Optional. Labels for the arrows between nodes (n-1), 1-3 words each."
+      },
+      "required": [
+        "nodes"
+      ],
+      "image_props": [],
+      "example": {
+        "title": "Visa data → same-day loans",
+        "nodes": [
+          {
+            "label": "Visa",
+            "sub": "daily settlement file"
+          },
+          {
+            "label": "Credit Coop",
+            "sub": "crypto lender"
+          },
+          {
+            "label": "Card issuer",
+            "sub": "gets the cash today",
+            "highlight": true
+          }
+        ],
+        "edges": [
+          "shares data",
+          "lends same day"
+        ]
+      },
+      "frame": "full"
+    },
+    "NewsStack": {
+      "description": "Full screen. 2-4 paper headline cards sliding in from alternate sides and piling up, the last one accented. For a pattern across stories — three exchanges in five months — or a story and its follow-up.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "items": "2-4 of {source, headline, date?}. headline under ~70 chars; *asterisks* highlight."
+      },
+      "required": [
+        "items"
+      ],
+      "image_props": [],
+      "example": {
+        "kicker": "Five months",
+        "items": [
+          {
+            "source": "Deutsche Börse",
+            "headline": "Strategic partnership with Kraken",
+            "date": "Apr 2026"
+          },
+          {
+            "source": "LSEG",
+            "headline": "Invests in Kraken",
+            "date": "Jul 2026"
+          },
+          {
+            "source": "Nasdaq",
+            "headline": "*$100M* into Kraken's parent",
+            "date": "Sep 2026"
+          }
+        ]
+      },
+      "frame": "full"
+    },
+    "Chat": {
+      "description": "Full screen. An AI chat thread: user bubbles on the right, the assistant typing then answering on the left. For what asking an AI agent actually looks like — a loan request, a purchase.",
+      "props": {
+        "kicker": "Optional. Short label above the title, e.g. 'THE CONDITIONS', 'TIMELINE'.",
+        "title": "Optional but usually wanted. What this frame is about, one line.",
+        "source": "Optional. Small source line at the bottom, e.g. 'Source: OCC filing'.",
+        "app": "Name in the chat header. Default 'AI assistant'.",
+        "messages": "2-4 of {from: 'user'|'ai', text}. Short: under ~70 chars each."
+      },
+      "required": [
+        "messages"
+      ],
+      "image_props": [],
+      "example": {
+        "app": "ChatGPT",
+        "messages": [
+          {
+            "from": "user",
+            "text": "I need a £5,000 loan for a car"
+          },
+          {
+            "from": "ai",
+            "text": "Here are 3 offers you're likely to get. Want me to apply?"
+          }
+        ]
       },
       "frame": "full"
     },

@@ -73,7 +73,15 @@ export const useEnterExit = (enterFrames = 14, exitFrames = 9) => {
  * clutter. The captions sit around 66-78%, positioned by hand. Everything we
  * draw lives in the gap between.
  */
-export const SAFE = { top: 0.215, bottom: 0.635, captions: [0.64, 0.8] as const };
+export const SAFE = { top: 0.215, bottom: 0.635, captions: [0.64, 0.8] as const, side: 100 };
+
+/**
+ * The sides are reserved too. On a tall phone (19.5:9 or 20:9) Reels, TikTok
+ * and Shorts scale a 9:16 video to fill the screen's height, which crops ~9%
+ * off the left and right. Everything that must be read stays inside the middle
+ * SAFE_W design units; only backgrounds run to the frame's edge.
+ */
+export const SAFE_W = 1080 - 2 * SAFE.side;
 
 /**
  * Where each band puts a graphic. Anchored by an edge, not a centre, so a
@@ -122,6 +130,7 @@ export const Card: React.FC<{
 }> = ({ children, width = 900, padding = 48, style }) => {
   const u = useUnit();
   const { enter, exit } = useEnterExit();
+  width = Math.min(width, SAFE_W);
   const rise = (1 - enter) * 60 * u;
   const scale = 0.94 + 0.06 * enter - (1 - exit) * 0.03;
   return (
@@ -235,8 +244,8 @@ export const FullFrame: React.FC<{
         <div
           style={{
             position: "absolute",
-            left: 64 * u,
-            right: 64 * u,
+            left: SAFE.side * u,
+            right: SAFE.side * u,
             top: height * SAFE.top,
             bottom: height * (1 - SAFE.bottom),
             fontFamily: FONT,
@@ -296,8 +305,8 @@ export const FullFrame: React.FC<{
           <div
             style={{
               position: "absolute",
-              left: 64 * u,
-              right: 64 * u,
+              left: SAFE.side * u,
+              right: SAFE.side * u,
               bottom: height * 0.055,
               fontFamily: FONT,
               color: COLORS.muted,

@@ -7,6 +7,7 @@ import { Hook } from "./Hook";
 import { ImageCard } from "./ImageCard";
 import { LowerThird } from "./LowerThird";
 import { Stat } from "./Stat";
+import { BigNumber, Chat, Checklist, Flow, NewsStack, Punch, Ring, Website } from "./vertical";
 import { PANEL_TEMPLATES } from "../panel/templates";
 
 // Names must match the keys of templates.json — that file is what the clipper
@@ -19,6 +20,9 @@ export const TEMPLATES: Record<string, React.FC<any>> = {
   Explainer,
   ImageCard,
   Bars,
+  Punch,
+  Ring,
+  Checklist,
   // Full-screen: these replace the picture, and go on footage entries.
   Breakdown,
   Timeline,
@@ -26,6 +30,11 @@ export const TEMPLATES: Record<string, React.FC<any>> = {
   Chart,
   Quote,
   Scroll,
+  Website,
+  BigNumber,
+  Flow,
+  NewsStack,
+  Chat,
   // Title: the clip's opening hook, on its own track at the very start.
   Hook,
   // Long-form panels: opaque, sized to a pane of the long-form layouts. Not in
