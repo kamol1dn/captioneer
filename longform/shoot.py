@@ -1,7 +1,10 @@
 """Screenshot web pages for the long-form panels.
 
     python -m longform.shoot <out.png> <url> [--width 1440] [--height 1800] [--scale 2]
-                    [--mark "exact phrase"]... [--hide "css selector"]...
+                    [--mark "exact phrase"]... [--hide "css selector"]... [--mobile]
+
+--mobile captures the phone layout (430 px wide at 3x, a phone user agent)
+for the shorts' Website template: one column, type that reads in 9:16.
 
 Headless installed Chrome with a fresh profile (no logins). Fixed/sticky
 overlays — cookie bars, consent walls, newsletter popups, sticky headers — are
@@ -95,14 +98,24 @@ def main():
     ap.add_argument("--mark", action="append", default=[])
     ap.add_argument("--hide", action="append", default=[])
     ap.add_argument("--start", default=None, help="phrase: crop so the page starts a bit above it")
+    ap.add_argument("--mobile", action="store_true", help="phone layout: 430 wide at 3x, mobile UA")
     a = ap.parse_args()
+    if a.mobile:
+        a.width, a.scale = 430, 3
+        if a.height == 1800:
+            a.height = 2000
     with sync_playwright() as p:
         b = p.chromium.launch(channel="chrome", headless=True,
                               args=["--disable-blink-features=AutomationControlled"])
+        if a.mobile:
+            ua = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36")
+        else:
+            ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
         ctx = b.new_context(viewport={"width": a.width, "height": a.height},
-                            device_scale_factor=a.scale, locale="en-US",
-                            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                                       "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+                            device_scale_factor=a.scale, locale="en-US", user_agent=ua,
+                            is_mobile=a.mobile, has_touch=a.mobile)
         page = ctx.new_page()
         try:
             page.goto(a.url, wait_until="domcontentloaded", timeout=45000)
@@ -122,7 +135,11 @@ def main():
             if found and found["rects"]:
                 top = max(0, int(found["rects"][0]["top"] - 160))
         clip = {"x": 0, "y": top, "width": a.width, "height": a.height}
-        page.screenshot(path=a.out, clip=clip, full_page=True)
+        # The viewport is already the capture's height, so a capture from the
+        # top needs no full_page — which resizes the viewport to the whole
+        # document, reflows anything sized in vh (phone layouts are full of
+        # it) and leaves the marks, measured afterwards, a few lines off.
+        page.screenshot(path=a.out, clip=clip, full_page=top > 0)
         marks = []
         for ph in a.mark:
             found = page.evaluate(FIND_JS, ph)

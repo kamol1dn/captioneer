@@ -1,6 +1,6 @@
 import React from "react";
 import { interpolate } from "remotion";
-import { Band, COLORS, FONT, Position, fitSize, useEnterExit, useUnit } from "../theme";
+import { Band, COLORS, FONT, Position, SAFE_W, fitSize, useEnterExit, useUnit } from "../theme";
 
 export type LowerThirdProps = { name: string; role: string; position?: Position };
 
@@ -36,7 +36,8 @@ export const LowerThird: React.FC<LowerThirdProps> = ({ name, role, position = "
               background: COLORS.card,
               borderRadius: 22 * u,
               padding: `${26 * u}px ${40 * u}px`,
-              maxWidth: 860 * u,
+              // The accent bar and gap take 42 of the safe width.
+              maxWidth: (SAFE_W - 42) * u,
             }}
           >
             <div
