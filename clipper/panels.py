@@ -1,19 +1,21 @@
 """Long-form panel graphics: a plan of timed graphics -> files + one XML timeline.
 
-The OTG long-form layouts are 4K PNG frames with transparent panes. Graphics
+A show's long-form layouts are 4K PNG frames with transparent panes. Graphics
 for those panes are rendered at the pane's own size (never a 4K canvas with
 padding), so the editor drops them on a track, sets Position once, and pastes
-that Motion onto every other clip on the track:
+that Motion onto every other clip on the track. The panes, tracks and bins
+come from ``longform/<show>/show.json``; for OTG:
 
     news  layout (``angle v1_1 (2).png``): middle pane -> V8
     guest layout (``angle V4.png``):       right pane  -> V9
 
-A plan is JSON:
+A plan is JSON (see ``longform/templates``):
 
     {"name": "OTG EP19 panels",
+     "show": "otg",                         # longform/otg/show.json
      "video": "D:/.../main_1.mp4",          # the long-form render (timing + reference)
      "out_dir": "D:/.../longform/panels",
-     "shots_dir": "D:/.../longform/shots",  # screenshots from shoot.py (+ .json)
+     "shots_dir": "D:/.../longform/shots",  # from `python -m longform.shoot` (+ .json)
      "items": [{"id": "n01", "layout": "news", "start": 8.6, "end": 22.4,
                 "template": "PShot", "shot": "tc_muse",
                 "marks": [{"phrase": 0, "style": "marker", "at_s": 14.5}],
@@ -44,28 +46,32 @@ from .timebase import Timebase
 from .xmeml.pathurl import to_pathurl
 
 FPS = Timebase(30, ntsc=True)
-TRANSITION_FRAMES = 4  # the long-form layouts cross-fade over 4 frames
 # Premiere's tick rate, for the transitions' cutPointTicks.
 TICKS_PER_SECOND = 254016000000
-
-BRAND = Path(r"D:\gashtak work\OTG\brand assets")
-# Pane geometry measured off the layout PNGs (transparent rectangle, 4K).
-# Renders carry a few px of bleed each side; the frame border is opaque for
-# 7+ px around both panes, so the bleed is hidden and a half-pixel of
-# misalignment can never open a hairline gap. Sizes are even for the codecs.
-LAYOUTS = {
-    "news": {"pane": (944, 0, 1953, 1520), "size": (1960, 1528), "track": 8,
-             "png": BRAND / "angle v1_1 (2).png"},
-    "guest": {"pane": (960, 167, 2791, 1350), "size": (2800, 1360), "track": 9,
-              "png": BRAND / "angle V4.png"},
-}
-SEQ_SIZE = (3840, 2160)
 IMAGE_PROPS = ("image", "logo", "photo")
+DEFAULT_SHOW = "otg"
 
 
-def position(layout: str):
+def show(name: str) -> dict:
+    """A show's layouts, from ``longform/<name>/show.json``.
+
+    ``pane`` is the transparent rectangle measured off the layout PNG (4K).
+    ``size`` is what gets rendered: the pane plus a few px of bleed each side,
+    even for the codecs — the frame border is opaque well past the bleed, so a
+    half-pixel of misalignment can never open a hairline gap.
+    """
+    from longform import show_config
+    cfg = show_config(name)
+    for lay in cfg["layouts"].values():
+        lay["pane"], lay["size"], lay["png"] = tuple(lay["pane"]), tuple(lay["size"]), Path(lay["png"])
+    cfg["sequence"] = tuple(cfg["sequence"])
+    cfg.setdefault("transition_frames", 4)
+    return cfg
+
+
+def position(lay: dict):
     """Premiere Motion > Position that centres a render on its pane."""
-    x, y, w, h = LAYOUTS[layout]["pane"]
+    x, y, w, h = lay["pane"]
     return (x + w / 2, y + h / 2)
 
 
@@ -75,6 +81,7 @@ def position(layout: str):
 def load(plan_path) -> dict:
     plan = json.loads(Path(plan_path).read_text(encoding="utf-8"))
     plan["_dir"] = str(Path(plan_path).parent)
+    plan["_show"] = show(plan.get("show", DEFAULT_SHOW))
     return plan
 
 
@@ -140,7 +147,7 @@ def _shot_props(plan: dict, item: dict) -> dict:
         props["x0"], props["x1"] = round(x0, 4), round(x1, 4)
 
     # Scroll so the marks are in view when they draw.
-    W, H = LAYOUTS[item["layout"]]["size"]
+    W, H = plan["_show"]["layouts"][item["layout"]]["size"]
     u = H / 1000
     x0, x1 = props.get("x0", 0), props.get("x1", 1)
     win_w = W - 92 * u
@@ -239,7 +246,7 @@ def build_jobs(plan: dict, only: Optional[List[str]] = None, codec: str = "h264"
         if only and item["id"] not in only:
             continue
         s, e = frames_of(item)
-        W, H = LAYOUTS[item["layout"]]["size"]
+        W, H = plan["_show"]["layouts"][item["layout"]]["size"]
         props = _shot_props(plan, item) if item.get("shot") else dict(item.get("props", {}))
         if item.get("reveal_s"):
             # Cards / stops / steps land on the words that name them.
@@ -292,7 +299,8 @@ def checks(plan: dict, jobs: List[dict]) -> Path:
     out_dir = Path(plan["out_dir"]) / "checks"
     out_dir.mkdir(parents=True, exist_ok=True)
     items = {i["id"]: i for i in plan["items"]}
-    layouts = {k: Image.open(v["png"]).convert("RGBA") for k, v in LAYOUTS.items()}
+    lays = plan["_show"]["layouts"]
+    layouts = {k: Image.open(v["png"]).convert("RGBA") for k, v in lays.items()}
     thumbs = []
     for j in jobs:
         item = items[j["id"]]
@@ -300,9 +308,9 @@ def checks(plan: dict, jobs: List[dict]) -> Path:
         frame = out_dir / f"_{j['id']}_frame.png"
         subprocess.run([ffmpeg_bin("ffmpeg"), "-v", "error", "-y", "-ss", f"{t:.3f}", "-i", plan["video"],
                         "-frames:v", "1", str(frame)], check=True)
-        bg = Image.open(frame).convert("RGBA").resize(SEQ_SIZE)
+        bg = Image.open(frame).convert("RGBA").resize(plan["_show"]["sequence"])
         g = Image.open(j["still"]).convert("RGBA")
-        cx, cy = position(item["layout"])
+        cx, cy = position(lays[item["layout"]])
         bg.alpha_composite(g, (round(cx - g.width / 2), round(cy - g.height / 2)))
         bg.alpha_composite(layouts[item["layout"]])
         small = bg.convert("RGB").resize((1280, 720))
@@ -428,8 +436,6 @@ def _masterclip(parent, mcid: str, name: str, file_el, frames: int):
     return clip
 
 
-# Default bin for a graphic by its layout; an item's own "bin" wins.
-DEFAULT_BINS = {"news": "News (V8)", "guest": "Guests (V9)"}
 STILL_FRAMES = 150
 
 
@@ -446,6 +452,9 @@ def write_xml(plan: dict, out_path: Optional[Path] = None) -> Path:
     name = plan.get("name", "panels")
     ref_w = (info["width"], info["height"])
     items = sorted(plan["items"], key=lambda i: i["start"])
+    lays = plan["_show"]["layouts"]
+    seq_size = plan["_show"]["sequence"]
+    fade = plan["_show"]["transition_frames"]
 
     root = ET.Element("xmeml", version="5")
     top = _bin(root, name)
@@ -454,19 +463,19 @@ def write_xml(plan: dict, out_path: Optional[Path] = None) -> Path:
     graphics = _bin(top, "02 Graphics")
     group_bins = {}
     for item in items:  # bins in the order segments appear
-        label = item.get("bin") or DEFAULT_BINS[item["layout"]]
+        label = item.get("bin") or lays[item["layout"]].get("bin", item["layout"])
         if label not in group_bins:
             group_bins[label] = _bin(graphics, label)
         s, e = frames_of(item)
         path = Path(plan["out_dir"]) / f"{item['id']}_{item['layout']}.mp4"
         _masterclip(group_bins[label], f"mc-{item['id']}", path.name,
-                    _file(f"file-{item['id']}", str(path), e - s, LAYOUTS[item["layout"]]["size"]), e - s)
+                    _file(f"file-{item['id']}", str(path), e - s, lays[item["layout"]]["size"]), e - s)
 
     assets = _bin(top, "03 Assets")
     _masterclip(_bin(assets, "Reference render"), "mc-ref", Path(video).name,
                 _file("ref-file", video, total, ref_w, audio=True), total)
     layouts = _bin(assets, "Layouts")
-    for key, lay in LAYOUTS.items():
+    for key, lay in lays.items():
         with Image.open(lay["png"]) as im:
             size = im.size
         _masterclip(layouts, f"mc-layout-{key}", lay["png"].name,
@@ -494,13 +503,13 @@ def write_xml(plan: dict, out_path: Optional[Path] = None) -> Path:
     fmt = _t(vid, "format")
     sc = _t(fmt, "samplecharacteristics")
     _rate(sc)
-    _t(sc, "width", SEQ_SIZE[0])
-    _t(sc, "height", SEQ_SIZE[1])
+    _t(sc, "width", seq_size[0])
+    _t(sc, "height", seq_size[1])
     _t(sc, "anamorphic", "FALSE")
     _t(sc, "pixelaspectratio", "square")
     _t(sc, "fielddominance", "none")
 
-    tracks = {n: _t(vid, "track") for n in range(1, 10)}
+    tracks = {n: _t(vid, "track") for n in range(1, max(l["track"] for l in lays.values()) + 1)}
     # V1: the render itself, scaled to fill 4K, so the timing can be checked in place.
     ci = _t(tracks[1], "clipitem")
     ci.set("id", "ref-v")
@@ -515,7 +524,7 @@ def write_xml(plan: dict, out_path: Optional[Path] = None) -> Path:
     st = _t(ci, "sourcetrack")
     _t(st, "mediatype", "video")
     _t(st, "trackindex", 1)
-    ci.append(_scale_filter(round(100 * SEQ_SIZE[0] / ref_w[0], 3)))
+    ci.append(_scale_filter(round(100 * seq_size[0] / ref_w[0], 3)))
 
     # Fades only where a run of graphics begins or ends — that's where the
     # layout switches. Back-to-back panels hard-cut to each other; fading both
@@ -525,12 +534,12 @@ def write_xml(plan: dict, out_path: Optional[Path] = None) -> Path:
         spans.setdefault(item["layout"], []).append(frames_of(item))
     for n, item in enumerate(items, start=1):
         s, e = frames_of(item)
-        tr = tracks[LAYOUTS[item["layout"]]["track"]]
+        tr = tracks[lays[item["layout"]]["track"]]
         path = Path(plan["out_dir"]) / f"{item['id']}_{item['layout']}.mp4"
         head_joined = any(abs(s - pe) <= 1 for _, pe in spans[item["layout"]])
         tail_joined = any(abs(e - ps) <= 1 for ps, _ in spans[item["layout"]])
         if not head_joined:
-            tr.append(_transition(s, s + TRANSITION_FRAMES, "start-black"))
+            tr.append(_transition(s, s + fade, "start-black"))
         c = _t(tr, "clipitem")
         c.set("id", f"panel-{item['id']}")
         _t(c, "masterclipid", f"mc-{item['id']}")
@@ -545,7 +554,7 @@ def write_xml(plan: dict, out_path: Optional[Path] = None) -> Path:
         _t(st, "mediatype", "video")
         _t(st, "trackindex", 1)
         if not tail_joined:
-            tr.append(_transition(e - TRANSITION_FRAMES, e, "end-black"))
+            tr.append(_transition(e - fade, e, "end-black"))
     for tr in tracks.values():
         _t(tr, "enabled", "TRUE")
         _t(tr, "locked", "FALSE")

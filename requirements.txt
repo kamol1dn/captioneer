@@ -32,3 +32,8 @@ flask==3.1.0
 
 # --- Clipper engine MCP server ---
 mcp==1.2.1
+
+# --- Long-form screenshots (longform.shoot) ---
+# Drives the installed Google Chrome (channel="chrome"), so no
+# `playwright install` browser download is needed.
+playwright==1.62.0
