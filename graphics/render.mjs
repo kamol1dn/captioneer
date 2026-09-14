@@ -1,6 +1,11 @@
 // Batch renderer for the clipper engine: node render.mjs <jobs.json>
 //
-// jobs.json: {"jobs": [{template, props, width, height, fps, frames, out, still?}]}
+// jobs.json: {"jobs": [{template, props, width, height, fps, frames, out, still?,
+//                       proResProfile?, stillOnly?}]}
+//
+// `proResProfile` defaults to "4444" with alpha (the shorts' overlays); opaque
+// long-form panels pass "standard"/"hq", or `codec: "h264"` (+ `crf`).
+// `stillOnly` renders just the still to `out` (a PNG) and no video.
 //
 // Bundles once and renders every job against that bundle — bundling is most of
 // the cost of a single `npx remotion render`, and a b-roll pass renders a dozen
@@ -39,17 +44,42 @@ for (const job of spec.jobs) {
       durationInFrames: job.frames,
       props: job.props,
     };
-    await renderMedia({
-      composition,
-      serveUrl,
-      inputProps: job.props,
-      codec: "prores",
-      proResProfile: "4444",
-      imageFormat: "png",
-      pixelFormat: "yuva444p10le",
-      outputLocation: job.out,
-      overwrite: true,
-    });
+    if (job.stillOnly) {
+      const frame = Math.min(job.frames - 1, Math.max(0, Math.round(job.frames * (job.stillAt ?? 0.6))));
+      await renderStill({ composition, serveUrl, inputProps: job.props, output: job.out, frame, imageFormat: "png", overwrite: true });
+      emit({ ok: true, out: job.out, still: job.out });
+      continue;
+    }
+    if (job.codec === "h264") {
+      // Opaque panels: an hour of long-form graphics as ProRes is tens of GB.
+      await renderMedia({
+        composition,
+        serveUrl,
+        inputProps: job.props,
+        codec: "h264",
+        crf: job.crf ?? 15,
+        concurrency: job.concurrency ?? null,
+        pixelFormat: "yuv420p",
+        imageFormat: "jpeg",
+        jpegQuality: 95,
+        outputLocation: job.out,
+        overwrite: true,
+      });
+    } else {
+      const profile = job.proResProfile ?? "4444";
+      const alpha = profile === "4444" || profile === "4444-xq";
+      await renderMedia({
+        composition,
+        serveUrl,
+        inputProps: job.props,
+        codec: "prores",
+        proResProfile: profile,
+        ...(alpha ? { imageFormat: "png" } : { imageFormat: "jpeg", jpegQuality: 95 }),
+        pixelFormat: alpha ? "yuva444p10le" : "yuv422p10le",
+        outputLocation: job.out,
+        overwrite: true,
+      });
+    }
     let still = null;
     if (job.still) {
       // Past the entrance, before the exit: the graphic fully on screen.
