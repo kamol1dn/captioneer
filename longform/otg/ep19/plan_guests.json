@@ -1,0 +1,1365 @@
+{
+ "name": "OTG EP19 panels",
+ "show": "otg",
+ "video": "D:/gashtak work/OTG/otgep19/main_1.mp4",
+ "out_dir": "D:/gashtak work/OTG/otgep19/for claude/longform/panels",
+ "shots_dir": "D:/gashtak work/OTG/otgep19/for claude/longform/shots",
+ "items": [
+  {
+   "id": "g01",
+   "layout": "guest",
+   "start": 331.9,
+   "end": 345.0,
+   "template": "PShot",
+   "shot": "m0_home",
+   "note": "Luca intro — M0 homepage",
+   "props": {
+    "url": "m0.org",
+    "source": "M0",
+    "y0": 0,
+    "y1": 0.12,
+    "s0": 0.15,
+    "s1": 0.95
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g02",
+   "layout": "guest",
+   "start": 372.6,
+   "end": 392.0,
+   "template": "PTimeline",
+   "note": "Luca's background",
+   "reveal_s": [
+    374.4,
+    377.6,
+    381.1,
+    384.2
+   ],
+   "props": {
+    "kicker": "WHO IS LUCA PROSPERI",
+    "title": "FROM BANKING TO NEW RAILS",
+    "events": [
+     {
+      "date": "OLIVER WYMAN",
+      "text": "Consultant to banks"
+     },
+     {
+      "date": "LBS",
+      "text": "MBA, London Business School"
+     },
+     {
+      "date": "MORGAN STANLEY",
+      "text": "Financial institutions team"
+     },
+     {
+      "date": "INVESTOR",
+      "text": "In financial institutions — *15 years* in all"
+     }
+    ]
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g03",
+   "layout": "guest",
+   "start": 476.0,
+   "end": 491.5,
+   "template": "PQuote",
+   "note": "Thesis: tokenized money as infra",
+   "props": {
+    "kicker": "WHY M0 EXISTS",
+    "quote": "For us, stablecoins are *tokenized money as infra*.",
+    "author": "Luca Prosperi",
+    "role": "Co-founder & CEO, M0"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g04",
+   "layout": "guest",
+   "start": 491.6,
+   "end": 514.0,
+   "template": "PExplainer",
+   "note": "M0 at a glance",
+   "props": {
+    "kicker": "THE COMPANY",
+    "name": "M0",
+    "lead": "Infrastructure for *tokenized money* — the rails other companies build their stablecoins on.",
+    "facts": [
+     {
+      "label": "TEAM",
+      "value": "~45–50 people, engineering-first"
+     },
+     {
+      "label": "RAISED",
+      "value": "$100M in equity"
+     },
+     {
+      "label": "BACKERS",
+      "value": "Bain Capital Crypto, Pantera, Polychain, Ribbit"
+     },
+     {
+      "label": "POWERS",
+      "value": "MetaMask mUSD · MoneyGram MGUSD"
+     }
+    ],
+    "source": "M0 Series B release; MoneyGram"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g05",
+   "layout": "guest",
+   "start": 570.6,
+   "end": 612.0,
+   "template": "PFlow",
+   "note": "Token lifecycle M0 manages",
+   "reveal_s": [
+    578.1,
+    581.9,
+    585.2,
+    587.2,
+    593.4
+   ],
+   "props": {
+    "kicker": "WHAT M0 MANAGES",
+    "title": "THE LIFE OF A STABLECOIN",
+    "steps": [
+     {
+      "title": "MINT",
+      "text": "Against a *proof of reserve*"
+     },
+     {
+      "title": "DISTRIBUTE",
+      "text": "Out on-chain"
+     },
+     {
+      "title": "LIQUIDITY",
+      "text": "Provided where it's used"
+     },
+     {
+      "title": "YIELD",
+      "text": "Streamed through the token, plus features"
+     },
+     {
+      "title": "BURN",
+      "text": "At the end of its life"
+     }
+    ],
+    "foot": "M0 never touches fiat — only what happens *on-chain*"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g06",
+   "layout": "guest",
+   "start": 672.4,
+   "end": 700.0,
+   "template": "PShot",
+   "shot": "mgusd_pr",
+   "note": "MGUSD release: Bridge issuer, M0 contracts",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 681.7
+    },
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 688.0
+    }
+   ],
+   "props": {
+    "url": "prnewswire.com/news-releases/moneygram-launches-mgusd-a-stablecoin",
+    "source": "MONEYGRAM · 2 JUN 2026",
+    "crop": "auto"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g07",
+   "layout": "guest",
+   "start": 700.1,
+   "end": 738.0,
+   "template": "PExplainer",
+   "note": "What backs MGUSD",
+   "props": {
+    "kicker": "WHAT'S BEHIND IT",
+    "name": "MGUSD",
+    "lead": "Under the GENIUS Act: backed only by *short-term US Treasuries or bank deposits*.",
+    "facts": [
+     {
+      "label": "ISSUER",
+      "value": "Bridge, a Stripe company"
+     },
+     {
+      "label": "TYPICAL MIX",
+      "value": "80–90% Treasuries under 3 months"
+     },
+     {
+      "label": "CHAIN",
+      "value": "Stellar first, others later"
+     },
+     {
+      "label": "TOKEN INFRA",
+      "value": "Minted & burned on M0"
+     }
+    ],
+    "source": "MoneyGram release; Luca Prosperi"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g08",
+   "layout": "guest",
+   "start": 757.0,
+   "end": 800.0,
+   "template": "PFlow",
+   "note": "Where the yield goes",
+   "reveal_s": [
+    757.3,
+    765.3,
+    778.8
+   ],
+   "props": {
+    "kicker": "WHO GETS THE YIELD?",
+    "title": "FOLLOW THE INTEREST",
+    "steps": [
+     {
+      "title": "RESERVES EARN",
+      "text": "Treasury yield on the collateral"
+     },
+     {
+      "title": "REBATED",
+      "text": "To MoneyGram, as holder of most of the liquidity"
+     },
+     {
+      "title": "MONEYGRAM DECIDES",
+      "text": "Keep it, pass it to users, or fund *incentives*"
+     }
+    ],
+    "foot": "M0's job: make any of those *technically possible*"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g09",
+   "layout": "guest",
+   "start": 813.5,
+   "end": 843.0,
+   "template": "PShot",
+   "shot": "banks21",
+   "note": "21 banks plan a stablecoin",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 815.5
+    },
+    {
+     "phrase": 1,
+     "style": "underline",
+     "at_s": 822.0
+    }
+   ],
+   "props": {
+    "url": "coinmarketcap.com/academy/article/21-banks-stablecoin-venture-usd-token-launch-2027",
+    "source": "COINMARKETCAP · SEP 2026",
+    "crop": "auto"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g10",
+   "layout": "guest",
+   "start": 843.1,
+   "end": 862.0,
+   "template": "PQuote",
+   "note": "Nobody cares who issues a stablecoin",
+   "props": {
+    "kicker": "LUCA ON BANK STABLECOINS",
+    "quote": "Nobody cares who issues a stablecoin. *Nobody cares.*",
+    "author": "Luca Prosperi",
+    "role": "Co-founder & CEO, M0"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g11",
+   "layout": "guest",
+   "start": 938.5,
+   "end": 985.0,
+   "template": "PFlow",
+   "note": "Liquidity mousetrap",
+   "reveal_s": [
+    939.1,
+    942.4,
+    954.9,
+    974.4
+   ],
+   "props": {
+    "kicker": "WHERE BANKS COME IN",
+    "title": "THE LIQUIDITY MOUSETRAP",
+    "steps": [
+     {
+      "title": "IDLE",
+      "text": "Collateral sits in Treasury paper"
+     },
+     {
+      "title": "AGGREGATES",
+      "text": "Stablecoins pull in more and more liquidity"
+     },
+     {
+      "title": "BANKS CONNECT",
+      "text": "To *lend* that liquidity"
+     },
+     {
+      "title": "MIXED BACKING",
+      "text": "Treasuries + bank assets, invisible to users"
+     }
+    ]
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g12",
+   "layout": "guest",
+   "start": 1014.6,
+   "end": 1045.0,
+   "template": "PShot",
+   "shot": "openusd",
+   "note": "Open USD consortium, 140+ companies",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 1021.3
+    }
+   ],
+   "props": {
+    "url": "theblock.co/post/406736/visa-stripe-coinbase-join-open-usd-stablecoin",
+    "source": "THE BLOCK · JUN 2026",
+    "crop": "auto"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g13",
+   "layout": "guest",
+   "start": 1076.0,
+   "end": 1125.0,
+   "template": "PCompare",
+   "note": "Stripe vs Circle",
+   "props": {
+    "kicker": "OPEN USD",
+    "title": "STRIPE IS *ATTACKING CIRCLE*",
+    "left": {
+     "name": "CIRCLE",
+     "tag": "HAS THE BRIDGE",
+     "points": [
+      "A liquidity moat, with Tether",
+      "Wants to build payment rails on top"
+     ]
+    },
+    "right": {
+     "name": "STRIPE",
+     "tag": "HAS THE RAILS",
+     "points": [
+      "Free minting & redemption",
+      "Passes the yield to partners",
+      "Subsidising a bridge to its rails"
+     ]
+    },
+    "verdict": "The moat is real — this *remains to be proven*"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g14",
+   "layout": "guest",
+   "start": 1137.5,
+   "end": 1180.0,
+   "template": "PStack",
+   "note": "Luca's 10-year stack",
+   "reveal_s": [
+    1138.7,
+    1154.2,
+    1160.0,
+    1164.0
+   ],
+   "props": {
+    "kicker": "THE NEXT 10 YEARS",
+    "title": "HOW LUCA SEES THE STACK",
+    "layers": [
+     {
+      "title": "COLLATERAL",
+      "text": "Treasuries, credit, bank deposits — tokenized or not"
+     },
+     {
+      "title": "STABLECOIN LAYER",
+      "text": "Invests in the collateral, connects to apps",
+      "tag": "M0 BUILDS HERE"
+     },
+     {
+      "title": "APPLICATIONS",
+      "text": "Do cool things with tokenized money"
+     },
+     {
+      "title": "CUSTOMERS",
+      "text": "See a dollar balance"
+     }
+    ],
+    "highlight": 1
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g15",
+   "layout": "guest",
+   "start": 1195.0,
+   "end": 1222.0,
+   "template": "PCompare",
+   "note": "Which blockchain settles it",
+   "props": {
+    "kicker": "WHERE WILL IT SETTLE?",
+    "title": "TWO SCHOOLS OF THOUGHT",
+    "left": {
+     "name": "EXISTING CHAINS",
+     "tag": "+ LAYER 2s",
+     "points": [
+      "Enough blockchains already",
+      "Build layer 2s on top"
+     ]
+    },
+    "right": {
+     "name": "PAYMENT CHAINS",
+     "tag": "PURPOSE-BUILT",
+     "points": [
+      "Like Tempo and Arc",
+      "Profitable for whoever runs them"
+     ]
+    },
+    "verdict": "Probably *a combination* of both"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g16",
+   "layout": "guest",
+   "start": 1255.3,
+   "end": 1290.0,
+   "template": "PQuote",
+   "note": "If Revolut launched today",
+   "props": {
+    "kicker": "LUCA'S TAKE",
+    "quote": "If Revolut launched today, it would be built on *stablecoins*.",
+    "author": "Luca Prosperi",
+    "role": "Co-founder & CEO, M0"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g17",
+   "layout": "guest",
+   "start": 1290.5,
+   "end": 1330.0,
+   "template": "PPoints",
+   "note": "Stablecoin-powered neobanks",
+   "reveal_s": [
+    1294.3,
+    1315.5,
+    1316.6,
+    1317.4
+   ],
+   "props": {
+    "kicker": "SCALING FAST",
+    "title": "STABLECOIN-POWERED NEOBANKS",
+    "points": [
+     {
+      "title": "KAST",
+      "text": "Luca sits on its board"
+     },
+     {
+      "title": "RedotPay"
+     },
+     {
+      "title": "Ether.fi"
+     },
+     {
+      "title": "DolarApp"
+     }
+    ],
+    "source": "Names as mentioned by Luca Prosperi"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g18",
+   "layout": "guest",
+   "start": 1365.5,
+   "end": 1410.0,
+   "template": "PPoints",
+   "note": "What a banking licence gets you",
+   "reveal_s": [
+    1365.6,
+    1394.6
+   ],
+   "props": {
+    "kicker": "BANK OR NOT?",
+    "title": "WHAT A BANKING LICENCE GETS YOU",
+    "points": [
+     {
+      "title": "Cover to serve the customer",
+      "text": "“The ultimate licence” — but the burden is very high"
+     },
+     {
+      "title": "Lending",
+      "text": "Create money and grow your balance sheet"
+     }
+    ]
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g19",
+   "layout": "guest",
+   "start": 1472.0,
+   "end": 1506.0,
+   "template": "PCompare",
+   "note": "Not the same money",
+   "props": {
+    "kicker": "HOW MANY DOLLARS ARE THERE?",
+    "title": "NOT THE *SAME MONEY*",
+    "left": {
+     "name": "$1 AT JPMORGAN",
+     "tag": "ONE BALANCE SHEET",
+     "points": [
+      "A claim on that bank",
+      "Its own risk, its own yield"
+     ]
+    },
+    "right": {
+     "name": "$1 AT SVB",
+     "tag": "ANOTHER",
+     "points": [
+      "A different claim",
+      "A different risk"
+     ]
+    },
+    "verdict": "They feel like one dollar because they're *interoperable*"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "g20",
+   "layout": "guest",
+   "start": 1535.0,
+   "end": 1595.0,
+   "template": "PFlow",
+   "note": "Every app its own wrapper",
+   "reveal_s": [
+    1536.8,
+    1570.8,
+    1588.2
+   ],
+   "props": {
+    "kicker": "WHERE THIS GOES",
+    "title": "EVERY APP WILL HOLD ITS OWN WRAPPER",
+    "steps": [
+     {
+      "title": "USDC ARRIVES",
+      "text": "Sent into a financial app"
+     },
+     {
+      "title": "UNWRAPPED",
+      "text": "Moved into the app's own container"
+     },
+     {
+      "title": "YOU SEE $",
+      "text": "Fast, interoperable, cheap, global"
+     }
+    ],
+    "foot": "M0 wants to power *as many containers as possible*"
+   },
+   "bin": "Guest 1 · Luca Prosperi · M0 (V9)"
+  },
+  {
+   "id": "c01",
+   "layout": "guest",
+   "start": 1605.0,
+   "end": 1626.5,
+   "template": "PShot",
+   "shot": "aria_home",
+   "note": "Clément intro — Aria homepage",
+   "props": {
+    "url": "helloaria.eu",
+    "source": "ARIA · PARIS",
+    "y0": 0.0,
+    "y1": 0.06,
+    "s0": 0.1,
+    "s1": 0.95
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c02",
+   "layout": "guest",
+   "start": 1638.0,
+   "end": 1662.0,
+   "template": "PFlow",
+   "note": "The freelancer's problem",
+   "reveal_s": [
+    1639.0,
+    1644.8,
+    1648.0
+   ],
+   "props": {
+    "kicker": "THE PROBLEM",
+    "title": "WHY FREELANCERS WAIT",
+    "steps": [
+     {
+      "title": "INVOICE SENT",
+      "text": "To the client"
+     },
+     {
+      "title": "30 / 60 / 90 DAYS",
+      "text": "Payment terms you have to accept"
+     },
+     {
+      "title": "PAID LATE",
+      "text": "Often on top of that"
+     }
+    ],
+    "foot": "Employees get paid at month-end. Freelancers *wait*."
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c03",
+   "layout": "guest",
+   "start": 1664.0,
+   "end": 1687.0,
+   "template": "PStat",
+   "note": "$100T+ stuck in payment terms",
+   "props": {
+    "kicker": "A GLOBAL PROBLEM",
+    "value": 100,
+    "prefix": "$",
+    "suffix": "T+",
+    "label": "of cash stuck in payment terms worldwide",
+    "context": "Clément Carrier's figure — it hits freelancers and *small firms* hardest"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c04",
+   "layout": "guest",
+   "start": 1687.5,
+   "end": 1716.0,
+   "template": "PFlow",
+   "note": "How Aria distributes",
+   "reveal_s": [
+    1688.0,
+    1693.0,
+    1699.0
+   ],
+   "props": {
+    "kicker": "HOW ARIA WORKS",
+    "title": "GO WHERE THE INVOICES ARE",
+    "steps": [
+     {
+      "title": "SMALL SUPPLIERS",
+      "text": "Freelancers and SMBs"
+     },
+     {
+      "title": "THEIR SOFTWARE",
+      "text": "B2B marketplaces, vertical ERPs"
+     },
+     {
+      "title": "ARIA, EMBEDDED",
+      "text": "Get paid now, inside the tool"
+     }
+    ],
+    "foot": "Going direct costs too much to *acquire* each customer"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c05",
+   "layout": "guest",
+   "start": 1748.0,
+   "end": 1790.0,
+   "template": "PBars",
+   "note": "B2B commerce via checkout",
+   "props": {
+    "kicker": "B2B BNPL'S CEILING",
+    "title": "B2B THAT GOES THROUGH A CHECKOUT",
+    "items": [
+     {
+      "label": "Before",
+      "value": 1.5,
+      "display": "~1.5%"
+     },
+     {
+      "label": "Now",
+      "value": 3,
+      "display": "~3%",
+      "highlight": true
+     },
+     {
+      "label": "Maybe next",
+      "value": 5,
+      "display": "4–5%"
+     }
+    ],
+    "note": "Clément's estimates — the rest runs through ERPs and complex workflows"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c06",
+   "layout": "guest",
+   "start": 1860.0,
+   "end": 1910.0,
+   "template": "PCompare",
+   "note": "Factoring vs Aria",
+   "props": {
+    "kicker": "“WE'RE NOT FACTORING”",
+    "title": "FACTORING VS *ARIA*",
+    "left": {
+     "name": "FACTORING",
+     "tag": "BANKS",
+     "points": [
+      "Recourse on the supplier",
+      "Serves big corporates and mid-market",
+      "Can't plug into software"
+     ]
+    },
+    "right": {
+     "name": "ARIA",
+     "tag": "EMBEDDED",
+     "points": [
+      "No recourse on the supplier",
+      "Underwrites the *buyer*",
+      "Built into the software"
+     ]
+    },
+    "verdict": "That's how it reaches the *long tail* of small suppliers"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c07",
+   "layout": "guest",
+   "start": 1940.5,
+   "end": 1965.0,
+   "template": "PShot",
+   "shot": "hokodo",
+   "note": "Hokodo shut down after $177M",
+   "marks": [
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 1944.0
+    },
+    {
+     "phrase": 0,
+     "style": "underline",
+     "at_s": 1948.5
+    }
+   ],
+   "props": {
+    "url": "thepaypers.com/payments/news/hokodo-shuts-down-after-eight-years",
+    "source": "THE PAYPERS",
+    "crop": "auto"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c08",
+   "layout": "guest",
+   "start": 1976.8,
+   "end": 2028.0,
+   "template": "PCompare",
+   "note": "Why Aria survives where Hokodo didn't",
+   "props": {
+    "kicker": "WHY ARIA IS DIFFERENT",
+    "title": "SCALE CUTS THE *COST OF MONEY*",
+    "left": {
+     "name": "HOKODO",
+     "tag": "B2B BNPL",
+     "points": [
+      "Paid about *2×* Aria's cost of debt",
+      "Targeted e-commerce checkouts"
+     ]
+    },
+    "right": {
+     "name": "ARIA",
+     "tag": "EMBEDDED",
+     "points": [
+      "Book *3–5×* larger",
+      "Integrated into marketplaces like Malt"
+     ]
+    },
+    "verdict": "More volume, less risk → *better terms* from the banks"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c09",
+   "layout": "guest",
+   "start": 2028.2,
+   "end": 2042.0,
+   "template": "PStat",
+   "note": "<0.01% default",
+   "props": {
+    "kicker": "RISK",
+    "value": 0.01,
+    "decimals": 2,
+    "prefix": "<",
+    "suffix": "%",
+    "label": "default rate at Aria",
+    "context": "Per Clément Carrier — “way higher” in B2B BNPL"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c10",
+   "layout": "guest",
+   "start": 2055.0,
+   "end": 2090.0,
+   "template": "PShot",
+   "shot": "aria_raise",
+   "note": "€240M Nomura-led facility",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 2064.2
+    },
+    {
+     "phrase": 1,
+     "style": "underline",
+     "at_s": 2066.5
+    }
+   ],
+   "props": {
+    "url": "eu-startups.com/2026/07/paris-based-aria-raises-e7-million",
+    "source": "EU-STARTUPS · JUL 2026",
+    "crop": "auto"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c11",
+   "layout": "guest",
+   "start": 2126.0,
+   "end": 2150.0,
+   "template": "PStat",
+   "note": "92% automatic credit decisions",
+   "props": {
+    "kicker": "AI AT ARIA",
+    "value": 92,
+    "suffix": "%",
+    "ring": true,
+    "label": "of credit decisions are *automatic and instant*",
+    "context": "Aria's figure"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c12",
+   "layout": "guest",
+   "start": 2151.5,
+   "end": 2172.5,
+   "template": "PPoints",
+   "note": "Three risks",
+   "reveal_s": [
+    2152.0,
+    2153.0,
+    2154.0
+   ],
+   "props": {
+    "kicker": "WHAT CAN GO WRONG",
+    "title": "THREE KINDS OF RISK",
+    "points": [
+     {
+      "title": "Dispute",
+      "text": "The buyer contests the invoice"
+     },
+     {
+      "title": "Fraud",
+      "text": "“A business killer”"
+     },
+     {
+      "title": "Credit",
+      "text": "“Not very scary for us”"
+     }
+    ]
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c13",
+   "layout": "guest",
+   "start": 2172.6,
+   "end": 2190.0,
+   "template": "PBars",
+   "note": "Aria's book by buyer",
+   "props": {
+    "kicker": "WHO OWES THE MONEY",
+    "title": "ARIA'S BOOK, BY BUYER",
+    "items": [
+     {
+      "label": "Investment grade",
+      "value": 80,
+      "display": "80%",
+      "highlight": true
+     },
+     {
+      "label": "Mid-market",
+      "value": 15,
+      "display": "15%"
+     },
+     {
+      "label": "SMB",
+      "value": 5,
+      "display": "5%"
+     }
+    ],
+    "note": "Small suppliers, mostly selling to large buyers"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c14",
+   "layout": "guest",
+   "start": 2193.4,
+   "end": 2240.0,
+   "template": "PPoints",
+   "note": "Where Aria uses AI",
+   "reveal_s": [
+    2193.6,
+    2205.0,
+    2215.0
+   ],
+   "props": {
+    "kicker": "WHERE THE AI GOES",
+    "title": "FRAUD FIRST",
+    "points": [
+     {
+      "title": "Spot fraud & anomalies",
+      "text": "Using context from partner software"
+     },
+     {
+      "title": "Map supplier–buyer links",
+      "text": "Catch the ones that shouldn't exist"
+     },
+     {
+      "title": "Run the company leaner",
+      "text": "Do more with less, in every department"
+     }
+    ]
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c15",
+   "layout": "guest",
+   "start": 2347.8,
+   "end": 2362.0,
+   "template": "PShot",
+   "shot": "visa_cnbc",
+   "note": "Visa opens settlement data to lenders",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 2350.0
+    },
+    {
+     "phrase": 1,
+     "style": "underline",
+     "at_s": 2356.0
+    }
+   ],
+   "props": {
+    "url": "cnbc.com/2026/09/08/visa-blockchain-lender-stablecoin-cards",
+    "source": "CNBC · 8 SEP 2026",
+    "crop": "auto"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c16",
+   "layout": "guest",
+   "start": 2362.2,
+   "end": 2395.0,
+   "template": "PFlow",
+   "note": "How Visa + Credit Coop works",
+   "reveal_s": [
+    2362.5,
+    2366.0,
+    2372.4,
+    2377.0
+   ],
+   "props": {
+    "kicker": "VISA × CREDIT COOP",
+    "title": "LENDING AGAINST SETTLEMENT",
+    "steps": [
+     {
+      "title": "CARD SWIPE",
+      "text": "Paid with a stablecoin card"
+     },
+     {
+      "title": "SAME-DAY SETTLE",
+      "text": "Visa settles the issuer today"
+     },
+     {
+      "title": "LENDER FRONTS IT",
+      "text": "Credit Coop sees the data, lends"
+     },
+     {
+      "title": "AUTO-REPAID",
+      "text": "When the cardholder's money lands"
+     }
+    ],
+    "foot": "Close to what Aria does with *invoices*"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c17",
+   "layout": "guest",
+   "start": 2420.0,
+   "end": 2440.0,
+   "template": "PStat",
+   "note": "<5% of B2B spend by card",
+   "props": {
+    "kicker": "WHY CARDS DON'T THREATEN ARIA",
+    "value": 5,
+    "prefix": "<",
+    "suffix": "%",
+    "label": "of B2B spending is by card",
+    "context": "Clément's estimate — B2B mostly moves by *bank transfer*"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "c18",
+   "layout": "guest",
+   "start": 2530.0,
+   "end": 2560.0,
+   "template": "PQuote",
+   "note": "2030 prediction",
+   "props": {
+    "kicker": "B2B PAYMENTS IN 2030",
+    "quote": "You send your invoice, you are paid, and then you just *focus on your work*.",
+    "author": "Clément Carrier",
+    "role": "Co-founder & CEO, Aria"
+   },
+   "bin": "Guest 2 · Clément Carrier · Aria (V9)"
+  },
+  {
+   "id": "m01",
+   "layout": "guest",
+   "start": 2586.8,
+   "end": 2605.0,
+   "template": "PShot",
+   "shot": "acbp",
+   "note": "Mark intro — ACBP page",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 2594.0
+    }
+   ],
+   "props": {
+    "url": "clearscoregroup.com/agentic-credit",
+    "source": "CLEARSCORE",
+    "crop": "auto"
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m02",
+   "layout": "guest",
+   "start": 2635.0,
+   "end": 2690.0,
+   "template": "PExplainer",
+   "note": "ClearScore at a glance",
+   "props": {
+    "kicker": "THE COMPANY",
+    "name": "CLEARSCORE",
+    "lead": "See your credit score *free, forever* — then get matched to the right credit when you're ready.",
+    "facts": [
+     {
+      "label": "SINCE",
+      "value": "2015"
+     },
+     {
+      "label": "USERS",
+      "value": "26M and counting"
+     },
+     {
+      "label": "MODEL",
+      "value": "Two-sided: consumers ↔ lenders"
+     },
+     {
+      "label": "LENDERS",
+      "value": "Hundreds of integrations"
+     }
+    ],
+    "source": "Mark Reid, ClearScore"
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m03",
+   "layout": "guest",
+   "start": 2699.5,
+   "end": 2733.0,
+   "template": "PShot",
+   "shot": "acbp_paypers",
+   "note": "ACBP announcement",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 2703.0
+    }
+   ],
+   "props": {
+    "url": "thepaypers.com/fintech/news/clearscore-launches-open-protocol",
+    "source": "THE PAYPERS",
+    "crop": "auto",
+    "from_top": true
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m04",
+   "layout": "guest",
+   "start": 2733.5,
+   "end": 2795.0,
+   "template": "PCompare",
+   "note": "Logged in vs logged out",
+   "props": {
+    "kicker": "TWO WAYS IN",
+    "title": "CLEARSCORE GOES *LOGGED OUT*",
+    "left": {
+     "name": "LOGGED IN",
+     "tag": "CLEARSCORE'S OWN APPS",
+     "points": [
+      "Users create an account",
+      "Deal with ClearScore directly"
+     ]
+    },
+    "right": {
+     "name": "LOGGED OUT",
+     "tag": "VIA AN ACQUISITION",
+     "points": [
+      "The marketplace, wherever users are",
+      "In checkouts and other apps"
+     ]
+    }
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m05",
+   "layout": "guest",
+   "start": 2826.0,
+   "end": 2858.0,
+   "template": "PPoints",
+   "note": "Top topics people ask AI",
+   "reveal_s": [
+    2834.0,
+    2837.2
+   ],
+   "props": {
+    "kicker": "WHAT PEOPLE ASK AI ABOUT",
+    "title": "MONEY IS *NUMBER TWO*",
+    "points": [
+     {
+      "title": "Personal health",
+      "text": "Topic number one"
+     },
+     {
+      "title": "Personal finance",
+      "text": "Topic number two"
+     }
+    ],
+    "source": "Mark Reid, ClearScore"
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m06",
+   "layout": "guest",
+   "start": 2943.5,
+   "end": 3000.0,
+   "template": "PFlow",
+   "note": "Under the hood",
+   "reveal_s": [
+    2944.0,
+    2964.0,
+    2981.0,
+    2992.0
+   ],
+   "props": {
+    "kicker": "UNDER THE HOOD",
+    "title": "FROM A CHAT TO A LOAN",
+    "steps": [
+     {
+      "title": "YOU ASK",
+      "text": "“Cut the payment on my £4,500 loan”"
+     },
+     {
+      "title": "CHATGPT APP",
+      "text": "Brings in a third-party service"
+     },
+     {
+      "title": "CLEARSCORE",
+      "text": "Mediates with the lenders"
+     },
+     {
+      "title": "LENDER",
+      "text": "Makes the credit decision"
+     }
+    ]
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m07",
+   "layout": "guest",
+   "start": 3100.0,
+   "end": 3135.0,
+   "template": "PQuote",
+   "note": "AI assistant = de facto credit broker",
+   "props": {
+    "kicker": "WHY REGULATION FOLLOWS",
+    "quote": "An AI assistant that is very helpfully and very competently mediating that interaction is *de facto a credit broker*.",
+    "author": "Mark Reid",
+    "role": "Chief Architect, ClearScore"
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m08",
+   "layout": "guest",
+   "start": 3222.0,
+   "end": 3258.0,
+   "template": "PPoints",
+   "note": "If there's mis-selling",
+   "reveal_s": [
+    3222.5,
+    3230.0,
+    3236.6
+   ],
+   "props": {
+    "kicker": "IF THERE'S MIS-SELLING",
+    "title": "WHO PAYS?",
+    "points": [
+     {
+      "title": "Regulators can sanction",
+      "text": "The FCA and others in each market"
+     },
+     {
+      "title": "It depends",
+      "text": "On the jurisdiction and what happened"
+     },
+     {
+      "title": "Worst case",
+      "text": "The credit agreement can be *unenforceable*"
+     }
+    ]
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m09",
+   "layout": "guest",
+   "start": 3300.0,
+   "end": 3386.0,
+   "template": "PPoints",
+   "note": "ClearScore's moats",
+   "reveal_s": [
+    3301.0,
+    3349.2,
+    3377.5
+   ],
+   "props": {
+    "kicker": "WHAT PROTECTS CLEARSCORE",
+    "title": "THREE MOATS",
+    "points": [
+     {
+      "title": "Trust & permissioned data",
+      "text": "Open banking + credit reports, *26M users*"
+     },
+     {
+      "title": "Distribution",
+      "text": "Hundreds of lender integrations"
+     },
+     {
+      "title": "Regulation",
+      "text": "An FCA-regulated broker"
+     }
+    ]
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m10",
+   "layout": "guest",
+   "start": 3530.0,
+   "end": 3565.0,
+   "template": "PStat",
+   "note": "12 UK lenders in the pilot",
+   "props": {
+    "kicker": "THE UK PILOT",
+    "value": 12,
+    "label": "UK lenders in the agentic credit pilot",
+    "context": "High-street banks to fintechs — real journeys from AI chat to a lender, *volumes capped*"
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  },
+  {
+   "id": "m11",
+   "layout": "guest",
+   "start": 3594.5,
+   "end": 3645.0,
+   "template": "PFlow",
+   "note": "Casey and the protocols",
+   "reveal_s": [
+    3594.8,
+    3610.0,
+    3631.6
+   ],
+   "props": {
+    "kicker": "HOW IT OPENS UP",
+    "title": "ONE PLATFORM, MANY FRONT DOORS",
+    "steps": [
+     {
+      "title": "CASEY",
+      "text": "ClearScore's own AI assistant, in the app"
+     },
+     {
+      "title": "SAME PLATFORM",
+      "text": "Brokering credit through chat"
+     },
+     {
+      "title": "EXPOSED OUTSIDE",
+      "text": "ChatGPT apps · MCP · REST"
+     }
+    ],
+    "foot": "The pilot is about building *trust on both sides*"
+   },
+   "bin": "Guest 3 · Mark Reid · ClearScore (V9)"
+  }
+ ]
+}

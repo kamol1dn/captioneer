@@ -1,0 +1,534 @@
+{
+ "name": "OTG EP19 panels",
+ "show": "otg",
+ "video": "D:/gashtak work/OTG/otgep19/main_1.mp4",
+ "out_dir": "D:/gashtak work/OTG/otgep19/for claude/longform/panels",
+ "shots_dir": "D:/gashtak work/OTG/otgep19/for claude/longform/shots",
+ "items": [
+  {
+   "id": "n01",
+   "layout": "news",
+   "start": 8.4,
+   "end": 22.45,
+   "template": "PShot",
+   "shot": "tc_muse",
+   "note": "Meta launches Muse — TechCrunch, $18B settlement",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 15.3
+    },
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 19.1
+    }
+   ],
+   "props": {
+    "url": "techcrunch.com/2026/09/08/meta-debuts-its-muse-ai-agent",
+    "source": "TECHCRUNCH · 8 SEP 2026",
+    "x0": 0.1,
+    "x1": 0.9,
+    "from_top": true
+   }
+  },
+  {
+   "id": "n02",
+   "layout": "news",
+   "start": 22.45,
+   "end": 30.9,
+   "template": "PPoints",
+   "note": "What Muse does",
+   "reveal_s": [
+    22.6,
+    23.8,
+    25.1,
+    26.2
+   ],
+   "props": {
+    "kicker": "META MUSE",
+    "title": "WHAT THE AGENT DOES",
+    "points": [
+     "Sends *emails*",
+     "Books *travel*",
+     "Fills in *forms*",
+     "Makes *purchases*"
+    ],
+    "source": "TechCrunch, 8 Sep 2026"
+   }
+  },
+  {
+   "id": "n03",
+   "layout": "news",
+   "start": 30.9,
+   "end": 38.1,
+   "template": "PShot",
+   "shot": "meta_newsroom",
+   "note": "Where Muse runs — Meta newsroom",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 31.3
+    },
+    {
+     "phrase": 1,
+     "style": "underline",
+     "at_s": 36.0
+    }
+   ],
+   "props": {
+    "url": "about.fb.com/news/2026/09/introducing-muse-personal-ai-agent",
+    "source": "META NEWSROOM",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n04",
+   "layout": "news",
+   "start": 38.1,
+   "end": 48.3,
+   "template": "PExplainer",
+   "note": "Pricing and checkout",
+   "props": {
+    "kicker": "PRICING & CHECKOUT",
+    "name": "MUSE PLANS",
+    "lead": "Free to start — you pay *as you use more*.",
+    "facts": [
+     {
+      "label": "START",
+      "value": "Free"
+     },
+     {
+      "label": "PAID",
+      "value": "$20 a month"
+     },
+     {
+      "label": "PAID",
+      "value": "$100 a month"
+     },
+     {
+      "label": "CHECKOUT",
+      "value": "Link by Stripe"
+     }
+    ],
+    "source": "Press briefings; Stripe"
+   }
+  },
+  {
+   "id": "n05",
+   "layout": "news",
+   "start": 48.3,
+   "end": 55.6,
+   "template": "PShot",
+   "shot": "meta_newsroom",
+   "note": "Secure VM, no password visibility",
+   "marks": [
+    {
+     "phrase": 2,
+     "style": "marker",
+     "at_s": 49.9
+    },
+    {
+     "phrase": 3,
+     "style": "marker",
+     "at_s": 51.8
+    }
+   ],
+   "props": {
+    "url": "about.fb.com/news/2026/09/introducing-muse-personal-ai-agent",
+    "source": "META NEWSROOM",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n06",
+   "layout": "news",
+   "start": 74.5,
+   "end": 92.6,
+   "template": "PQuote",
+   "note": "Vishal Shah quote (Reuters)",
+   "props": {
+    "kicker": "META ON TRUST",
+    "quote": "It is impossible to say that there is never going to be a mistake, but every single part of the architecture has been designed to make this *as safe, as secure, as private* as we can possibly make it.",
+    "author": "Vishal Shah",
+    "role": "VP of AI products, Meta — to Reuters",
+    "source": "Reuters, 8 Sep 2026"
+   }
+  },
+  {
+   "id": "n07",
+   "layout": "news",
+   "start": 95.0,
+   "end": 116.55,
+   "template": "PShot",
+   "shot": "investing_reuters",
+   "note": "Reuters: testers, guardrails, April delay",
+   "marks": [
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 101.6
+    },
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 106.3
+    }
+   ],
+   "props": {
+    "url": "investing.com/news/stock-market-news/meta-launches-ai-agent-that-can-access-other-apps",
+    "source": "REUTERS · 8 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n08",
+   "layout": "news",
+   "start": 116.55,
+   "end": 128.8,
+   "template": "PShot",
+   "shot": "stripe_link",
+   "note": "Stripe: single-use card",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 120.8
+    },
+    {
+     "phrase": 1,
+     "style": "underline",
+     "at_s": 123.0
+    }
+   ],
+   "props": {
+    "url": "stripe.com/newsroom/news/stripe-helps-meta-muse-shop-with-link",
+    "source": "STRIPE · SEP 2026",
+    "crop": "auto",
+    "from_top": true
+   }
+  },
+  {
+   "id": "n09",
+   "layout": "news",
+   "start": 128.8,
+   "end": 152.2,
+   "template": "PCompare",
+   "note": "Anthropic vs Meta — who holds the wallet",
+   "props": {
+    "title": "WHO HOLDS THE *WALLET*?",
+    "left": {
+     "name": "ANTHROPIC",
+     "tag": "7 SEPTEMBER",
+     "points": [
+      "Built a commerce agent",
+      "Left payment to the merchant"
+     ]
+    },
+    "right": {
+     "name": "META MUSE",
+     "tag": "8 SEPTEMBER",
+     "points": [
+      "Wallet inside the agent",
+      "Single-use cards via Stripe",
+      "Never sees your card number"
+     ]
+    },
+    "verdict": "Trust is still the *open question*"
+   }
+  },
+  {
+   "id": "n10",
+   "layout": "news",
+   "start": 152.25,
+   "end": 161.35,
+   "template": "PStat",
+   "note": "72% wouldn't hand over card details",
+   "props": {
+    "kicker": "PEOPLE AREN'T RUSHING",
+    "value": 72,
+    "suffix": "%",
+    "ring": true,
+    "label": "would *not* give an AI agent their card details",
+    "context": "Vogue Business survey, cited by Fortune",
+    "source": "Fortune, 11 Sep 2026"
+   }
+  },
+  {
+   "id": "n11",
+   "layout": "news",
+   "start": 161.4,
+   "end": 170.9,
+   "template": "PBars",
+   "note": "Downloads: Muse vs ChatGPT",
+   "props": {
+    "kicker": "US IPHONE DOWNLOADS",
+    "title": "A SLOW START",
+    "items": [
+     {
+      "label": "Muse",
+      "note": "first 2 days",
+      "value": 83000,
+      "display": "83K",
+      "highlight": true
+     },
+     {
+      "label": "ChatGPT",
+      "note": "first week",
+      "value": 500000,
+      "display": "500K"
+     }
+    ],
+    "note": "Sensor Tower estimates, iOS only",
+    "source": "TechCrunch, 10 Sep 2026"
+   }
+  },
+  {
+   "id": "n12",
+   "layout": "news",
+   "start": 170.95,
+   "end": 180.15,
+   "template": "PPoints",
+   "note": "Liability — who pays",
+   "reveal_s": [
+    174.3,
+    175.6,
+    177.7
+   ],
+   "props": {
+    "kicker": "THE OPEN QUESTION",
+    "title": "WHO PAYS WHEN THE AGENT GETS IT *WRONG*?",
+    "points": [
+     "It sends the *wrong email*",
+     "It pays the *wrong bill*",
+     "Liability — *nobody has answered it*"
+    ]
+   }
+  },
+  {
+   "id": "n13",
+   "layout": "news",
+   "start": 180.2,
+   "end": 191.9,
+   "template": "PCompare",
+   "note": "Bridge: between your money / under it",
+   "props": {
+    "kicker": "THIS WEEK",
+    "title": "TWO WAYS INTO YOUR MONEY",
+    "left": {
+     "name": "META",
+     "tag": "BETWEEN YOU AND IT",
+     "points": [
+      "An agent that pays for you"
+     ]
+    },
+    "right": {
+     "name": "NASDAQ",
+     "tag": "UNDERNEATH IT",
+     "points": [
+      "The rails your shares settle on"
+     ]
+    }
+   }
+  },
+  {
+   "id": "n14",
+   "layout": "news",
+   "start": 191.95,
+   "end": 203.8,
+   "template": "PShot",
+   "shot": "cnbc",
+   "note": "CNBC: Nasdaq invests $100M in Kraken parent",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 194.2
+    }
+   ],
+   "props": {
+    "url": "cnbc.com/2026/09/10/nasdaq-invests-100-million-in-crypto-firm",
+    "source": "CNBC · 10 SEP 2026",
+    "x0": 0.08,
+    "x1": 0.72,
+    "from_top": true
+   }
+  },
+  {
+   "id": "n15",
+   "layout": "news",
+   "start": 203.8,
+   "end": 220.55,
+   "template": "PShot",
+   "shot": "gnw_nasdaq",
+   "note": "Nasdaq release: NETs, Q2 2027, surveillance",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 203.9
+    },
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 212.7
+    },
+    {
+     "phrase": 2,
+     "style": "underline",
+     "at_s": 216.6
+    }
+   ],
+   "props": {
+    "url": "globenewswire.com/news-release/2026/09/10/nasdaq-deepens-relationship-with-payward",
+    "source": "NASDAQ · 10 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n16",
+   "layout": "news",
+   "start": 220.6,
+   "end": 229.4,
+   "template": "PStat",
+   "note": "$21B valuation (Bloomberg, unconfirmed)",
+   "props": {
+    "kicker": "THE PRICE TAG",
+    "value": 21,
+    "prefix": "$",
+    "suffix": "B",
+    "label": "Payward's valuation in the deal",
+    "context": "Reported by Bloomberg — *not confirmed* by Nasdaq",
+    "source": "Bloomberg via CNBC"
+   }
+  },
+  {
+   "id": "n17",
+   "layout": "news",
+   "start": 240.3,
+   "end": 263.5,
+   "template": "PCompare",
+   "note": "Synthetic token vs real tokenized share",
+   "props": {
+    "kicker": "TOKENIZED STOCKS",
+    "title": "TWO KINDS OF *TOKENIZED SHARE*",
+    "left": {
+     "name": "SYNTHETIC",
+     "tag": "ROBINHOOD · xSTOCKS (EU)",
+     "points": [
+      "Exchange holds the real share",
+      "Token tracks the price",
+      "No vote — the issuer doesn't know you"
+     ]
+    },
+    "right": {
+     "name": "REAL SHARE",
+     "tag": "WHAT NASDAQ IS BUILDING",
+     "points": [
+      "On the company's register",
+      "Settled on a blockchain"
+     ]
+    },
+    "verdict": "Nasdaq is taking the *issuers' side*"
+   }
+  },
+  {
+   "id": "n18",
+   "layout": "news",
+   "start": 263.5,
+   "end": 277.9,
+   "template": "PQuote",
+   "note": "Tom Farley: issuers HATE synthetic tokens",
+   "props": {
+    "kicker": "ON SYNTHETIC TOKENS",
+    "quote": "Issuers *HATE* synthetic tokens.",
+    "author": "Tom Farley",
+    "role": "CEO, Bullish · former NYSE president",
+    "source": "Markets Media, Sep 2026"
+   }
+  },
+  {
+   "id": "n19",
+   "layout": "news",
+   "start": 277.95,
+   "end": 294.5,
+   "template": "PShot",
+   "shot": "gnw_nasdaq",
+   "note": "Sethi: $10-20B collateral waiting to settle",
+   "marks": [
+    {
+     "phrase": 3,
+     "style": "marker",
+     "at_s": 284.4
+    }
+   ],
+   "props": {
+    "url": "globenewswire.com/news-release/2026/09/10/nasdaq-deepens-relationship-with-payward",
+    "source": "NASDAQ · 10 SEP 2026",
+    "crop": "auto",
+    "caption": "On-chain settlement *removes the wait* — Arjun Sethi, Payward co-CEO"
+   }
+  },
+  {
+   "id": "n20",
+   "layout": "news",
+   "start": 294.55,
+   "end": 319.7,
+   "template": "PPoints",
+   "note": "Two cautions",
+   "reveal_s": [
+    295.3,
+    307.8
+   ],
+   "props": {
+    "kicker": "TWO CAUTIONS",
+    "title": "2027 ISN'T A GIVEN",
+    "points": [
+     {
+      "title": "SEC approval is narrow",
+      "text": "March approval covers Russell 1000 stocks, only while the DTC pilot runs"
+     },
+     {
+      "title": "Kraken is first, not only",
+      "text": "“Not exclusive to them” — Adena Friedman, Nasdaq CEO"
+     }
+    ],
+    "source": "SEC order; Nasdaq Q2 call"
+   }
+  },
+  {
+   "id": "n21",
+   "layout": "news",
+   "start": 319.75,
+   "end": 329.2,
+   "template": "PTimeline",
+   "note": "Kraken's five months",
+   "reveal_s": [
+    321.3,
+    322.4,
+    323.2
+   ],
+   "props": {
+    "kicker": "THE PATTERN",
+    "title": "EXCHANGES LINE UP BEHIND KRAKEN",
+    "events": [
+     {
+      "date": "14 APR",
+      "text": "Deutsche Börse buys a *$200M* stake"
+     },
+     {
+      "date": "1 SEP",
+      "text": "London Stock Exchange: top 100 stocks on-chain"
+     },
+     {
+      "date": "10 SEP",
+      "text": "Nasdaq invests *$100M*"
+     }
+    ],
+    "source": "Deutsche Börse; CoinDesk; Nasdaq"
+   }
+  }
+ ]
+}

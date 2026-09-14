@@ -1,0 +1,26 @@
+{
+  "name": "On The Ground",
+  "sequence": [3840, 2160],
+  "transition_frames": 4,
+  "layouts": {
+    "news": {
+      "png": "D:/gashtak work/OTG/brand assets/angle v1_1 (2).png",
+      "pane": [944, 0, 1953, 1520],
+      "size": [1960, 1528],
+      "track": 8,
+      "bin": "News (V8)"
+    },
+    "guest": {
+      "png": "D:/gashtak work/OTG/brand assets/angle V4.png",
+      "pane": [960, 167, 2791, 1350],
+      "size": [2800, 1360],
+      "track": 9,
+      "bin": "Guests (V9)"
+    }
+  },
+  "text_layers": {
+    "headline": {"track": 3, "font": "HelveticaNeue-CondensedBold", "max_bytes": 29},
+    "names_bar": {"track": 4, "font": "HelveticaMediumRusbyme", "max_bytes": 69},
+    "date": {"track": 5, "font": "HelveticaMediumRusbyme", "max_bytes": 14}
+  }
+}

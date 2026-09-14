@@ -1,0 +1,12 @@
+{
+  "name": "OTG EP19 names bar",
+  "template": "D:/gashtak work/OTG/otgep19/for claude/for text layer.xml",
+  "track": 4,
+  "out": "D:/gashtak work/OTG/otgep19/for claude/longform/panels/OTG EP19 names bar.xml",
+  "headlines": [
+    [0.0,    "Sam Boboev | Otabek Nuritdinov"],
+    [329.2,  "Sam Boboev | Luca Prosperi, CEO/Co-founder of M0 | Otabek Nuritdinov"],
+    [1602.6, "Sam Boboev | Clément Carrier, CEO/Founder, Aria | Otabek Nuritdinov"],
+    [2586.0, "Sam Boboev | Mark Reid, ClearScore | Otabek Nuritdinov"]
+  ]
+}
