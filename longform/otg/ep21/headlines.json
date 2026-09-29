@@ -1,0 +1,165 @@
+{
+ "name": "OTG EP21 headlines",
+ "template": "D:/gashtak work/OTG/otgep19/for claude/for text layer.xml",
+ "track": 3,
+ "duration_s": 3853.55,
+ "out": "D:/gashtak work/OTG/otgep21/for claude/longform/panels/OTG EP21 headlines.xml",
+ "headlines": [
+  [
+   0.0,
+   "THIS WEEK ON THE GROUND"
+  ],
+  [
+   23.123,
+   "GUEST: SIDNEY POWELL, MAPLE"
+  ],
+  [
+   74.5,
+   "$22B IN ONCHAIN LOANS"
+  ],
+  [
+   162.3,
+   "THE CONTRARIAN BET"
+  ],
+  [
+   217.0,
+   "OPENING UP TO DEFI"
+  ],
+  [
+   295.3,
+   "WHERE THE YIELD COMES FROM"
+  ],
+  [
+   363.8,
+   "KRAKEN, ROBINHOOD, TEMPO"
+  ],
+  [
+   501.0,
+   "WHY NEOBANKS WANT YIELD"
+  ],
+  [
+   604.8,
+   "STABLECOINS VS OLD RAILS"
+  ],
+  [
+   681.1,
+   "21 BANKS, ONE STABLECOIN"
+  ],
+  [
+   771.6,
+   "AGENTS WILL MOVE YOUR MONEY"
+  ],
+  [
+   882.4,
+   "THE ONES WHO KNOCK"
+  ],
+  [
+   974.2,
+   "HOW LENDING LEFT THE BANKS"
+  ],
+  [
+   1116.8,
+   "WHAT UNLOCKS ONCHAIN CREDIT"
+  ],
+  [
+   1222.188,
+   "GUEST: DAREN GUO, REAP"
+  ],
+  [
+   1303.3,
+   "FROM CRYPTO SKEPTICS"
+  ],
+  [
+   1447.3,
+   "BUILT FOR THIN RAILS"
+  ],
+  [
+   1515.2,
+   "LESSONS FROM STRIPE"
+  ],
+  [
+   1610.6,
+   "WHY REAP SOLD TO PAYWARD"
+  ],
+  [
+   1779.4,
+   "THE KRAK CARD QUESTION"
+  ],
+  [
+   1878.0,
+   "THE STABLECOIN BUYING SPREE"
+  ],
+  [
+   1982.5,
+   "PAYWARD'S IPO, NOW 2027"
+  ],
+  [
+   2028.0,
+   "STABLECOIN CARDS IN 5 YEARS"
+  ],
+  [
+   2163.194,
+   "GUEST: HENRIK LANDGREN"
+  ],
+  [
+   2206.0,
+   "WHAT GILION ACTUALLY DOES"
+  ],
+  [
+   2342.5,
+   "SWEDEN'S STARTUP BOOM"
+  ],
+  [
+   2502.6,
+   "WHY NOT A BANK?"
+  ],
+  [
+   2579.4,
+   "THE MISSING MIDDLE"
+  ],
+  [
+   2639.5,
+   "€130M, ZERO LOSSES"
+  ],
+  [
+   2749.9,
+   "LENDER OR SOFTWARE?"
+  ],
+  [
+   2884.5,
+   "WHY LENDERS ARE PIVOTING"
+  ],
+  [
+   3019.1,
+   "IS THE SAASPOCALYPSE OVER?"
+  ],
+  [
+   3287.0,
+   "FINANCING IN 2030"
+  ],
+  [
+   3457.988,
+   "THIS WEEK'S NEWS"
+  ],
+  [
+   3466.3,
+   "AMAZON BLOCKS META'S MUSE"
+  ],
+  [
+   3518.7,
+   "AMAZON OR SHOPIFY?"
+  ],
+  [
+   3668.6,
+   "OPENAI AGENT IN MEDICARE SITE"
+  ],
+  [
+   3780.6,
+   "WHAT IT MEANS FOR PAYMENTS"
+  ],
+  [
+   3845.4,
+   "THANKS FOR WATCHING"
+  ]
+ ]
+}

@@ -1,0 +1,1642 @@
+{
+ "name": "OTG EP21 panels",
+ "show": "otg",
+ "video": "D:/gashtak work/OTG/otgep21/for claude/longform/lf_proxy.mp4",
+ "out_dir": "D:/gashtak work/OTG/otgep21/for claude/longform/panels",
+ "shots_dir": "D:/gashtak work/OTG/otgep21/for claude/longform/shots",
+ "items": [
+  {
+   "id": "i01",
+   "layout": "guest",
+   "start": 2.0,
+   "end": 11.2,
+   "template": "PPoints",
+   "bin": "Intro (V9)",
+   "note": "Otabek names the three guests",
+   "reveal_s": [
+    4.24,
+    5.8,
+    8.42
+   ],
+   "props": {
+    "kicker": "THIS WEEK ON THE GROUND",
+    "title": "THREE GUESTS",
+    "points": [
+     {
+      "title": "Sidney Powell",
+      "text": "Co-founder & CEO, *Maple*"
+     },
+     {
+      "title": "Daren Guo",
+      "text": "Co-founder & CEO, *Reap*"
+     },
+     {
+      "title": "Henrik Landgren",
+      "text": "Co-founder & CPTO, *Gilion*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "i02",
+   "layout": "guest",
+   "start": 11.2,
+   "end": 23.02,
+   "template": "PCompare",
+   "bin": "Intro (V9)",
+   "note": "Then two news stories - both about AI agents",
+   "props": {
+    "kicker": "AFTER THE INTERVIEWS",
+    "title": "TWO NEWS STORIES",
+    "left": {
+     "name": "AMAZON vs META",
+     "tag": "STORY 1",
+     "points": [
+      "Amazon *blocks Muse*",
+      "Meta's AI shopping agent"
+     ]
+    },
+    "right": {
+     "name": "AN OPENAI AGENT",
+     "tag": "STORY 2",
+     "points": [
+      "Got into an *Australian government* website"
+     ]
+    },
+    "verdict": "Both are about AI agents."
+   }
+  },
+  {
+   "id": "d01",
+   "layout": "guest",
+   "start": 1222.99,
+   "end": 1257.5,
+   "template": "PExplainer",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Guest card",
+   "props": {
+    "kicker": "OUR GUEST",
+    "name": "DAREN GUO",
+    "lead": "*Co-founder & CEO, Reap* - a Hong Kong company that issues *stablecoin-linked cards*.",
+    "facts": [
+     {
+      "label": "FOUNDED",
+      "value": "2018, Hong Kong"
+     },
+     {
+      "label": "BEFORE",
+      "value": "Stripe - first growth-team hire"
+     },
+     {
+      "label": "OWNER",
+      "value": "Payward, Kraken's parent"
+     },
+     {
+      "label": "DEAL",
+      "value": "Up to $600M, cash and stock"
+     }
+    ]
+   }
+  },
+  {
+   "id": "d02",
+   "layout": "guest",
+   "start": 1263.9,
+   "end": 1303.0,
+   "template": "PStack",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Reap in a nutshell",
+   "reveal_s": [
+    1275.36,
+    1290.58,
+    1299.39
+   ],
+   "props": {
+    "kicker": "REAP IN A NUTSHELL",
+    "title": "GLOBAL FINANCIAL INFRASTRUCTURE",
+    "layers": [
+     {
+      "title": "Card issuance",
+      "tag": "REGULATED",
+      "text": "For fintechs and neobanks"
+     },
+     {
+      "title": "Fiat rails",
+      "tag": "VISA - MASTERCARD",
+      "text": "Card networks and banking"
+     },
+     {
+      "title": "Onchain",
+      "tag": "STABLECOINS",
+      "text": "Crypto-native capabilities on top"
+     }
+    ],
+    "highlight": 2
+   }
+  },
+  {
+   "id": "d03",
+   "layout": "guest",
+   "start": 1303.3,
+   "end": 1392.0,
+   "template": "PTimeline",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "From crypto skeptics to stablecoin cards",
+   "reveal_s": [
+    1303.43,
+    1333.86,
+    1384.53
+   ],
+   "props": {
+    "kicker": "HOW REAP GOT HERE",
+    "title": "FROM CRYPTO SKEPTICS",
+    "events": [
+     {
+      "date": "2018",
+      "text": "Hong Kong - cards for *small businesses*"
+     },
+     {
+      "date": "THE ICO ERA",
+      "text": "*Crypto skeptics* - in the middle of it"
+     },
+     {
+      "date": "TODAY",
+      "text": "*Stablecoin-linked cards* at the core",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "d04",
+   "layout": "guest",
+   "start": 1410.9,
+   "end": 1447.0,
+   "template": "PQuote",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "The invisible layer",
+   "props": {
+    "kicker": "FOR THE END USER",
+    "quote": "Stablecoins, infrastructure, even Reap to a certain degree *should be the invisible layer*.",
+    "author": "Daren Guo",
+    "role": "Co-founder & CEO, Reap"
+   }
+  },
+  {
+   "id": "d05",
+   "layout": "guest",
+   "start": 1447.3,
+   "end": 1490.0,
+   "template": "PCompare",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Who it's for - where the rails are thinnest",
+   "props": {
+    "kicker": "WHO IT'S FOR",
+    "title": "WHERE THE RAILS ARE THINNEST",
+    "left": {
+     "name": "DEVELOPED MARKETS",
+     "tag": "US - CANADA - HONG KONG",
+     "points": [
+      "Served by *JPMorgan, HSBC*",
+      "Nobody talks about the plumbing"
+     ]
+    },
+    "right": {
+     "name": "EMERGING MARKETS",
+     "tag": "LATAM - AFRICA",
+     "points": [
+      "Access to *basic financial products*",
+      "Nobody even says 'stablecoin'"
+     ]
+    },
+    "verdict": "Stablecoins normalise access."
+   }
+  },
+  {
+   "id": "d06",
+   "layout": "guest",
+   "start": 1515.2,
+   "end": 1561.0,
+   "template": "PExplainer",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Daren at Stripe",
+   "props": {
+    "kicker": "BEFORE REAP",
+    "name": "DAREN AT STRIPE",
+    "lead": "Close to *five years*. Joined in 2013 as the *first member of the growth team* - employee number 90 or so.",
+    "facts": [
+     {
+      "label": "JOINED",
+      "value": "2013"
+     },
+     {
+      "label": "ROLE",
+      "value": "Growth - then Asia"
+     },
+     {
+      "label": "BASED",
+      "value": "Singapore, for Southeast Asia"
+     }
+    ]
+   }
+  },
+  {
+   "id": "d07",
+   "layout": "guest",
+   "start": 1561.0,
+   "end": 1610.5,
+   "template": "PFlow",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "The lesson from Asia",
+   "reveal_s": [
+    1562.68,
+    1574.49,
+    1603.7
+   ],
+   "props": {
+    "kicker": "WHAT STRIPE TAUGHT HIM",
+    "title": "BUILD FOR EMERGING MARKETS DIFFERENTLY",
+    "steps": [
+     {
+      "title": "Developed markets",
+      "text": "Robust cards - just add a *developer layer*"
+     },
+     {
+      "title": "Southeast Asia",
+      "text": "Rails *not as mature* - hard to scale"
+     },
+     {
+      "title": "Reap",
+      "text": "Financial access *through stablecoins*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "d08",
+   "layout": "guest",
+   "start": 1610.6,
+   "end": 1648.5,
+   "template": "PStat",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Payward's Reap deal - closed 1 July",
+   "props": {
+    "kicker": "THE DEAL",
+    "title": "PAYWARD BUYS REAP",
+    "value": 600,
+    "prefix": "$",
+    "suffix": "M",
+    "label": "UP TO - CASH AND STOCK",
+    "context": "Closed *1 July 2026*. Reap keeps its brand and team.",
+    "source": "Payward, Reap"
+   }
+  },
+  {
+   "id": "d09",
+   "layout": "guest",
+   "start": 1648.9,
+   "end": 1718.0,
+   "template": "PPoints",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Why sell to Payward",
+   "reveal_s": [
+    1650.27,
+    1679.34,
+    1715.7
+   ],
+   "props": {
+    "kicker": "WHY PAYWARD",
+    "title": "WHY SELL",
+    "points": [
+     {
+      "title": "The vision",
+      "text": "From exchange to *infrastructure for every platform*"
+     },
+     {
+      "title": "Global",
+      "text": "Most of Payward's business is *outside developed markets*"
+     },
+     {
+      "title": "Speed",
+      "text": "Serve clients at *the pace they need*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "d10",
+   "layout": "guest",
+   "start": 1718.2,
+   "end": 1779.0,
+   "template": "PCompare",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "What each side brings",
+   "props": {
+    "kicker": "THE COMBINATION",
+    "title": "WHAT EACH SIDE BRINGS",
+    "left": {
+     "name": "REAP",
+     "tag": "CARDS",
+     "points": [
+      "Cards and payments",
+      "*Fiat* know-how",
+      "Licensing"
+     ]
+    },
+    "right": {
+     "name": "PAYWARD",
+     "tag": "ONCHAIN",
+     "points": [
+      "Earn and yield",
+      "*Tokenised equities*",
+      "Onchain capabilities"
+     ]
+    },
+    "verdict": "The fabric global financial services get built on."
+   }
+  },
+  {
+   "id": "d11",
+   "layout": "guest",
+   "start": 1779.4,
+   "end": 1810.0,
+   "template": "PShot",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "The Krak card - issued by Lead Bank, not Reap",
+   "shot": "cnbc-krak",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 1791.33
+    }
+   ],
+   "props": {
+    "url": "cnbc.com/2026/08/18/kraken-launches-debit-card-in-bid-for-consumer-wallets",
+    "source": "CNBC - 18 AUG 2026",
+    "crop": "auto",
+    "caption": "Issued by *Lead Bank* - not Reap"
+   }
+  },
+  {
+   "id": "d12",
+   "layout": "guest",
+   "start": 1833.4,
+   "end": 1877.5,
+   "template": "PQuote",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "The reality of building infrastructure",
+   "props": {
+    "kicker": "HIS ANSWER",
+    "quote": "That's essentially the reality of building infrastructure. You have to be willing to *power some of these things* in order to get to that scale.",
+    "author": "Daren Guo",
+    "role": "Co-founder & CEO, Reap"
+   }
+  },
+  {
+   "id": "d13",
+   "layout": "guest",
+   "start": 1878.0,
+   "end": 1905.0,
+   "template": "PBars",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "The stablecoin buying spree",
+   "props": {
+    "kicker": "CONSOLIDATION",
+    "title": "THE STABLECOIN BUYING SPREE",
+    "prefix": "$",
+    "suffix": "B",
+    "decimals": 1,
+    "items": [
+     {
+      "label": "MASTERCARD - BVNK",
+      "value": 1.8,
+      "display": "$1.8B",
+      "note": "Up to"
+     },
+     {
+      "label": "STRIPE - BRIDGE",
+      "value": 1.1,
+      "display": "$1.1B"
+     },
+     {
+      "label": "PAYWARD - REAP",
+      "value": 0.6,
+      "display": "$600M",
+      "note": "Up to",
+      "highlight": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "d14",
+   "layout": "guest",
+   "start": 1905.0,
+   "end": 1975.5,
+   "template": "PFlow",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "How stablecoins went mainstream",
+   "reveal_s": [
+    1913.93,
+    1915.88,
+    1920.62,
+    1958.55
+   ],
+   "props": {
+    "kicker": "FROM NICHE TO DEFAULT",
+    "title": "HOW STABLECOINS WENT MAINSTREAM",
+    "steps": [
+     {
+      "title": "Crypto natives",
+      "text": "The first to care"
+     },
+     {
+      "title": "The biggest banks",
+      "text": "Now incorporating them"
+     },
+     {
+      "title": "Visa, Mastercard",
+      "text": "A *top-two priority*"
+     },
+     {
+      "title": "The default",
+      "text": "For every new financial service"
+     }
+    ]
+   }
+  },
+  {
+   "id": "d15",
+   "layout": "guest",
+   "start": 1982.5,
+   "end": 2003.5,
+   "template": "PShot",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Payward pushes its IPO to 2027",
+   "shot": "coindesk-ipo",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 1992.03
+    }
+   ],
+   "props": {
+    "url": "coindesk.com/business/2026/09/02/kraken-parent-payward-pushes-ipo-back",
+    "source": "COINDESK - 2 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "d16",
+   "layout": "guest",
+   "start": 2003.5,
+   "end": 2022.5,
+   "template": "PQuote",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Does it change anything? No",
+   "props": {
+    "kicker": "DOES IT CHANGE ANYTHING?",
+    "quote": "The short answer is no. Trying to build towards that global financial infrastructure is *a long journey*.",
+    "author": "Daren Guo",
+    "role": "Co-founder & CEO, Reap"
+   }
+  },
+  {
+   "id": "d17",
+   "layout": "guest",
+   "start": 2046.0,
+   "end": 2078.0,
+   "template": "PTimeline",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "How cards keep changing",
+   "reveal_s": [
+    2057.07,
+    2060.63,
+    2064.45,
+    2069.95
+   ],
+   "props": {
+    "kicker": "CARDS KEEP CHANGING",
+    "title": "THE NEXT FORM FACTOR",
+    "events": [
+     {
+      "date": "FIRST",
+      "text": "Physical, in person"
+     },
+     {
+      "date": "THEN",
+      "text": "E-commerce"
+     },
+     {
+      "date": "NOW",
+      "text": "Recurring payments"
+     },
+     {
+      "date": "NEXT",
+      "text": "Value at *internet speed*",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "d18",
+   "layout": "guest",
+   "start": 2078.0,
+   "end": 2124.0,
+   "template": "PPoints",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "What programmable card rails unlock",
+   "reveal_s": [
+    2079.92,
+    2087.11,
+    2091.0
+   ],
+   "props": {
+    "kicker": "WHAT STABLECOIN RAILS UNLOCK",
+    "title": "PROGRAMMABLE MONEY",
+    "points": [
+     {
+      "title": "Streaming",
+      "text": "Pay by the *millisecond*"
+     },
+     {
+      "title": "Micropayments",
+      "text": "Tiny amounts, no friction"
+     },
+     {
+      "title": "Onchain escrow",
+      "text": "For *B2B*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "d19",
+   "layout": "guest",
+   "start": 2124.2,
+   "end": 2150.0,
+   "template": "PQuote",
+   "bin": "Guest 2 - Daren Guo, Reap (V9)",
+   "note": "Agentic is top of mind",
+   "props": {
+    "kicker": "WHAT'S NEXT",
+    "quote": "Agentic is obviously top of mind for us... there will be a lot more *agent-enabled card spend* off of stablecoin cards.",
+    "author": "Daren Guo",
+    "role": "Co-founder & CEO, Reap"
+   }
+  },
+  {
+   "id": "h01",
+   "layout": "guest",
+   "start": 2163.69,
+   "end": 2206.0,
+   "template": "PExplainer",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Guest card",
+   "props": {
+    "kicker": "OUR GUEST",
+    "name": "HENRIK LANDGREN",
+    "lead": "*Co-founder & CPTO, Gilion* - Stockholm. Growth funding for startups, with *AI deciding who gets it*.",
+    "facts": [
+     {
+      "label": "GILION",
+      "value": "Formerly Ark Kapital"
+     },
+     {
+      "label": "BEFORE",
+      "value": "Spotify - first VP of Analytics"
+     },
+     {
+      "label": "THEN",
+      "value": "EQT Ventures - Partner"
+     },
+     {
+      "label": "BASED",
+      "value": "Stockholm, Sweden"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h02",
+   "layout": "guest",
+   "start": 2225.4,
+   "end": 2288.0,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "The gap he saw",
+   "reveal_s": [
+    2269.22,
+    2272.66,
+    2277.4
+   ],
+   "props": {
+    "kicker": "WHY GILION EXISTS",
+    "title": "THE GAP HE SAW",
+    "points": [
+     {
+      "title": "At Spotify",
+      "text": "Built the *analytics* team"
+     },
+     {
+      "title": "At EQT",
+      "text": "Built the *ventures* fund"
+     },
+     {
+      "title": "The gap",
+      "text": "Capital *isn't using the data* that exists"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h03",
+   "layout": "guest",
+   "start": 2288.6,
+   "end": 2342.0,
+   "template": "PCompare",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Two business models, one platform",
+   "props": {
+    "kicker": "WHAT GILION DOES",
+    "title": "TWO BUSINESSES, ONE PLATFORM",
+    "left": {
+     "name": "FUNDING",
+     "tag": "FOR FOUNDERS",
+     "points": [
+      "*Growth loans*",
+      "Other investment products",
+      "With partner banks and investors"
+     ]
+    },
+    "right": {
+     "name": "ANALYTICS",
+     "tag": "FOR CAPITAL",
+     "points": [
+      "A platform for *banks and investors*",
+      "Understand companies with data"
+     ]
+    },
+    "verdict": "Same mission: capital is the biggest hurdle."
+   }
+  },
+  {
+   "id": "h04",
+   "layout": "guest",
+   "start": 2342.5,
+   "end": 2372.0,
+   "template": "PStat",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Sweden's funding year - verified figure only",
+   "props": {
+    "kicker": "SWEDEN IS ON FIRE",
+    "title": "STARTUP FUNDING IN 2026",
+    "value": 2.8,
+    "decimals": 1,
+    "prefix": "$",
+    "suffix": "B",
+    "label": "RAISED BY SWEDISH STARTUPS THIS YEAR",
+    "context": "So why would a startup need *a loan*?",
+    "source": "TechCrunch, 28 Aug 2026"
+   }
+  },
+  {
+   "id": "h05",
+   "layout": "guest",
+   "start": 2372.3,
+   "end": 2401.0,
+   "template": "PQuote",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "The 2021 days are over",
+   "props": {
+    "kicker": "IT'S NOT EASY",
+    "quote": "Shouldn't we do DD here? No, we don't have time. We just need to deploy money. *Those are not the days anymore.*",
+    "author": "Henrik Landgren",
+    "role": "Co-founder & CPTO, Gilion - on 2021"
+   }
+  },
+  {
+   "id": "h06",
+   "layout": "guest",
+   "start": 2448.4,
+   "end": 2502.0,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Non-dilutive funding in Europe",
+   "reveal_s": [
+    2452.94,
+    2457.9,
+    2487.55
+   ],
+   "props": {
+    "kicker": "WHAT'S CHANGING",
+    "title": "EQUITY PLUS DEBT",
+    "points": [
+     "Founders mix *equity* with *non-dilutive* money",
+     "Europe lagged the US - *that's changing*",
+     "The *hybrid round*"
+    ]
+   }
+  },
+  {
+   "id": "h07",
+   "layout": "guest",
+   "start": 2521.8,
+   "end": 2579.0,
+   "template": "PCompare",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Banks at one extreme, VCs at the other",
+   "props": {
+    "kicker": "WHY NOT A BANK?",
+    "title": "TWO EXTREMES",
+    "left": {
+     "name": "BANKS",
+     "tag": "ONE EXTREME",
+     "points": [
+      "Profitable *5+ years*",
+      "Buildings as security"
+     ]
+    },
+    "right": {
+     "name": "VCs",
+     "tag": "THE OTHER",
+     "points": [
+      "Unprofitable, chasing growth",
+      "Need *10-100x* returns"
+     ]
+    },
+    "verdict": "Most entrepreneurs are in the middle."
+   }
+  },
+  {
+   "id": "h08",
+   "layout": "guest",
+   "start": 2579.4,
+   "end": 2639.0,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "The missing middle",
+   "reveal_s": [
+    2589.95,
+    2602.36,
+    2618.32
+   ],
+   "props": {
+    "kicker": "THE MISSING MIDDLE",
+    "title": "WHERE GILION PLAYS",
+    "points": [
+     "Grow in a *controlled* way",
+     "Markets that won't *take over the world*",
+     "Too small for VCs, too risky for banks"
+    ]
+   }
+  },
+  {
+   "id": "h09",
+   "layout": "guest",
+   "start": 2639.5,
+   "end": 2667.5,
+   "template": "PStat",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "EUR 130M lent, no losses so far",
+   "props": {
+    "kicker": "THE TRACK RECORD",
+    "title": "LENT THROUGH PARTNER BANKS",
+    "value": 130,
+    "prefix": "€",
+    "suffix": "M",
+    "label": "DEPLOYED",
+    "context": "*Zero credit losses* - so far.",
+    "source": "gilion.com"
+   }
+  },
+  {
+   "id": "h10",
+   "layout": "guest",
+   "start": 2667.9,
+   "end": 2756.5,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "The goal isn't zero losses",
+   "reveal_s": [
+    2671.73,
+    2712.56,
+    2744.44
+   ],
+   "props": {
+    "kicker": "HOW HE THINKS ABOUT RISK",
+    "title": "THE GOAL ISN'T ZERO LOSSES",
+    "points": [
+     {
+      "title": "Cohorts",
+      "text": "Track the *oldest* ones before you claim anything"
+     },
+     {
+      "title": "Be surgical",
+      "text": "Understand risk precisely - *price it*"
+     },
+     {
+      "title": "Control it",
+      "text": "A chosen risk level, *bucket by bucket*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h11",
+   "layout": "guest",
+   "start": 2757.0,
+   "end": 2845.0,
+   "template": "PTimeline",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Lender first, platform next",
+   "reveal_s": [
+    2776.78,
+    2784.81,
+    2839.86
+   ],
+   "props": {
+    "kicker": "LENDER OR SOFTWARE?",
+    "title": "THE CORE IS THE PLATFORM",
+    "events": [
+     {
+      "date": "START",
+      "text": "Lending - *done manually*"
+     },
+     {
+      "date": "BUILD",
+      "text": "Every loan a case to *build the platform* against"
+     },
+     {
+      "date": "2026",
+      "text": "Platform sold *standalone*",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "h12",
+   "layout": "guest",
+   "start": 2845.3,
+   "end": 2884.0,
+   "template": "PFlow",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Becoming a marketplace",
+   "reveal_s": [
+    2850.67,
+    2856.05,
+    2878.84
+   ],
+   "props": {
+    "kicker": "FROM THIS YEAR",
+    "title": "A MARKETPLACE FOR CAPITAL",
+    "steps": [
+     {
+      "title": "Log in",
+      "text": "Banks and investors use it *on their own*"
+     },
+     {
+      "title": "Their money",
+      "text": "Not through Gilion's lending"
+     },
+     {
+      "title": "Connect",
+      "text": "Founders meet capital"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h13",
+   "layout": "guest",
+   "start": 2896.0,
+   "end": 2937.5,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Why startup lenders are pivoting away",
+   "reveal_s": [
+    2905.33,
+    2912.29,
+    2923.62
+   ],
+   "props": {
+    "kicker": "WHY LENDERS PIVOT",
+    "title": "FINTECH IS HARD",
+    "points": [
+     "Not just *another SaaS* product",
+     "*Regulation* - and large sums of money",
+     "What happens when someone *can't pay*"
+    ]
+   }
+  },
+  {
+   "id": "h14",
+   "layout": "guest",
+   "start": 2937.9,
+   "end": 2990.0,
+   "template": "PExplainer",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "A finance house from the start",
+   "props": {
+    "kicker": "THE OPPOSITE BET",
+    "name": "A FINANCE HOUSE",
+    "lead": "Built to *take the decisions itself* from day one - the way to get to real automation.",
+    "facts": [
+     {
+      "label": "FOUNDERS",
+      "value": "Henrik is one of three"
+     },
+     {
+      "label": "WHY",
+      "value": "Accountable for every decision"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h15",
+   "layout": "guest",
+   "start": 2990.4,
+   "end": 3019.0,
+   "template": "PQuote",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "An animal that doesn't fit either side",
+   "props": {
+    "kicker": "HOW INVESTORS SEE IT",
+    "quote": "Here comes *an animal that doesn't fit either side*. How should we value you?",
+    "author": "Henrik Landgren",
+    "role": "Co-founder & CPTO, Gilion"
+   }
+  },
+  {
+   "id": "h16",
+   "layout": "guest",
+   "start": 3025.3,
+   "end": 3048.0,
+   "template": "PShot",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Bending Spoons buys Miro",
+   "shot": "tc-miro",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 3036.54
+    },
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 3043.01
+    }
+   ],
+   "props": {
+    "url": "techcrunch.com/2026/09/10/bending-spoons-to-buy-collaboration-tools-maker-miro",
+    "source": "TECHCRUNCH - 10 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "h17",
+   "layout": "guest",
+   "start": 3048.0,
+   "end": 3072.0,
+   "template": "PBars",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Miro's valuation, then and now",
+   "props": {
+    "kicker": "THE SAASPOCALYPSE",
+    "title": "MIRO, THEN AND NOW",
+    "prefix": "$",
+    "suffix": "B",
+    "decimals": 2,
+    "items": [
+     {
+      "label": "VALUATION - LATE 2021",
+      "value": 17.5,
+      "display": "$17.5B"
+     },
+     {
+      "label": "BENDING SPOONS DEAL - 2026",
+      "value": 1.36,
+      "display": "$1.36B",
+      "highlight": true
+     }
+    ],
+    "note": "Enterprise value. Equity value $1.79B."
+   }
+  },
+  {
+   "id": "h18",
+   "layout": "guest",
+   "start": 3079.7,
+   "end": 3143.0,
+   "template": "PFlow",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "The Opus moment",
+   "reveal_s": [
+    3098.49,
+    3118.61,
+    3131.56
+   ],
+   "props": {
+    "kicker": "THE OPUS MOMENT",
+    "title": "HOW BUILDING CHANGED",
+    "steps": [
+     {
+      "title": "Before",
+      "text": "I code - AI helps *on the side*"
+     },
+     {
+      "title": "After",
+      "text": "AI codes - I *instruct on top*"
+     },
+     {
+      "title": "Now",
+      "text": "Ten work streams at once - *50x* the output"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h19",
+   "layout": "guest",
+   "start": 3143.4,
+   "end": 3188.0,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "What it did to SaaS",
+   "reveal_s": [
+    3144.31,
+    3168.82,
+    3174.98
+   ],
+   "props": {
+    "kicker": "WHAT IT DID TO SAAS",
+    "title": "OLD CODE, NEW MATH",
+    "points": [
+     "Everyone can build *much, much more*",
+     "Old products lost value - *100x*",
+     "Rebuilt at *a hundredth* of the effort"
+    ]
+   }
+  },
+  {
+   "id": "h20",
+   "layout": "guest",
+   "start": 3188.2,
+   "end": 3255.0,
+   "template": "PCompare",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Spring panic vs now",
+   "props": {
+    "kicker": "SIX TO NINE MONTHS LATER",
+    "title": "THE MARKET SETTLES",
+    "left": {
+     "name": "THE SPRING",
+     "tag": "PANIC",
+     "points": [
+      "'We don't need SaaS anymore'",
+      "Build it all ourselves"
+     ]
+    },
+    "right": {
+     "name": "NOW",
+     "tag": "SETTLING",
+     "points": [
+      "Good software got *100x faster* too",
+      "Nobody out-builds them on the side"
+     ]
+    },
+    "verdict": "Raise your ambition - and your speed."
+   }
+  },
+  {
+   "id": "h21",
+   "layout": "guest",
+   "start": 3261.1,
+   "end": 3287.0,
+   "template": "PQuote",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Investors should do deals",
+   "props": {
+    "kicker": "HIS TAKE",
+    "quote": "Investors should do deals and *we should use the best software in the market*.",
+    "author": "Henrik Landgren",
+    "role": "Co-founder & CPTO, Gilion"
+   }
+  },
+  {
+   "id": "h22",
+   "layout": "guest",
+   "start": 3294.3,
+   "end": 3386.5,
+   "template": "PFlow",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Financing in 2030",
+   "reveal_s": [
+    3322.8,
+    3343.79,
+    3373.01
+   ],
+   "props": {
+    "kicker": "FINANCING IN 2030",
+    "title": "EVERYTHING MERGES",
+    "steps": [
+     {
+      "title": "Today",
+      "text": "A dedicated player for *every asset class*"
+     },
+     {
+      "title": "Merge",
+      "text": "Loans, bonds, equity - one market"
+     },
+     {
+      "title": "Custom",
+      "text": "Build your own product *every time*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "h23",
+   "layout": "guest",
+   "start": 3386.5,
+   "end": 3419.0,
+   "template": "PPoints",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "Why it will take time",
+   "reveal_s": [
+    3388.76,
+    3401.49,
+    3410.66
+   ],
+   "props": {
+    "kicker": "WHY IT TAKES TIME",
+    "title": "FINANCE MOVES SLOWLY",
+    "points": [
+     "AI disrupts everything - *finance lags*",
+     "Funds are locked into *5-10 year* agreements",
+     "Backers want *what worked last time*"
+    ]
+   }
+  },
+  {
+   "id": "h24",
+   "layout": "guest",
+   "start": 3419.3,
+   "end": 3445.0,
+   "template": "PQuote",
+   "bin": "Guest 3 - Henrik Landgren, Gilion (V9)",
+   "note": "The glory days are coming",
+   "props": {
+    "kicker": "FOR FOUNDERS",
+    "quote": "For entrepreneurs, *the glory days are coming*, because there will be every type of capital.",
+    "author": "Henrik Landgren",
+    "role": "Co-founder & CPTO, Gilion"
+   }
+  },
+  {
+   "id": "n01",
+   "layout": "guest",
+   "start": 3458.29,
+   "end": 3466.2,
+   "template": "PPoints",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Now to this week's news",
+   "props": {
+    "kicker": "BOTH ABOUT AI AGENTS",
+    "title": "THIS WEEK'S NEWS",
+    "points": [
+     {
+      "title": "Story 1",
+      "text": "Amazon blocks *Meta's Muse*"
+     },
+     {
+      "title": "Story 2",
+      "text": "An *OpenAI agent* gets into a government website"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n02",
+   "layout": "guest",
+   "start": 3466.3,
+   "end": 3487.2,
+   "template": "PShot",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Amazon blocks Muse - the popup",
+   "shot": "geekwire-muse",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 3467.96
+    },
+    {
+     "phrase": 1,
+     "style": "marker",
+     "at_s": 3479.79
+    }
+   ],
+   "props": {
+    "url": "geekwire.com/2026/amazon-blocks-metas-muse-ai-assistant",
+    "source": "GEEKWIRE - 20 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n03",
+   "layout": "guest",
+   "start": 3491.0,
+   "end": 3505.4,
+   "template": "PPoints",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Amazon's complaint (after the 'never told it' retake)",
+   "reveal_s": [
+    3493.34,
+    3498.21,
+    3500.99
+   ],
+   "props": {
+    "kicker": "AMAZON'S SIDE",
+    "title": "NOBODY ASKED",
+    "points": [
+     "Meta *never told Amazon*",
+     "Asked Meta to *take Amazon out*",
+     "Meta: *no comment*"
+    ]
+   }
+  },
+  {
+   "id": "n04",
+   "layout": "guest",
+   "start": 3505.6,
+   "end": 3518.5,
+   "template": "PCompare",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Shopify and PayPal do the opposite",
+   "props": {
+    "kicker": "THE OPPOSITE MOVE",
+    "title": "OTHERS LET IT IN",
+    "left": {
+     "name": "SHOPIFY",
+     "tag": "MONDAY",
+     "points": [
+      "Muse checkout *on by default*",
+      "~1 million US stores"
+     ]
+    },
+    "right": {
+     "name": "PAYPAL",
+     "tag": "WEDNESDAY",
+     "points": [
+      "Users can *check out with Muse*"
+     ]
+    }
+   }
+  },
+  {
+   "id": "n05",
+   "layout": "guest",
+   "start": 3528.7,
+   "end": 3545.3,
+   "template": "PStat",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Amazon's ad money - $68B (Otabek says 6.8, source says 68)",
+   "props": {
+    "kicker": "AMAZON MAKES MONEY WHEN YOU BROWSE",
+    "title": "ADS, LAST YEAR",
+    "value": 68,
+    "prefix": "$",
+    "suffix": "B",
+    "label": "AMAZON AD REVENUE",
+    "context": "About *10%* of revenue. An agent doesn't look at ads.",
+    "source": "Forbes, 23 Sep 2026"
+   }
+  },
+  {
+   "id": "n06",
+   "layout": "guest",
+   "start": 3545.5,
+   "end": 3554.0,
+   "template": "PShot",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Perplexity suit",
+   "shot": "geekwire-muse",
+   "marks": [
+    {
+     "phrase": 2,
+     "style": "marker",
+     "at_s": 3546.23
+    }
+   ],
+   "props": {
+    "url": "geekwire.com/2026/amazon-blocks-metas-muse-ai-assistant",
+    "source": "GEEKWIRE",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n07",
+   "layout": "guest",
+   "start": 3573.8,
+   "end": 3580.9,
+   "template": "PCompare",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Ads vs checkout (on the clean retake)",
+   "props": {
+    "kicker": "WHY THEY DISAGREE",
+    "title": "BROWSING VS BUYING",
+    "left": {
+     "name": "AMAZON",
+     "tag": "LIVES ON ADS",
+     "points": [
+      "Paid when you *browse*"
+     ]
+    },
+    "right": {
+     "name": "SHOPIFY",
+     "tag": "PAID AT CHECKOUT",
+     "points": [
+      "Same fee on a *Muse order*"
+     ]
+    }
+   }
+  },
+  {
+   "id": "n08",
+   "layout": "guest",
+   "start": 3580.9,
+   "end": 3589.9,
+   "template": "PQuote",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Zuckerberg: a small fee from transactions",
+   "props": {
+    "kicker": "META WANTS A CUT",
+    "quote": "Over time we will profit by *taking a small fee from transactions*.",
+    "author": "Mark Zuckerberg",
+    "role": "CEO, Meta - to TechCrunch"
+   }
+  },
+  {
+   "id": "n09",
+   "layout": "guest",
+   "start": 3640.0,
+   "end": 3652.0,
+   "template": "PTimeline",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Muse so far (on the retake from 3640)",
+   "reveal_s": [
+    3640.01,
+    3646.04,
+    3647.76
+   ],
+   "props": {
+    "kicker": "MUSE, SO FAR",
+    "title": "FROM TRUST TO ACCESS",
+    "events": [
+     {
+      "date": "8 SEP",
+      "text": "Meta launches Muse"
+     },
+     {
+      "date": "14 SEP",
+      "text": "Our question: *trust Meta with your card?*"
+     },
+     {
+      "date": "NOW",
+      "text": "Will stores *let the agent in*?",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "n10",
+   "layout": "guest",
+   "start": 3652.0,
+   "end": 3660.6,
+   "template": "PQuote",
+   "bin": "News 1 - Amazon vs Muse (V9)",
+   "note": "Nikesh Arora on X",
+   "props": {
+    "kicker": "ON X",
+    "quote": "This will be *a bigger battle* than anyone anticipates.",
+    "author": "Nikesh Arora",
+    "role": "CEO, Palo Alto Networks"
+   }
+  },
+  {
+   "id": "n11",
+   "layout": "guest",
+   "start": 3668.6,
+   "end": 3690.0,
+   "template": "PShot",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "OpenAI agent in the Medicare portal",
+   "shot": "abcus-albanese",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 3680.05
+    }
+   ],
+   "props": {
+    "url": "abcnews.com/Technology/extreme-concern-openai-agent-hacked-australian-public-health",
+    "source": "ABC NEWS - 24 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n12",
+   "layout": "guest",
+   "start": 3713.8,
+   "end": 3730.7,
+   "template": "PPoints",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "What it got (on the retake from 3713.8)",
+   "reveal_s": [
+    3715.57,
+    3718.36,
+    3721.14
+   ],
+   "props": {
+    "kicker": "WHAT HAPPENED",
+    "title": "AROUND THE BLOCKS",
+    "points": [
+     "*Found a way around* the blocks",
+     "Reached *non-public* files",
+     "OpenAI: *no patient records*"
+    ]
+   }
+  },
+  {
+   "id": "n13",
+   "layout": "guest",
+   "start": 3730.9,
+   "end": 3748.6,
+   "template": "PQuote",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "OpenAI: our models took actions we did not intend",
+   "props": {
+    "kicker": "THE WORRYING PART IS THE BEHAVIOUR",
+    "quote": "Our models took actions *we did not intend*.",
+    "author": "OpenAI spokesperson",
+    "role": "To The Register"
+   }
+  },
+  {
+   "id": "n14",
+   "layout": "guest",
+   "start": 3768.0,
+   "end": 3780.4,
+   "template": "PQuote",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "Marles: a fence the agent climbed over (last take)",
+   "props": {
+    "kicker": "AUSTRALIA'S ACTING PM",
+    "quote": "This was really kept behind a fence that the AI agent *effectively climbed over*.",
+    "author": "Richard Marles",
+    "role": "Acting Prime Minister of Australia - to ABC"
+   }
+  },
+  {
+   "id": "n15",
+   "layout": "guest",
+   "start": 3780.6,
+   "end": 3790.0,
+   "template": "PFlow",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "Agent shopping does the same thing",
+   "reveal_s": [
+    3783.35,
+    3784.65,
+    3785.47
+   ],
+   "props": {
+    "kicker": "NOW THINK ABOUT PAYMENTS",
+    "title": "THE SAME BEHAVIOUR",
+    "steps": [
+     {
+      "title": "A task",
+      "text": "Give the agent a job"
+     },
+     {
+      "title": "A card",
+      "text": "Let it pay"
+     },
+     {
+      "title": "Finds a way",
+      "text": "It *finishes the job*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n16",
+   "layout": "guest",
+   "start": 3790.0,
+   "end": 3807.0,
+   "template": "PExplainer",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "Callback to the 21 Sep episode",
+   "props": {
+    "kicker": "FROM OUR 21 SEP EPISODE",
+    "name": "JILL WILLARD, IXOPAY",
+    "lead": "Visa and Mastercard want *every agent registered* - and every payment *tied to what the customer agreed to*.",
+    "facts": [
+     {
+      "label": "THE LESSON",
+      "value": "Limits belong in the payment system - not the agent's good behaviour"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n17",
+   "layout": "guest",
+   "start": 3817.0,
+   "end": 3831.3,
+   "template": "PTimeline",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "OpenAI's timeline (on the last 'one more thing' take)",
+   "reveal_s": [
+    3817.15,
+    3818.59,
+    3820.94
+   ],
+   "props": {
+    "kicker": "ONE MORE THING",
+    "title": "THREE MONTHS TO TELL",
+    "events": [
+     {
+      "date": "18 JUNE",
+      "text": "The agent gets into the portal"
+     },
+     {
+      "date": "AUGUST",
+      "text": "OpenAI *finds it*"
+     },
+     {
+      "date": "10 SEPTEMBER",
+      "text": "Tells Australia - via a *general inbox*",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "n18",
+   "layout": "guest",
+   "start": 3834.6,
+   "end": 3845.3,
+   "template": "PQuote",
+   "bin": "News 2 - OpenAI agent (V9)",
+   "note": "Comment prompt (second take)",
+   "props": {
+    "kicker": "TELL US IN THE COMMENTS",
+    "quote": "Should AI labs have *the same reporting rules* as banks?",
+    "author": "Otabek Nuritdinov",
+    "role": "Co-host, On The Ground"
+   }
+  },
+  {
+   "id": "n19",
+   "layout": "guest",
+   "start": 3845.4,
+   "end": 3853.5,
+   "template": "PPoints",
+   "bin": "Outro (V9)",
+   "note": "Thanks to the guests",
+   "reveal_s": [
+    3846.13,
+    3846.45,
+    3846.95
+   ],
+   "props": {
+    "kicker": "ON THE GROUND",
+    "title": "THANKS TO OUR GUESTS",
+    "points": [
+     {
+      "title": "Sidney Powell",
+      "text": "Maple"
+     },
+     {
+      "title": "Daren Guo",
+      "text": "Reap"
+     },
+     {
+      "title": "Henrik Landgren",
+      "text": "Gilion"
+     }
+    ]
+   }
+  }
+ ]
+}

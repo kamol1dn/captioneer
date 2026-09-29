@@ -1,0 +1,621 @@
+{
+ "name": "OTG EP21 panels",
+ "show": "otg",
+ "video": "D:/gashtak work/OTG/otgep21/for claude/longform/lf_proxy.mp4",
+ "out_dir": "D:/gashtak work/OTG/otgep21/for claude/longform/panels",
+ "shots_dir": "D:/gashtak work/OTG/otgep21/for claude/longform/shots",
+ "items": [
+  {
+   "id": "m01",
+   "layout": "news",
+   "start": 27.0,
+   "end": 48.8,
+   "template": "PExplainer",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Guest card - Sam welcomes Sid",
+   "props": {
+    "kicker": "OUR GUEST",
+    "name": "SIDNEY POWELL",
+    "lead": "*Co-founder & CEO, Maple* - an onchain asset manager focused on credit.",
+    "facts": [
+     {
+      "label": "FOUNDED",
+      "value": "2021"
+     },
+     {
+      "label": "BEFORE",
+      "value": "Banking - securitisation"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m02",
+   "layout": "news",
+   "start": 49.3,
+   "end": 74.3,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "What Maple does",
+   "reveal_s": [
+    52.73,
+    61.42,
+    72.17
+   ],
+   "props": {
+    "kicker": "MAPLE",
+    "title": "WHAT THEY DO",
+    "points": [
+     "*Onchain* asset manager",
+     "Loans to *crypto firms*",
+     "Backed by *Bitcoin and ETH*"
+    ]
+   }
+  },
+  {
+   "id": "m03",
+   "layout": "news",
+   "start": 74.5,
+   "end": 92.5,
+   "template": "PStat",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "$22B in loans, ~$4.8B AUM",
+   "props": {
+    "kicker": "SINCE 2021",
+    "title": "LOANS ORIGINATED",
+    "value": 22,
+    "prefix": "$",
+    "suffix": "B",
+    "label": "IN LOANS SINCE 2021",
+    "context": "About *$4.8B* under management today."
+   }
+  },
+  {
+   "id": "m04",
+   "layout": "news",
+   "start": 92.5,
+   "end": 117.5,
+   "template": "PExplainer",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "His background - securitisation lending",
+   "props": {
+    "kicker": "HIS BACKGROUND",
+    "name": "FROM BANKING",
+    "lead": "*Securitisation lending* - asset-backed bonds, lending to lending companies.",
+    "facts": [
+     {
+      "label": "SO",
+      "value": "Lending was familiar ground"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m05",
+   "layout": "news",
+   "start": 162.3,
+   "end": 217.0,
+   "template": "PTimeline",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The two transformational moments",
+   "reveal_s": [
+    163.66,
+    205.79,
+    214.32
+   ],
+   "props": {
+    "kicker": "HOW MAPLE SCALED",
+    "title": "TWO BIG BETS",
+    "events": [
+     {
+      "date": "2021",
+      "text": "Lending to *market makers*"
+     },
+     {
+      "date": "2023",
+      "text": "After FTX: the *contrarian bet* on collateralised loans"
+     },
+     {
+      "date": "2024",
+      "text": "Opens to *DeFi capital*",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "m06",
+   "layout": "news",
+   "start": 217.0,
+   "end": 236.8,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The Syrup tokens",
+   "reveal_s": [
+    220.84,
+    224.58,
+    225.6
+   ],
+   "props": {
+    "kicker": "OPENING TO DEFI",
+    "title": "THE SYRUP TOKENS",
+    "points": [
+     "*syrupUSDC*",
+     "*syrupUSDT*",
+     "*syrupUSDG*"
+    ]
+   }
+  },
+  {
+   "id": "m07",
+   "layout": "news",
+   "start": 236.8,
+   "end": 263.3,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "What a holder can do with it",
+   "reveal_s": [
+    244.64,
+    245.9,
+    247.5
+   ],
+   "props": {
+    "kicker": "A TOKEN OF THE LOANS",
+    "title": "USE IT IN DEFI",
+    "points": [
+     "*Borrow* against it",
+     "*Loop* it",
+     "*Exit* the position"
+    ]
+   }
+  },
+  {
+   "id": "m08",
+   "layout": "news",
+   "start": 295.3,
+   "end": 357.8,
+   "template": "PFlow",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Where the yield comes from",
+   "reveal_s": [
+    304.74,
+    320.03,
+    334.22
+   ],
+   "props": {
+    "kicker": "WHERE THE YIELD COMES FROM",
+    "title": "INSTITUTIONAL LENDING",
+    "steps": [
+     {
+      "title": "Lend",
+      "text": "Brokers, funds, *Bitcoin miners*"
+     },
+     {
+      "title": "Collateral",
+      "text": "BTC, ETH, SOL, XRP"
+     },
+     {
+      "title": "Interest",
+      "text": "Passed on to *Syrup holders*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m09",
+   "layout": "news",
+   "start": 363.8,
+   "end": 386.5,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Recent partners",
+   "reveal_s": [
+    365.18,
+    367.08,
+    370.28
+   ],
+   "props": {
+    "kicker": "RECENT PARTNERS",
+    "title": "BIG NAMES",
+    "points": [
+     "*Tempo*",
+     "*Robinhood*",
+     "*Kraken*"
+    ]
+   }
+  },
+  {
+   "id": "m10",
+   "layout": "news",
+   "start": 386.5,
+   "end": 426.5,
+   "template": "PShot",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The Kraken warehouse facility",
+   "shot": "theblock-maple",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 392.39
+    }
+   ],
+   "props": {
+    "url": "theblock.co/post/406054/kraken-expands-otc-lending-onchain-warehouse-facility-maple",
+    "source": "THE BLOCK",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "m11",
+   "layout": "news",
+   "start": 445.0,
+   "end": 481.5,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Robinhood Earn",
+   "reveal_s": [
+    447.5,
+    450.44,
+    476.27
+   ],
+   "props": {
+    "kicker": "ROBINHOOD EARN",
+    "title": "DEFI, MADE SIMPLE",
+    "points": [
+     "Yield *from DeFi*",
+     "With *Morpho, Steakhouse*",
+     "No swaps - *just earn*"
+    ]
+   }
+  },
+  {
+   "id": "m12",
+   "layout": "news",
+   "start": 481.6,
+   "end": 497.5,
+   "template": "PQuote",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Fintechs as the Trojan horse",
+   "props": {
+    "kicker": "THE NEXT WAVE",
+    "quote": "Fintechs are going to be... *the Trojan horse* that helps bring DeFi to more of the masses.",
+    "author": "Sidney Powell",
+    "role": "Co-founder & CEO, Maple"
+   }
+  },
+  {
+   "id": "m13",
+   "layout": "news",
+   "start": 501.0,
+   "end": 551.5,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Which fintechs he means",
+   "reveal_s": [
+    511.52,
+    541.39,
+    547.11
+   ],
+   "props": {
+    "kicker": "WHO HE MEANS",
+    "title": "THE FINTECHS",
+    "points": [
+     "*Neobanks* - Revolut",
+     "*Brokerages* - Robinhood",
+     "*Savings apps*"
+    ]
+   }
+  },
+  {
+   "id": "m14",
+   "layout": "news",
+   "start": 551.6,
+   "end": 598.2,
+   "template": "PFlow",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Why a neobank wants stablecoin yield",
+   "reveal_s": [
+    557.0,
+    572.49,
+    577.85
+   ],
+   "props": {
+    "kicker": "WHY THEY WANT YIELD",
+    "title": "KEEP THE BALANCE",
+    "steps": [
+     {
+      "title": "Trade",
+      "text": "Customers hold *stablecoins*"
+     },
+     {
+      "title": "Idle",
+      "text": "Between trades, money sits"
+     },
+     {
+      "title": "Yield",
+      "text": "The reason to *stay*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m15",
+   "layout": "news",
+   "start": 604.8,
+   "end": 677.0,
+   "template": "PCompare",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Old rails vs stablecoins - post vs email",
+   "props": {
+    "kicker": "NEOBANKS, REBUILT",
+    "title": "POST VS EMAIL",
+    "left": {
+     "name": "OLD RAILS",
+     "tag": "SWIFT - ACH",
+     "points": [
+      "Correspondent banks",
+      "FX fees, *slow*"
+     ]
+    },
+    "right": {
+     "name": "STABLECOINS",
+     "tag": "POINT TO POINT",
+     "points": [
+      "Anywhere, *like email*",
+      "Much *lower cost*"
+     ]
+    },
+    "verdict": "A chance to leapfrog."
+   }
+  },
+  {
+   "id": "m16",
+   "layout": "news",
+   "start": 681.1,
+   "end": 700.5,
+   "template": "PShot",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "21 banks plan a stablecoin for 2027",
+   "shot": "banks-21",
+   "marks": [
+    {
+     "phrase": 0,
+     "style": "marker",
+     "at_s": 693.45
+    }
+   ],
+   "props": {
+    "url": "blockhead.co/2026/09/02/21-banks-including-citi-goldman-sachs-bank-of-america",
+    "source": "BLOCKHEAD - 2 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "m17",
+   "layout": "news",
+   "start": 703.7,
+   "end": 762.0,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Why the checking account is under threat",
+   "reveal_s": [
+    716.75,
+    730.49,
+    750.75
+   ],
+   "props": {
+    "kicker": "WHY BANKS SHOULD WORRY",
+    "title": "THE SPREAD",
+    "points": [
+     "*10 bps* in, *~4%* out",
+     "Backstopped by the *FDIC*",
+     "An *underpriced* product"
+    ]
+   }
+  },
+  {
+   "id": "m18",
+   "layout": "news",
+   "start": 771.6,
+   "end": 813.5,
+   "template": "PFlow",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "An agent managing your money like a corporate treasury",
+   "reveal_s": [
+    794.7,
+    797.54,
+    804.79
+   ],
+   "props": {
+    "kicker": "WHEN AN AGENT MANAGES IT",
+    "title": "LIKE A TREASURY",
+    "steps": [
+     {
+      "title": "Instant",
+      "text": "Cash on hand"
+     },
+     {
+      "title": "1-2 days",
+      "text": "For emergencies"
+     },
+     {
+      "title": "3-6 months",
+      "text": "*Higher yield*"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m19",
+   "layout": "news",
+   "start": 833.9,
+   "end": 873.0,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The bank's three bad options",
+   "reveal_s": [
+    847.54,
+    854.22,
+    859.33
+   ],
+   "props": {
+    "kicker": "BAD FOR BANKS",
+    "title": "THREE OPTIONS",
+    "points": [
+     "*Pay more* on deposits",
+     "*Offer* those products too",
+     "Or *lose the deposits*"
+    ]
+   }
+  },
+  {
+   "id": "m20",
+   "layout": "news",
+   "start": 882.4,
+   "end": 906.0,
+   "template": "PQuote",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The Breaking Bad line",
+   "props": {
+    "kicker": "WHERE MAPLE FITS",
+    "quote": "We're *the ones who knock*... offering the competing product that you'll go away from the bank for.",
+    "author": "Sidney Powell",
+    "role": "Co-founder & CEO, Maple"
+   }
+  },
+  {
+   "id": "m21",
+   "layout": "news",
+   "start": 906.2,
+   "end": 961.5,
+   "template": "PExplainer",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Not a bank - an alternative asset manager",
+   "props": {
+    "kicker": "NOT A BANK",
+    "name": "NON-BANK LENDER",
+    "lead": "Maple sits in *alternative asset management* - credit and yield, not a checking account.",
+    "facts": [
+     {
+      "label": "RISK",
+      "value": "Higher - you decide"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m22",
+   "layout": "news",
+   "start": 974.2,
+   "end": 1046.0,
+   "template": "PTimeline",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "How lending left the banks",
+   "reveal_s": [
+    998.3,
+    1013.58,
+    1036.63
+   ],
+   "props": {
+    "kicker": "AFTER THE CRISIS",
+    "title": "LENDING LEFT THE BANKS",
+    "events": [
+     {
+      "date": "PRE-2008",
+      "text": "Some banks levered *20x*"
+     },
+     {
+      "date": "POST-GFC",
+      "text": "A narrow mandate for banks"
+     },
+     {
+      "date": "TODAY",
+      "text": "Mid-market borrows from *KKR, Ares, Blackstone*",
+      "hot": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "m23",
+   "layout": "news",
+   "start": 1057.9,
+   "end": 1088.5,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The trends Maple rides",
+   "reveal_s": [
+    1063.34,
+    1072.33,
+    1081.25
+   ],
+   "props": {
+    "kicker": "THE TAILWINDS",
+    "title": "WHAT MAPLE RIDES",
+    "points": [
+     "*Stablecoin* settlement",
+     "More assets *tokenised*",
+     "*Tokenised collateral*"
+    ]
+   }
+  },
+  {
+   "id": "m24",
+   "layout": "news",
+   "start": 1116.8,
+   "end": 1154.0,
+   "template": "PExplainer",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Regulation - the CLARITY Act",
+   "props": {
+    "kicker": "WHAT UNLOCKS IT - 1",
+    "name": "CLARITY ACT",
+    "lead": "Would set *disclosure and reporting rules* for offering these products to retail in the US.",
+    "facts": [
+     {
+      "label": "ODDS",
+      "value": "Lower this year"
+     }
+    ]
+   }
+  },
+  {
+   "id": "m25",
+   "layout": "news",
+   "start": 1154.3,
+   "end": 1196.0,
+   "template": "PPoints",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "Stablecoin adoption after GENIUS",
+   "reveal_s": [
+    1160.86,
+    1165.08,
+    1176.4
+   ],
+   "props": {
+    "kicker": "WHAT UNLOCKS IT - 2",
+    "title": "STABLECOIN ADOPTION",
+    "points": [
+     "*GENIUS*: a year on",
+     "Rules land *early 2027*",
+     "*Ripple, PayPal*, the banks"
+    ]
+   }
+  },
+  {
+   "id": "m26",
+   "layout": "news",
+   "start": 1196.0,
+   "end": 1212.0,
+   "template": "PExplainer",
+   "bin": "Guest 1 - Sidney Powell, Maple (V8)",
+   "note": "The Lindy effect",
+   "props": {
+    "kicker": "WHAT UNLOCKS IT - 3",
+    "name": "THE LINDY EFFECT",
+    "lead": "The longer it's around, *the more track record* - and the more people allocate to it."
+   }
+  }
+ ]
+}

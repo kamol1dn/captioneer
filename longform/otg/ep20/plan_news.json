@@ -1,0 +1,353 @@
+{
+ "name": "OTG EP20 panels",
+ "show": "otg",
+ "video": "D:/gashtak work/OTG/otgep20/for claude/longform/lf_proxy.mp4",
+ "out_dir": "D:/gashtak work/OTG/otgep20/for claude/longform/panels",
+ "shots_dir": "D:/gashtak work/OTG/otgep20/for claude/longform/shots",
+ "items": [
+  {
+   "id": "a01", "layout": "news", "start": 3.0, "end": 20.2,
+   "template": "PHeadline", "bin": "Cold open (V8)",
+   "note": "Sam teases story 1 - Revolut handed data to a scammer",
+   "props": {
+    "kicker": "STORY 1",
+    "outlet": "TECHCRUNCH",
+    "date": "12 SEP 2026",
+    "headline": "Revolut confirms customer data breach through fake government requests",
+    "dek": "An unauthorised third party used an email address on a real government agency domain to send fake official requests. Staff handed the data over.",
+    "facts": [
+     "~680 customers affected (FT, WSJ)",
+     "Names, addresses, passports, selfies",
+     "Now on Telegram - with a ransom demand"
+    ]
+   }
+  },
+  {
+   "id": "a02", "layout": "news", "start": 20.3, "end": 27.9,
+   "template": "PCompare", "bin": "Cold open (V8)",
+   "note": "Sam teases story 2 - Trump calls the AI slowdown a hoax",
+   "props": {
+    "kicker": "STORY 2",
+    "title": "SLOW DOWN AI?",
+    "left": {"name": "DARIO AMODEI", "tag": "ANTHROPIC", "points": ["Pace the frontier", "Labs agree limits"]},
+    "right": {"name": "DONALD TRUMP", "tag": "TRUTH SOCIAL", "points": ["AI doom is *a hoax*", "Guardrail = the President"]},
+    "verdict": "The people building it want to be slowed down."
+   }
+  },
+  {
+   "id": "a03", "layout": "news", "start": 28.3, "end": 37.9,
+   "template": "PExplainer", "bin": "Cold open (V8)",
+   "note": "Sam hands over to the guest - still on the tall intro layout",
+   "props": {
+    "kicker": "COMING UP",
+    "name": "JILL WILLARD",
+    "lead": "*Chief Technology Officer, IXOPAY.*",
+    "facts": [
+     {"label": "TODAY", "value": "Agentic commerce, and where payments go next"}
+    ]
+   }
+  },
+
+  {
+   "id": "n01", "layout": "news", "start": 1535.5, "end": 1552.0,
+   "template": "PHeadline", "bin": "News 1 - Revolut (V8)",
+   "note": "Sam reads the Revolut story",
+   "props": {
+    "kicker": "STORY 1 - REVOLUT",
+    "outlet": "TECHCRUNCH",
+    "date": "12 SEP 2026",
+    "headline": "Revolut confirms customer data breach through fake government requests",
+    "dek": "Fake official requests, sent from a real government agency email domain. Staff treated them as genuine.",
+    "byline": "Then followed by the FT and the Wall Street Journal"
+   }
+  },
+  {
+   "id": "n02", "layout": "news", "start": 1552.0, "end": 1569.0,
+   "template": "PStat", "bin": "News 1 - Revolut (V8)",
+   "note": "680 customers - the FT/WSJ figure, not Revolut's",
+   "props": {
+    "kicker": "HOW MANY?",
+    "title": "CUSTOMERS AFFECTED",
+    "value": 680,
+    "label": "PER THE FT AND THE WSJ",
+    "context": "Revolut says only *a limited number*."
+   }
+  },
+  {
+   "id": "n03", "layout": "news", "start": 1569.0, "end": 1586.0,
+   "template": "PPoints", "bin": "News 1 - Revolut (V8)",
+   "note": "What the scammer actually got",
+   "reveal_s": [1570.5, 1573.2, 1578.0],
+   "props": {
+    "kicker": "WHAT WAS HANDED OVER",
+    "title": "THE DATA",
+    "points": [
+     "Names, *addresses*, phone numbers",
+     "*Passport* and licence copies, *verification selfies*",
+     "Statements and *transaction history*"
+    ]
+   }
+  },
+  {
+   "id": "n04", "layout": "news", "start": 1586.0, "end": 1610.0,
+   "template": "PPoints", "bin": "News 1 - Revolut (V8)",
+   "note": "Funds untouched, data on Telegram, regulators in",
+   "reveal_s": [1587.5, 1591.5, 1597.0],
+   "props": {
+    "kicker": "WHAT HAPPENED NEXT",
+    "title": "AND NOW A RANSOM",
+    "points": [
+     "Systems and *customer funds not touched*",
+     "Data on *Telegram* - threats to release more until Revolut pays",
+     "*ICO* has a report - *FCA* is engaging with the firm"
+    ]
+   }
+  },
+  {
+   "id": "n05", "layout": "news", "start": 1612.0, "end": 1641.5,
+   "template": "PPoints", "bin": "News 1 - Revolut (V8)",
+   "note": "Otabek: why a bank says yes",
+   "reveal_s": [1616.5, 1624.0, 1632.5],
+   "props": {
+    "kicker": "HOW IT HAPPENS",
+    "title": "WHY A BANK SAYS YES",
+    "points": [
+     "Official requests arrive *constantly*",
+     "A team whose job is to answer them *fast*",
+     "Humans on the receiving end, under *time pressure*"
+    ]
+   }
+  },
+  {
+   "id": "n06", "layout": "news", "start": 1641.5, "end": 1666.5,
+   "template": "PFlow", "bin": "News 1 - Revolut (V8)",
+   "note": "How the scam ran, step by step",
+   "reveal_s": [1643.8, 1648.5, 1655.0],
+   "props": {
+    "kicker": "HOW THE SCAM RAN",
+    "title": "ONE EMAIL, THREE STEPS",
+    "steps": [
+     {"title": "A real domain", "text": "Screenshots point to an *Italian government account*"},
+     {"title": "A fake request", "text": "Sent to Revolut's Italian operation, and believed"},
+     {"title": "No check", "text": "Nobody called a human to confirm"}
+    ],
+    "foot": "Staff acted under a 'reasonable belief' - never checked."
+   }
+  },
+  {
+   "id": "n07", "layout": "news", "start": 1666.5, "end": 1688.0,
+   "template": "PShot", "shot": "wsj-revolut", "bin": "News 1 - Revolut (V8)",
+   "note": "WSJ: Freeman 'not rocket science', Karpeles 'talk to a real human'",
+   "marks": [
+    {"phrase": 1, "style": "marker", "at_s": 1673.2},
+    {"phrase": 2, "style": "marker", "at_s": 1683.0}
+   ],
+   "props": {
+    "url": "tovima.com/wsj/europes-most-valuable-startup-gave-data-to-a-scammer",
+    "source": "WSJ - VIA TO VIMA",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n08", "layout": "news", "start": 1688.0, "end": 1703.5,
+   "template": "PPoints", "bin": "News 1 - Revolut (V8)",
+   "note": "Why these victims make it worse",
+   "reveal_s": [1689.5, 1693.5, 1697.5],
+   "props": {
+    "kicker": "WHY THIS ONE IS DIFFERENT",
+    "title": "WHO GOT LEAKED",
+    "points": [
+     "Mainly *wealthy crypto customers*",
+     "Home address *and* transaction history, together",
+     "A *physical safety* problem, not just a privacy one"
+    ]
+   }
+  },
+  {
+   "id": "n09", "layout": "news", "start": 1703.5, "end": 1729.5,
+   "template": "PTimeline", "bin": "News 1 - Revolut (V8)",
+   "note": "Not the first time - and the OCC callback",
+   "reveal_s": [1706.5, 1715.5, 1723.0],
+   "props": {
+    "kicker": "NOT THE FIRST TIME",
+    "title": "REVOLUT'S RECORD",
+    "events": [
+     {"date": "2022", "text": "Social engineering breach - *~50,000 customers*"},
+     {"date": "7 SEP 2026", "text": "US bank charter - we called it *a yes with a leash*"},
+     {"date": "SEP 2026", "text": "680 customers handed to a scammer", "hot": true}
+    ]
+   }
+  },
+
+  {
+   "id": "n10", "layout": "news", "start": 1729.5, "end": 1746.0,
+   "template": "PHeadline", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Otabek reads story 2",
+   "props": {
+    "kicker": "STORY 2",
+    "outlet": "BLOOMBERG - TECHCRUNCH - AXIOS",
+    "date": "15 SEP 2026",
+    "headline": "Trump calls Amodei's plan to slow AI a hoax",
+    "dek": "Anthropic's CEO asked the big labs to slow down. The President said no."
+   }
+  },
+  {
+   "id": "n11", "layout": "news", "start": 1746.0, "end": 1758.2,
+   "template": "PShot", "shot": "amodei-essay", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "The essay itself",
+   "marks": [
+    {"phrase": 0, "style": "marker", "at_s": 1750.5}
+   ],
+   "props": {
+    "url": "darioamodei.com/post/we-must-pace-the-frontier",
+    "source": "DARIO AMODEI",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n12", "layout": "news", "start": 1758.2, "end": 1780.0,
+   "template": "PPoints", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "The three steps in the essay",
+   "reveal_s": [1759.8, 1765.0, 1769.5],
+   "props": {
+    "kicker": "WE MUST PACE THE FRONTIER",
+    "title": "AMODEI'S THREE STEPS",
+    "points": [
+     "*Independent evaluators* embedded inside each lab",
+     "The labs agree *common limits* between themselves",
+     "Governments bring *China* to the table"
+    ],
+    "source": "darioamodei.com"
+   }
+  },
+  {
+   "id": "n13", "layout": "news", "start": 1780.0, "end": 1808.0,
+   "template": "PCompare", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Who backed it, who didn't",
+   "props": {
+    "kicker": "THE SPLIT",
+    "title": "WHO BACKED IT",
+    "left": {"name": "BACKED IT", "tag": "PUBLICLY", "points": ["Sam Altman, OpenAI", "Elon Musk"]},
+    "right": {"name": "DID NOT", "tag": "TRUTH SOCIAL", "points": ["President Donald Trump", "*AI doom is a hoax*", "The only guardrail is a president"]},
+    "verdict": "Posted on Monday."
+   }
+  },
+  {
+   "id": "n14", "layout": "news", "start": 1808.0, "end": 1822.0,
+   "template": "PQuote", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Sam quotes Amodei directly",
+   "props": {
+    "kicker": "IN HIS WORDS",
+    "quote": "We must *slow the pace* at which we improve the capabilities of AI models.",
+    "author": "Dario Amodei",
+    "role": "CEO, Anthropic - 'We Must Pace the Frontier'"
+   }
+  },
+  {
+   "id": "n15", "layout": "news", "start": 1822.0, "end": 1838.0,
+   "template": "PShot", "shot": "amodei-essay", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "The trade-off paragraph",
+   "marks": [
+    {"phrase": 1, "style": "marker", "at_s": 1825.5}
+   ],
+   "props": {
+    "url": "darioamodei.com/post/we-must-pace-the-frontier",
+    "source": "THE TRADE-OFF",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "n16", "layout": "news", "start": 1838.0, "end": 1856.0,
+   "template": "PQuote", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Trump's Truth Social post",
+   "props": {
+    "kicker": "THE PRESIDENT'S ANSWER",
+    "quote": "The only control or 'guardrails' that AI needs is a *STRONG AND SMART (High IQ!) PRESIDENT*, and the U.S.A. has that, in spades!",
+    "author": "Donald Trump",
+    "role": "On Truth Social",
+    "source": "Quoted in Quartz, 14 Sep 2026"
+   }
+  },
+  {
+   "id": "n17", "layout": "news", "start": 1856.0, "end": 1870.0,
+   "template": "PExplainer", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Who David Sacks is, before his quote",
+   "props": {
+    "kicker": "WHO IS HE",
+    "name": "DAVID SACKS",
+    "lead": "*Used to run AI policy at the White House.* Now chairs PCAST.",
+    "facts": [
+     {"label": "THEN", "value": "White House AI & crypto czar"},
+     {"label": "NOW", "value": "Chair, PCAST"}
+    ]
+   }
+  },
+  {
+   "id": "n18", "layout": "news", "start": 1870.0, "end": 1896.0,
+   "template": "PQuote", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Sacks' line - the sharpest hit",
+   "props": {
+    "kicker": "THE SHARPEST HIT",
+    "quote": "The easiest way not to build superintelligence is *for you to agree not to build it*.",
+    "author": "David Sacks",
+    "role": "Former White House AI policy chief - on X",
+    "source": "Quoted in TNW"
+   }
+  },
+  {
+   "id": "n19", "layout": "news", "start": 1896.0, "end": 1918.5,
+   "template": "PQuote", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Gary Marcus, a long-time critic, half-agrees",
+   "props": {
+    "kicker": "FROM A CRITIC",
+    "quote": "We should all *salute their tentative agreement* to slow down the acceleration of this technology, given that not one of the AI companies seems to have good control over it.",
+    "author": "Gary Marcus",
+    "role": "AI researcher, long-time critic of the labs"
+   }
+  },
+  {
+   "id": "n20", "layout": "news", "start": 1918.5, "end": 1937.5,
+   "template": "PStat", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "The money angle - the 17 Aug callback",
+   "props": {
+    "kicker": "THE MONEY ANGLE",
+    "title": "WEEKS BEFORE A LISTING",
+    "value": 2,
+    "prefix": "$",
+    "suffix": "T",
+    "label": "THE IPO INVESTORS WANT",
+    "context": "Slowing your own product weeks before a listing is *unusual*."
+   }
+  },
+  {
+   "id": "n21", "layout": "news", "start": 1937.5, "end": 1957.5,
+   "template": "PPoints", "bin": "News 2 - Trump vs Amodei (V8)",
+   "note": "Two readings and one date",
+   "reveal_s": [1939.5, 1944.0, 1949.5],
+   "props": {
+    "kicker": "WHAT TO WATCH",
+    "title": "TWO READINGS, ONE DATE",
+    "points": [
+     "Either he *means it*...",
+     "...or the market reads it as *locking in a lead*",
+     "*24 September*: Trump meets Xi"
+    ]
+   }
+  },
+  {
+   "id": "n22", "layout": "news", "start": 1957.5, "end": 1969.4,
+   "template": "PPoints", "bin": "Outro (V8)",
+   "note": "Outro CTA",
+   "reveal_s": [1959.5, 1963.0, 1965.8],
+   "props": {
+    "kicker": "ON THE GROUND",
+    "title": "BEFORE YOU GO",
+    "points": [
+     "Would you trust a bank with your passport? *Tell us.*",
+     "*Like and share*",
+     "New episode *every Monday*"
+    ]
+   }
+  }
+ ]
+}

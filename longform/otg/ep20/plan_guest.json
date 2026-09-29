@@ -1,0 +1,644 @@
+{
+ "name": "OTG EP20 panels",
+ "show": "otg",
+ "video": "D:/gashtak work/OTG/otgep20/for claude/longform/lf_proxy.mp4",
+ "out_dir": "D:/gashtak work/OTG/otgep20/for claude/longform/panels",
+ "shots_dir": "D:/gashtak work/OTG/otgep20/for claude/longform/shots",
+ "items": [
+  {
+   "id": "g01", "layout": "guest", "start": 38.0, "end": 60.0,
+   "template": "PExplainer", "bin": "Guest - Jill Willard, IXOPAY (V9)",
+   "note": "Guest card - first beat after the layout goes wide at 00;37;29",
+   "props": {
+    "kicker": "OUR GUEST",
+    "name": "JILL WILLARD",
+    "lead": "*Chief Technology Officer, IXOPAY* - the payment platform that connects online merchants to over *200 payment providers*.",
+    "facts": [
+     {"label": "ROLE", "value": "CTO, IXOPAY"},
+     {"label": "IXOPAY DOES", "value": "Tokenization - orchestration - payment intelligence"},
+     {"label": "CONNECTS", "value": "200+ payment providers"},
+     {"label": "TODAY", "value": "Agentic commerce, and where payments are heading"}
+    ]
+   }
+  },
+  {
+   "id": "g02", "layout": "guest", "start": 77.5, "end": 102.0,
+   "template": "PPoints", "bin": "Guest - Jill Willard, IXOPAY (V9)",
+   "note": "What IXOPAY builds, in her words",
+   "reveal_s": [79.4, 81.2, 83.5],
+   "props": {
+    "kicker": "IXOPAY",
+    "title": "WHAT THEY BUILD",
+    "points": [
+     {"title": "Tokenization", "text": "Card data held as *universal tokens*"},
+     {"title": "Orchestration", "text": "Route a payment to *any* downstream provider"},
+     {"title": "Payment intelligence", "text": "See what a payment did - and fix the route"}
+    ],
+    "source": "Jill Willard, CTO"
+   }
+  },
+  {
+   "id": "g03", "layout": "guest", "start": 127.0, "end": 144.0,
+   "template": "PShot", "shot": "ixopay-suite", "bin": "The Agentic Suite (V9)",
+   "note": "The announcement itself",
+   "marks": [
+    {"phrase": 0, "style": "marker", "at_s": 130.5},
+    {"phrase": 1, "style": "underline", "at_s": 137.0}
+   ],
+   "props": {
+    "url": "thepaypers.com/payments/news/ixopay-launches-agentic-suite",
+    "source": "THE PAYPERS - 9 SEP 2026",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "g04", "layout": "guest", "start": 144.0, "end": 166.0,
+   "template": "PPoints", "bin": "The Agentic Suite (V9)",
+   "note": "The merchant's three questions",
+   "reveal_s": [145.5, 150.5, 157.0],
+   "props": {
+    "kicker": "THE PROBLEM",
+    "title": "WHAT MERCHANTS ASK",
+    "points": [
+     "*How do I join* this new channel?",
+     "How do I do it *safely and easily*?",
+     "*Which protocol* do I build for?"
+    ]
+   }
+  },
+  {
+   "id": "g05", "layout": "guest", "start": 166.0, "end": 181.5,
+   "template": "PStack", "bin": "The Agentic Suite (V9)",
+   "note": "The three components",
+   "reveal_s": [167.5, 171.5, 175.5],
+   "props": {
+    "kicker": "IXOPAY AGENTIC SUITE",
+    "title": "THREE COMPONENTS",
+    "layers": [
+     {"title": "Closed-loop shopping agent", "tag": "PILLAR 1", "text": "Chat and pay, without leaving the merchant"},
+     {"title": "Payment agent", "tag": "PILLAR 2", "text": "Discovery, agent identity, intent"},
+     {"title": "MCP server", "tag": "PILLAR 3", "text": "Governed access for approved AI assistants"}
+    ],
+    "highlight": 0
+   }
+  },
+  {
+   "id": "g06", "layout": "guest", "start": 182.0, "end": 214.0,
+   "template": "PCompare", "bin": "Pillar 1 - closed loop (V9)",
+   "note": "The old cart vs the chat",
+   "props": {
+    "kicker": "PILLAR 1",
+    "title": "THE CART IS THE OLD WAY",
+    "left": {"name": "THE OLD CART", "tag": "TODAY", "points": ["Search the catalogue", "Add to cart", "Leave for a checkout page", "Pay"]},
+    "right": {"name": "CLOSED-LOOP AGENT", "tag": "IXOPAY", "points": ["Ask in chat", "The agent builds the list", "Pay *inside the chat*", "Never leave the merchant"]},
+    "verdict": "The payment comes to the conversation."
+   }
+  },
+  {
+   "id": "g07", "layout": "guest", "start": 214.5, "end": 246.0,
+   "template": "PFlow", "bin": "Pillar 1 - closed loop (V9)",
+   "note": "Her hardware-store example",
+   "reveal_s": [216.2, 222.5, 229.0, 237.0],
+   "props": {
+    "kicker": "HOW IT FEELS",
+    "title": "AT A HARDWARE STORE",
+    "steps": [
+     {"title": "Ask", "text": "'I want to build a fence - what do I need?'"},
+     {"title": "It answers", "text": "The list of materials comes up"},
+     {"title": "Pay in the chat", "text": "Payments come *into* the conversation"},
+     {"title": "Done", "text": "No separate cart, no redirect"}
+    ],
+    "foot": "Merchants are already building the chat. This gives it a till."
+   }
+  },
+  {
+   "id": "g08", "layout": "guest", "start": 259.0, "end": 291.0,
+   "template": "PPoints", "bin": "Pillar 2 - the payment agent (V9)",
+   "note": "Pillar two - agents that shop for you",
+   "reveal_s": [266.5, 275.0, 282.0],
+   "props": {
+    "kicker": "PILLAR 2",
+    "title": "AGENTS THAT SHOP FOR YOU",
+    "points": [
+     "Not you, typing into *ChatGPT* or *Gemini*",
+     "Your own *personal assistant agent*",
+     "Shopping while you are *not even there*"
+    ]
+   }
+  },
+  {
+   "id": "g09", "layout": "guest", "start": 291.0, "end": 306.0,
+   "template": "PQuote", "bin": "Pillar 2 - the payment agent (V9)",
+   "note": "The brief of the future",
+   "props": {
+    "kicker": "THE NEW BRIEF",
+    "quote": "My daughter has a birthday next week. *Order me something.*",
+    "author": "Jill Willard",
+    "role": "CTO, IXOPAY - on what people will tell their agent"
+   }
+  },
+  {
+   "id": "g10", "layout": "guest", "start": 306.5, "end": 344.0,
+   "template": "PFlow", "bin": "Pillar 2 - the payment agent (V9)",
+   "note": "Discovery mode - how an agent finds a merchant",
+   "reveal_s": [313.0, 325.0, 336.0],
+   "props": {
+    "kicker": "DISCOVERY MODE",
+    "title": "HOW AN AGENT FINDS YOU",
+    "steps": [
+     {"title": "Discovery mode", "text": "Make the merchant findable by agents"},
+     {"title": "WebMCP server", "text": "One script on the page - like a hosted payment page"},
+     {"title": "Catalogue link", "text": "Point the agent at what you sell"}
+    ],
+    "foot": "As easy as putting up a hosted payment page."
+   }
+  },
+  {
+   "id": "g11", "layout": "guest", "start": 344.0, "end": 375.0,
+   "template": "PExplainer", "bin": "Pillar 2 - the payment agent (V9)",
+   "note": "Visa's merchant registry",
+   "props": {
+    "kicker": "BEING FOUND",
+    "name": "VISA MERCHANT REGISTRY",
+    "lead": "Not fully out yet - but through the payment agent, IXOPAY will *register the merchant with Visa*, so agents know which merchants are real.",
+    "facts": [
+     {"label": "STATUS", "value": "Visa is building it - not fully live"},
+     {"label": "PURPOSE", "value": "Tells agents: these are valid merchants to shop at"},
+     {"label": "VIA", "value": "IXOPAY's payment agent"}
+    ]
+   }
+  },
+  {
+   "id": "g12", "layout": "guest", "start": 376.0, "end": 412.0,
+   "template": "PFlow", "bin": "Pillar 2 - the payment agent (V9)",
+   "note": "What happens when the agent actually pays",
+   "reveal_s": [383.0, 389.0, 395.5, 404.0],
+   "props": {
+    "kicker": "WHEN THE AGENT PAYS",
+    "title": "FOUR CHECKS ON THE WAY THROUGH",
+    "steps": [
+     {"title": "Card data in", "text": "Into the hosted payment page"},
+     {"title": "Protocol", "text": "Visa TAP - Mastercard Agent Pay"},
+     {"title": "Validate", "text": "Agent identity, and the *intent*"},
+     {"title": "Downstream", "text": "Intent rides alongside the network token"}
+    ]
+   }
+  },
+  {
+   "id": "g13", "layout": "guest", "start": 415.0, "end": 443.0,
+   "template": "PQuote", "bin": "Are you late? (V9)",
+   "note": "Otabek's challenge",
+   "props": {
+    "kicker": "THE PUSHBACK",
+    "quote": "Stripe, Adyen, Checkout already do most of this. Don't you think you are *a bit late to the game*?",
+    "author": "Otabek Nuritdinov",
+    "role": "Co-host, On The Ground"
+   }
+  },
+  {
+   "id": "g14", "layout": "guest", "start": 443.5, "end": 470.0,
+   "template": "PCompare", "bin": "Are you late? (V9)",
+   "note": "Her answer - you don't have to move your stack",
+   "props": {
+    "kicker": "HER ANSWER",
+    "title": "WHOSE STACK IS IT",
+    "left": {"name": "A PROCESSOR'S OWN SUITE", "tag": "STRIPE - ADYEN", "points": ["Ties you to one platform", "Move your stack to accept agentic", "One way of doing it"]},
+    "right": {"name": "IXOPAY PAYMENT AGENT", "tag": "FLEXIBLE", "points": ["Any hosted payment page", "Any downstream provider", "Keep Fiserv, keep your partners"]},
+    "verdict": "You stay in control of your payment stack."
+   }
+  },
+  {
+   "id": "g15", "layout": "guest", "start": 487.5, "end": 512.0,
+   "template": "PPoints", "bin": "Are you late? (V9)",
+   "note": "Otabek's Apple analogy",
+   "reveal_s": [489.5, 497.0, 505.0],
+   "props": {
+    "kicker": "WHY LAUNCH NOW",
+    "title": "THE APPLE PLAY",
+    "points": [
+     "*Wait* while everyone else ships",
+     "Take *the best* of each",
+     "Launch when the market is *ready*"
+    ]
+   }
+  },
+  {
+   "id": "g16", "layout": "guest", "start": 514.0, "end": 556.0,
+   "template": "PPoints", "bin": "Are you late? (V9)",
+   "note": "Buzz vs action - nobody has actually done it",
+   "reveal_s": [517.0, 525.5, 533.0, 549.5],
+   "props": {
+    "kicker": "BUZZ vs ACTION",
+    "title": "WHO HAS ACTUALLY DONE IT?",
+    "points": [
+     "Adyen launched it. Stripe launched it.",
+     "*Very few* fully autonomous transactions",
+     "Merchants and consumers aren't ready - *yet*",
+     "'We're *right on the cusp*'"
+    ],
+    "source": "Jill Willard, CTO, IXOPAY"
+   }
+  },
+  {
+   "id": "g17", "layout": "guest", "start": 557.0, "end": 584.0,
+   "template": "PStack", "bin": "The protocol zoo (V9)",
+   "note": "Otabek lists the five rulebooks - they stack up bottom to top as he names them",
+   "reveal_s": [564.5, 566.6, 568.6, 570.4, 572.4],
+   "props": {
+    "kicker": "THE PROTOCOL ZOO",
+    "title": "FIVE RULEBOOKS FOR AGENT PAYMENTS",
+    "layers": [
+     {"title": "UCP", "tag": "GOOGLE + SHOPIFY", "text": "Universal Commerce Protocol"},
+     {"title": "ACP", "tag": "OPENAI + STRIPE", "text": "Agentic Commerce Protocol"},
+     {"title": "AP2", "tag": "GOOGLE", "text": "Agent Payments Protocol"},
+     {"title": "TAP", "tag": "VISA", "text": "Trusted Agent Protocol"},
+     {"title": "AGENT PAY", "tag": "MASTERCARD", "text": "With Verifiable Intent"}
+    ]
+   }
+  },
+  {
+   "id": "g18", "layout": "guest", "start": 584.5, "end": 618.0,
+   "template": "PCompare", "bin": "The protocol zoo (V9)",
+   "note": "Which ones IXOPAY supports today",
+   "props": {
+    "kicker": "WHICH ONES TODAY",
+    "title": "LIVE, AND COMING",
+    "left": {"name": "LIVE NOW", "tag": "IXOPAY", "points": ["Visa TAP", "Mastercard Agent Pay"]},
+    "right": {"name": "PLANNED", "tag": "ALL OF THEM", "points": ["UCP", "ACP", "AP2", "...and whatever comes next"]},
+    "verdict": "We encapsulate the complexity away from the merchant."
+   }
+  },
+  {
+   "id": "g19", "layout": "guest", "start": 622.0, "end": 653.0,
+   "template": "PQuote", "bin": "The protocol zoo (V9)",
+   "note": "What Otabek hears from merchants and acquirers",
+   "props": {
+    "kicker": "WHAT MERCHANTS SAY",
+    "quote": "There are so many protocols - *which ones do we need to use?* We're literally scared, because we don't know.",
+    "author": "Otabek Nuritdinov",
+    "role": "From his newsletter readers - and acquirers at a Mastercard event"
+   }
+  },
+  {
+   "id": "g20", "layout": "guest", "start": 655.0, "end": 702.0,
+   "template": "PFlow", "bin": "Turning it on (V9)",
+   "note": "What an existing IXOPAY merchant has to do",
+   "reveal_s": [662.0, 670.0, 677.5, 692.0],
+   "props": {
+    "kicker": "IF YOU ALREADY USE IXOPAY",
+    "title": "WHAT A MERCHANT DOES",
+    "steps": [
+     {"title": "Sign up", "text": "Tell IXOPAY you want agentic"},
+     {"title": "Pick protocols", "text": "Turn on Visa TAP, Agent Pay, or both"},
+     {"title": "Add the script", "text": "One WebMCP script on your site"},
+     {"title": "Agents shop", "text": "If they speak your protocol, they buy"}
+    ],
+    "foot": "Expand the list of protocols as you see fit."
+   }
+  },
+  {
+   "id": "g21", "layout": "guest", "start": 714.5, "end": 752.0,
+   "template": "PExplainer", "bin": "Turning it on (V9)",
+   "note": "Tilopay - the first customer, a PSP not a merchant",
+   "props": {
+    "kicker": "FIRST CUSTOMER",
+    "name": "TILOPAY",
+    "lead": "A *payment company*, not a merchant - Costa Rica, serving merchants across Central America and the Caribbean.",
+    "facts": [
+     {"label": "WHERE", "value": "Costa Rica"},
+     {"label": "SERVES", "value": "Central America and the Caribbean"},
+     {"label": "WHY THEM", "value": "Scale it across many merchants at once"},
+     {"label": "HOW", "value": "Sits alongside their hosted payment page"}
+    ]
+   }
+  },
+  {
+   "id": "g22", "layout": "guest", "start": 752.5, "end": 778.0,
+   "template": "PStat", "bin": "Turning it on (V9)",
+   "note": "Two-week integration",
+   "props": {
+    "kicker": "HOW HARD IS IT",
+    "title": "TO GO LIVE",
+    "value": 2,
+    "suffix": " WEEKS",
+    "label": "INTEGRATION TIME",
+    "context": "A script on your website - then launch. *Low lift*, in her words.",
+    "source": "Jill Willard, CTO, IXOPAY"
+   }
+  },
+  {
+   "id": "g23", "layout": "guest", "start": 797.5, "end": 824.0,
+   "template": "PQuote", "bin": "Has anyone actually bought anything? (V9)",
+   "note": "The honest test - nobody on this show has ever bought with an agent",
+   "props": {
+    "kicker": "THE HONEST TEST",
+    "quote": "All three of us agreed *we've never bought anything using an agent*. We research the products and the pricing - but never bought.",
+    "author": "Sam Boboev",
+    "role": "With Ayesha Chandrakar, CB Insights - on the show in June"
+   }
+  },
+  {
+   "id": "g24", "layout": "guest", "start": 826.0, "end": 854.0,
+   "template": "PPoints", "bin": "Has anyone actually bought anything? (V9)",
+   "note": "Where merchants actually start",
+   "reveal_s": [836.0, 842.5, 848.0],
+   "props": {
+    "kicker": "WHERE MERCHANTS START",
+    "title": "CLOSED-LOOP FIRST",
+    "points": [
+     "*Lots of interest* in the closed-loop agent",
+     "It's where merchants dip a toe in",
+     "Payment inside a chat they already built"
+    ]
+   }
+  },
+  {
+   "id": "g25", "layout": "guest", "start": 854.5, "end": 882.0,
+   "template": "PFlow", "bin": "Has anyone actually bought anything? (V9)",
+   "note": "The stair step",
+   "reveal_s": [856.2, 862.5, 872.0],
+   "props": {
+    "kicker": "THE STAIR STEP",
+    "title": "HOW A MERCHANT GROWS INTO IT",
+    "steps": [
+     {"title": "Practise", "text": "Your own agent, on your own site, full control"},
+     {"title": "Get comfortable", "text": "The payment agent and the tool set"},
+     {"title": "Open up", "text": "Accept agents from anywhere"}
+    ]
+   }
+  },
+  {
+   "id": "g26", "layout": "guest", "start": 900.0, "end": 932.0,
+   "template": "PPoints", "bin": "Has anyone actually bought anything? (V9)",
+   "note": "Anthropic's cloud agents as the tipping point",
+   "reveal_s": [906.0, 916.0, 924.0],
+   "props": {
+    "kicker": "WHAT CHANGED",
+    "title": "AGENTS THAT RUN WITHOUT YOU",
+    "points": [
+     "Anthropic: run your agents *from the cloud*",
+     "No computer open, no chat window",
+     "'A peek into this *personal agent*'"
+    ]
+   }
+  },
+  {
+   "id": "g27", "layout": "guest", "start": 932.5, "end": 949.0,
+   "template": "PStat", "bin": "Has anyone actually bought anything? (V9)",
+   "note": "Her six-month call",
+   "props": {
+    "kicker": "HER CALL",
+    "title": "AI RECOMMENDS, THEN AI TRANSACTS",
+    "value": 6,
+    "suffix": " MONTHS",
+    "label": "IF I HAD MY CRYSTAL BALL",
+    "context": "When agents stop recommending and start *buying*.",
+    "source": "Jill Willard, CTO, IXOPAY"
+   }
+  },
+  {
+   "id": "g28", "layout": "guest", "start": 950.0, "end": 978.0,
+   "template": "PQuote", "bin": "Intent (V9)",
+   "note": "The missing piece - intent",
+   "props": {
+    "kicker": "THE MISSING PIECE",
+    "quote": "There is *nothing in the payment stack today* that thinks about the intent.",
+    "author": "Jill Willard",
+    "role": "CTO, IXOPAY - quoted back to her by Otabek"
+   }
+  },
+  {
+   "id": "g29", "layout": "guest", "start": 990.0, "end": 1026.0,
+   "template": "PCompare", "bin": "Intent (V9)",
+   "note": "Visa vs Mastercard - same idea, different flavour",
+   "props": {
+    "kicker": "HOW DOES A MERCHANT KNOW YOU ASKED?",
+    "title": "TWO FLAVOURS OF INTENT",
+    "left": {"name": "VISA", "tag": "TAP", "points": ["*Registered intent*", "Agent registers before it buys", "Object travels with the transaction"]},
+    "right": {"name": "MASTERCARD", "tag": "AGENT PAY", "points": ["*Verifiable intent*", "Open-source framework", "UCP uses something similar"]},
+    "verdict": "A different flavour of the same thing."
+   }
+  },
+  {
+   "id": "g30", "layout": "guest", "start": 1026.0, "end": 1062.0,
+   "template": "PFlow", "bin": "Intent (V9)",
+   "note": "Where the intent actually rides",
+   "reveal_s": [1029.0, 1034.5, 1039.5, 1050.0],
+   "props": {
+    "kicker": "WHERE THE INTENT RIDES",
+    "title": "FROM AGENT TO MERCHANT",
+    "steps": [
+     {"title": "Register", "text": "The agent registers the intent *ahead of time*"},
+     {"title": "The object", "text": "Registered intent, or verifiable intent"},
+     {"title": "Into the cryptogram", "text": "Bound to the *network token cryptogram*"},
+     {"title": "Merchant checks", "text": "Validate the signing, and the agent"}
+    ]
+   }
+  },
+  {
+   "id": "g31", "layout": "guest", "start": 1086.0, "end": 1120.0,
+   "template": "PPoints", "bin": "Liability (V9)",
+   "note": "Otabek's liability question",
+   "reveal_s": [1093.0, 1099.5, 1108.0],
+   "props": {
+    "kicker": "THE OPEN QUESTION",
+    "title": "WHO EATS THE LOSS?",
+    "points": [
+     "The agent buys *the wrong thing*",
+     "Or spends *more than you asked*",
+     "Merchant? Agent maker? Card network? *You?*"
+    ]
+   }
+  },
+  {
+   "id": "g32", "layout": "guest", "start": 1121.0, "end": 1145.0,
+   "template": "PCompare", "bin": "Liability (V9)",
+   "note": "Amex stands behind it, the rest do not",
+   "props": {
+    "kicker": "WHERE IT SITS TODAY",
+    "title": "ONE NETWORK BLINKED",
+    "left": {"name": "AMEX", "tag": "WILL COVER IT", "points": ["Covers erroneous purchases", "By *registered AI agents*", "'They will stand behind that'"]},
+    "right": {"name": "VISA - MASTERCARD - OTHERS", "tag": "NOT YET", "points": ["'It's on the merchant'", "And on the merchant *acquirer*"]},
+    "verdict": "Everyone is worried about this part of it."
+   }
+  },
+  {
+   "id": "g33", "layout": "guest", "start": 1145.0, "end": 1170.0,
+   "template": "PPoints", "bin": "Liability (V9)",
+   "note": "Responsible, but blind - and what IXOPAY does about it",
+   "reveal_s": [1146.5, 1152.5, 1160.0],
+   "props": {
+    "kicker": "THE CATCH",
+    "title": "RESPONSIBLE, BUT BLIND",
+    "points": [
+     "The intent rides *inside the cryptogram*",
+     "The merchant *cannot decode* it",
+     "IXOPAY passes intent *alongside* its universal token - so you can see it"
+    ]
+   }
+  },
+  {
+   "id": "g34", "layout": "guest", "start": 1170.5, "end": 1200.0,
+   "template": "PTimeline", "bin": "Liability (V9)",
+   "note": "History: liability is what makes a rail take off",
+   "reveal_s": [1176.0, 1185.5, 1194.0],
+   "props": {
+    "kicker": "HISTORY REPEATS",
+    "title": "LIABILITY IS WHAT MAKES IT TAKE OFF",
+    "events": [
+     {"date": "TO THE 1980s", "text": "Cards exist - usage stays flat"},
+     {"date": "MID-1980s", "text": "Card brands take the liability - *usage skyrockets*"},
+     {"date": "E-COMMERCE", "text": "Same again - growth goes *hockey stick*", "hot": true}
+    ]
+   }
+  },
+  {
+   "id": "g35", "layout": "guest", "start": 1201.0, "end": 1230.0,
+   "template": "PQuote", "bin": "Liability (V9)",
+   "note": "Her verdict - the biggest blocker",
+   "props": {
+    "kicker": "THE BLOCKER",
+    "quote": "I don't think agentic commerce is going to take off the way we want it to *until the card brands decide to take the liability*.",
+    "author": "Jill Willard",
+    "role": "CTO, IXOPAY"
+   }
+  },
+  {
+   "id": "g36", "layout": "guest", "start": 1240.0, "end": 1262.0,
+   "template": "PPoints", "bin": "Fraud (V9)",
+   "note": "Otabek: the fraud tools don't transfer",
+   "reveal_s": [1242.0, 1248.5, 1258.0],
+   "props": {
+    "kicker": "THE NEXT WORRY",
+    "title": "FRAUD TOOLS DON'T TRANSFER",
+    "points": [
+     "Years of tools to spot *human* fraud patterns",
+     "None of them read an *agent*",
+     "How do you tell a real agent from a bot?"
+    ]
+   }
+  },
+  {
+   "id": "g37", "layout": "guest", "start": 1264.0, "end": 1296.0,
+   "template": "PShot", "shot": "cloudflare-agents", "bin": "Fraud (V9)",
+   "note": "Cloudflare on distinguishing a real agent",
+   "marks": [
+    {"phrase": 0, "style": "marker", "at_s": 1267.5},
+    {"phrase": 1, "style": "marker", "at_s": 1284.0}
+   ],
+   "props": {
+    "url": "blog.cloudflare.com/secure-agentic-commerce",
+    "source": "CLOUDFLARE BLOG",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "g38", "layout": "guest", "start": 1296.0, "end": 1330.0,
+   "template": "PFlow", "bin": "Fraud (V9)",
+   "note": "How a real agent gets through the door",
+   "reveal_s": [1298.5, 1305.0, 1312.0, 1322.0],
+   "props": {
+    "kicker": "WHO GUARDS THE DOOR",
+    "title": "HOW A REAL AGENT GETS IN",
+    "steps": [
+     {"title": "Networks register", "text": "Visa and Mastercard keep the list of real agents"},
+     {"title": "Cloudflare integrates", "text": "The firewall in front of most of the web"},
+     {"title": "Open the gate", "text": "Let Visa and Mastercard agents through"},
+     {"title": "Check again", "text": "Verify identity when it actually pays"}
+    ]
+   }
+  },
+  {
+   "id": "g39", "layout": "guest", "start": 1330.0, "end": 1370.0,
+   "template": "PPoints", "bin": "Fraud (V9)",
+   "note": "The risk engine, and Riskified",
+   "reveal_s": [1332.5, 1345.0, 1358.5],
+   "props": {
+    "kicker": "WHAT IXOPAY IS BUILDING",
+    "title": "RISK, WITH INTENT ATTACHED",
+    "points": [
+     "Intent rides with the token, *into the risk engine*",
+     "Score on *amount - intent - agent identity*",
+     "Partner *Riskified* is predicting agentic risk"
+    ]
+   }
+  },
+  {
+   "id": "g40", "layout": "guest", "start": 1384.0, "end": 1394.5,
+   "template": "PShot", "shot": "anthropic-blueprint", "bin": "The blueprint (V9)",
+   "note": "Anthropic's blueprint for AI shopping agents",
+   "marks": [
+    {"phrase": 0, "style": "marker", "at_s": 1388.0}
+   ],
+   "props": {
+    "url": "pymnts.com/news/artificial-intelligence/2026/anthropic-gives-retailers-blueprint",
+    "source": "PYMNTS",
+    "crop": "auto"
+   }
+  },
+  {
+   "id": "g41", "layout": "guest", "start": 1394.5, "end": 1420.0,
+   "template": "PQuote", "bin": "The blueprint (V9)",
+   "note": "Wild West - the line of the interview",
+   "props": {
+    "kicker": "HER REACTION",
+    "quote": "Right now it's *the Wild West*. We're building, but there's no best practices.",
+    "author": "Jill Willard",
+    "role": "CTO, IXOPAY"
+   }
+  },
+  {
+   "id": "g42", "layout": "guest", "start": 1420.0, "end": 1439.0,
+   "template": "PPoints", "bin": "The blueprint (V9)",
+   "note": "Why a blueprint helps",
+   "reveal_s": [1422.0, 1427.5, 1433.0],
+   "props": {
+    "kicker": "WHY IT HELPS",
+    "title": "WHAT A BLUEPRINT DOES",
+    "points": [
+     "*Stabilises* what's happening",
+     "Tells people *how to build*",
+     "Sets protections and *governance*"
+    ]
+   }
+  },
+  {
+   "id": "g43", "layout": "guest", "start": 1440.0, "end": 1482.0,
+   "template": "PFlow", "bin": "2030 (V9)",
+   "note": "Orchestration in 2030: routing becomes actions",
+   "reveal_s": [1449.0, 1455.5, 1462.0, 1472.0],
+   "props": {
+    "kicker": "PAYMENTS IN 2030",
+    "title": "ROUTING BECOMES ACTIONS",
+    "steps": [
+     {"title": "Route", "text": "What orchestration does today"},
+     {"title": "Alert me", "text": "'Your authorization rate is bad'"},
+     {"title": "Recommend", "text": "New routes - and change them for you"},
+     {"title": "Act", "text": "Take the action on the merchant's behalf"}
+    ]
+   }
+  },
+  {
+   "id": "g44", "layout": "guest", "start": 1482.5, "end": 1508.0,
+   "template": "PQuote", "bin": "2030 (V9)",
+   "note": "The Uber story",
+   "props": {
+    "kicker": "HER FAVOURITE EXAMPLE",
+    "quote": "Uber *made payments disappear*. I regularly walk out of cabs that aren't Ubers and forget to pay.",
+    "author": "Jill Willard",
+    "role": "CTO, IXOPAY"
+   }
+  },
+  {
+   "id": "g45", "layout": "guest", "start": 1508.0, "end": 1532.0,
+   "template": "PQuote", "bin": "2030 (V9)",
+   "note": "The closing prediction",
+   "props": {
+    "kicker": "2030",
+    "quote": "You're *never going to take your wallet out of your pocket*. Behind the scenes, the fraud, the checking and the authorization rates are fully autonomously managed.",
+    "author": "Jill Willard",
+    "role": "CTO, IXOPAY"
+   }
+  }
+ ]
+}

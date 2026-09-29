@@ -1,0 +1,12 @@
+{
+  "name": "OTG EP20 names bar",
+  "template": "D:/gashtak work/OTG/otgep19/for claude/for text layer.xml",
+  "track": 4,
+  "duration_s": 1970.33,
+  "out": "D:/gashtak work/OTG/otgep20/for claude/longform/panels/OTG EP20 names bar.xml",
+  "headlines": [
+    [0.0,    "Sam Boboev | Otabek Nuritdinov"],
+    [37.967, "Sam Boboev | Jill Willard, CTO of IXOPAY | Otabek Nuritdinov"],
+    [1534.5, "Sam Boboev | Otabek Nuritdinov"]
+  ]
+}
