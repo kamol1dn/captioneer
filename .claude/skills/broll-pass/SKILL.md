@@ -78,9 +78,28 @@ an answer; do not substitute a nearby value.
 Read the clip the way a viewer meets it: no prior context, sound possibly off,
 three seconds to decide whether to stay.
 
+## First: which show is this?
+
+`get_project` reports a `show` block. It decides which graphics templates exist,
+which whooshes you can place and whether reels end on a tail card — so read it
+before planning anything, and call `list_graphic_templates(project_id)` rather
+than the bare form, which only ever returns the OTG set.
+
+- **otg** — the news set: twenty templates, charts, headlines, stat cards. A
+  short is a brief that argues with data, so it is dense on purpose.
+- **gashtak** — a conversation, and the brief is the opposite: b-roll, a whoosh
+  over the hard cuts, and a card only when he names something a viewer will not
+  know. Three templates, all of them Helvetica and cream on nothing.
+  `GashtakNote` is the default; reach for `GashtakFacts` only when the note will
+  not fit in two lines.
+
+A project with no show set gets the OTG set and no dressing. If the reels are
+clearly one show's and the project says otherwise, fix it once with
+`set_project_defaults(show=...)` and say that you did.
+
 ## What you are placing
 
-Three different things, and choosing the wrong one is the most common error.
+Four different things, and choosing the wrong one is the most common error.
 
 **`kind="footage"`** — anything that *replaces* the picture. Two sources:
 stock video (Envato — see "Stock footage" below) when the words describe
@@ -99,6 +118,19 @@ overlays you can make yourself** — see "Rendering graphics" below.
 a title card, a decision about tone, anything you cannot specify precisely.
 Markers cost nothing and are read in Premiere's timeline, so an uncertain
 suggestion belongs here rather than as a placeholder nobody asked for.
+
+**A transition** (`add_transition`) — one of the show's whooshes, laid across a
+cut. Not a b-roll kind and not a Premiere transition: it is an overlay clip that
+composites with `screen`, straddling the cut so its flash frame lands exactly on
+the join, with its own audio pulled down under the voice.
+
+Where they earn their place: **going into a cutaway, and on a stitch** — a join
+between two non-adjacent parts of the conversation, where the room tone and the
+framing both jump. On an ordinary same-angle jump cut they read as decoration;
+the compiler's punch-in already hides those. Four in a minute is the ceiling.
+
+`at` is the master second of the **cut**, not where you want the effect to start
+— the asset's head runs before that instant on its own.
 
 A b-roll entry with no `source` is a **placeholder**: it exports as a marker
 carrying its `query`, so the intent reaches the editor without Premiere nagging
@@ -424,10 +456,23 @@ user — it leaves their Downloads), conforms the frame rate if needed, records
 the size so the export scales it to fill 9:16, and attaches it. Anything shorter
 than its entry comes back as a note; shorten the entry or pick another shot.
 
+## The tail card
+
+A show whose config has an `outro` ends every reel on it — the mark and a line,
+over the last of the conversation still running underneath. It is one file for
+the whole project: `render_outro(project_id)` once, and every later `export_xml`
+picks it up.
+
+Until that file exists the compiler exports reels that stop at the cut; it will
+not hold ten seconds of picture under a card that was never made. So **the reel
+is longer than the cut** once it is rendered — `export_xml` reports the real
+duration, and a clip you sized to 55 seconds arrives at 65.
+
 ## Finishing
 
 `export_xml(project_id)` — one XML, every clip a sequence, and the tracks arrive
-bottom to top as: camera stack, b-roll footage, overlays, captions.
+bottom to top as: camera stack, b-roll footage, overlays, hook, captions,
+whooshes, tail card.
 
 Then show the user what was placed and why, per clip. Placeholders and markers
 are instructions to a human, so they have to read as instructions — `"stripe
@@ -447,6 +492,13 @@ office exterior, 3s"` is useful and `"visual for this bit"` is not.
   and needs `npm install` in `graphics/`. `render_graphics` says so if missing.
 - **Re-exporting after the user has imported** duplicates sequences in their
   project. Ask first.
+- **A whoosh is anchored to the cut, not to the b-roll entry.** Place the
+  transition at the same master second the cutaway starts; the compiler works
+  out the lead. Moving the b-roll later does *not* move the whoosh.
+- **Blend modes and Premiere transitions do not round trip.** A `<compositemode>`
+  on a clip does (that is how the whoosh works), but a Premiere cross-dissolve
+  comes back as something else and an adjustment layer comes back as black
+  video. Anything that needs to fade fades inside its own rendered file.
 - **`set_edl` is not for this session.** If something seems to need it, that is
   the signal to hand back to `clip-episode`, not to reach for it.
 - **The MCP server holds the engine code in memory.** If `clipper/` changed since

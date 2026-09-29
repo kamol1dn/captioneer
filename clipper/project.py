@@ -140,6 +140,10 @@ class Project:
     language: str = ""
     # Caption preset name for this project's clips. Empty = the engine default.
     caption_preset: str = ""
+    # Which show's dressing the reels wear: the key of a shows/<id>.json.
+    # Empty means none, which is the bare cut - what every project written
+    # before shows existed keeps exporting.
+    show_id: str = ""
     # The episode timeline exported from Premiere as FCP7 XML. When set, angles
     # can take their picture straight off its V-tracks and its A-tracks become
     # the reel's audio bed, so the only thing that has to be exported as media is
@@ -178,6 +182,29 @@ class Project:
         d = self.dir / "exports"
         d.mkdir(parents=True, exist_ok=True)
         return d
+
+    @property
+    def graphics_dir(self) -> Path:
+        return self.dir / "graphics"
+
+    # -- show dressing --------------------------------------------------------
+
+    def show(self):
+        """The show's dressing config, or the empty show when none is named."""
+        from . import show as show_mod
+        return show_mod.load(self.show_id)
+
+    def outro_mov(self) -> Optional[str]:
+        """The rendered tail card, or None until `render_outro` has made it.
+
+        Existence on disk is the gate rather than the config, because the
+        compiler holds picture under this card: promising the hold before the
+        file exists would end every reel on ten seconds of nothing.
+        """
+        if not self.show_id:
+            return None
+        path = self.graphics_dir / "outro.mov"
+        return str(path) if path.is_file() else None
 
     # ── lookups ──────────────────────────────────────────────────────────────
 
@@ -371,6 +398,7 @@ class Project:
             "primary_audio_camera": self.primary_audio_camera,
             "language": self.language,
             "caption_preset": self.caption_preset,
+            "show": self.show_id,
             "master_xml": (_relativize(str(self.master_xml_path), self.dir)
                            if self.master_xml else ""),
             "master_sequence": self.master_sequence,
@@ -393,6 +421,7 @@ class Project:
             # means "auto-detect", which is the old behaviour.
             language=d.get("language", ""),
             caption_preset=d.get("caption_preset", ""),
+            show_id=d.get("show", ""),
             master_xml=d.get("master_xml", ""),
             master_sequence=d.get("master_sequence", ""),
             cameras=[Camera.from_dict(c, project_dir)

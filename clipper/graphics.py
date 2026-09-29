@@ -42,10 +42,32 @@ def manifest() -> Dict[str, dict]:
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))["templates"]
 
 
+def for_show(show_id: str = "") -> Dict[str, dict]:
+    """The templates one show may use.
+
+    Two shows with two looks would otherwise hand an agent a menu of forty, half
+    of them in the wrong brand — and a Gashtak reel wearing an OTG chart is the
+    kind of mistake nobody catches until it is published. An entry with no
+    ``show`` belongs to OTG, which is what every template written before shows
+    existed is, and what a project naming no show still gets.
+    """
+    want = show_id or "otg"
+    return {name: spec for name, spec in manifest().items()
+            if spec.get("show", "otg") == want}
+
+
 def template_kind(template: str) -> str:
-    """Where a template's file belongs: "overlay", "footage" or "title" (hook)."""
-    frame = manifest()[template].get("frame")
-    return {"full": "footage", "title": "title"}.get(frame, "overlay")
+    """Where a template's file belongs.
+
+    "overlay" sits on the picture, "footage" replaces it, "title" is the clip's
+    hook and "outro" is the show's tail card — the last two are placed by their
+    own tools, not on a b-roll entry, and saying so here is what lets
+    ``plan_jobs`` reject them with a sentence that names the right tool.
+    """
+    spec = manifest()[template]
+    if spec.get("placement"):
+        return spec["placement"]
+    return {"full": "footage", "title": "title"}.get(spec.get("frame"), "overlay")
 
 
 def ensure_installed() -> None:
@@ -247,6 +269,11 @@ def plan_jobs(edl: EDL, items: List[dict], out_dir: Path) -> Tuple[List[Job], Li
             errors.append(f"{tag}: {template} is the clip's opening title — set "
                           f"it with set_clip_hook, not on a b-roll entry")
             continue
+        if want == "outro":
+            errors.append(f"{tag}: {template} is the show's tail card — it comes "
+                          f"from the show config and is made by render_outro, "
+                          f"not placed on a b-roll entry")
+            continue
         if b.kind != want:
             errors.append(f"{tag}: {template} is a "
                           f"{'full-screen' if want == 'footage' else 'card'} "
@@ -296,6 +323,32 @@ def plan_hooks(edl: EDL, clip_ids: Optional[List[str]],
                         out=out_dir / f"{clip.id}_hook.mov",
                         still=out_dir / f"{clip.id}_hook.still.png"))
     return jobs, errors
+
+
+def plan_outro(edl: EDL, show, out_dir: Path) -> Tuple[List[Job], List[str]]:
+    """The one render job for a show's tail card, shared by every clip.
+
+    One file, not one per clip: the card says the same thing on every reel and
+    runs for the same length, so rendering it per clip would be the same frames
+    twelve times. It lands at ``outro.mov``, which is the name the compiler
+    looks for.
+    """
+    o = getattr(show, "outro", None)
+    if o is None or not o.template:
+        return [], [f"show {show.id or 'none'!r} has no outro"]
+    props = dict(o.props or {})
+    if o.scrim:
+        props.setdefault("scrim", o.scrim)
+    problems = check_props(o.template, props)
+    if problems:
+        return [], [f"outro: {p}" for p in problems]
+    if o.hold <= 0:
+        return [], ["outro: hold is 0 frames"]
+    return [Job(clip_id="", broll_id="outro", template=o.template, props=props,
+                render_props=stage_images(o.template, props),
+                frames=int(o.hold), program_start=0,
+                out=out_dir / "outro.mov",
+                still=out_dir / "outro.still.png")], []
 
 
 def render(jobs: List[Job], edl: EDL, timeout: float = 1800) -> List[dict]:

@@ -1,0 +1,29 @@
+{
+  "name": "Gashtak",
+  "graphics": "gashtak",
+  "default_transition": "burn",
+  "transitions": {
+    "burn": {
+      "path": "D:/gashtak work/podcasts/Ibrat Safo/assets/_Burning Light Transition 4.mov",
+      "seconds": 0.88,
+      "hit_sec": 0.3337,
+      "rotation": 90,
+      "composite": "screen",
+      "gain_db": -19,
+      "width": 1920,
+      "height": 1080,
+      "audio": true,
+      "scale": 154
+    }
+  },
+  "outro": {
+    "template": "GashtakOutro",
+    "props": {
+      "text": "To'liq suhbatni YouTube'da tomosha qiling",
+      "logo": "D:/gashtak work/gashtak-logo_bw.png",
+      "logoKey": "luminance"
+    },
+    "hold": 285,
+    "scrim": 0.55
+  }
+}

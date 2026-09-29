@@ -104,6 +104,27 @@ class BRoll:
 
 
 @dataclass
+class Transition:
+    """A whoosh laid across one cut.
+
+    Anchored to a single instant rather than a range, because that instant is
+    the only thing the editor is deciding — how much of the asset falls either
+    side of it is a property of the asset (see ``clipper.show.TransitionAsset``),
+    not of this cut. Storing a range instead would let the flash drift off the
+    cut every time the asset was swapped.
+
+    ``at`` is master seconds, like every other time in the EDL. A transition may
+    sit on a segment join, where the master times either side are not adjacent —
+    which is exactly why only the instant is stored: one instant maps onto the
+    program timeline unambiguously, a range spanning a discarded gap does not.
+    """
+    at: float
+    id: str = ""
+    asset: str = ""      # key into the show's transitions; "" -> the default
+    note: str = ""
+
+
+@dataclass
 class Marker:
     at: float
     name: str = ""
@@ -118,6 +139,7 @@ class Clip:
     segments: List[Segment] = field(default_factory=list)
     camera_cuts: List[CameraCut] = field(default_factory=list)
     broll: List[BRoll] = field(default_factory=list)
+    transitions: List[Transition] = field(default_factory=list)
     markers: List[Marker] = field(default_factory=list)
     note: str = ""
     # The opening title: {template, props, seconds, source?, frames?}. Not a
@@ -225,6 +247,8 @@ class EDL:
                     "segments": [_clean(vars(s)) for s in c.segments],
                     "camera_cuts": [_clean(vars(x)) for x in c.camera_cuts],
                     "broll": [_clean(vars(b)) for b in c.broll],
+                    **({"transitions": [_clean(vars(t)) for t in c.transitions]}
+                       if c.transitions else {}),
                     "markers": [_clean(vars(m)) for m in c.markers],
                     **({"hook": c.hook} if c.hook else {}),
                 }
@@ -252,6 +276,8 @@ class EDL:
                     segments=[Segment(**s) for s in c.get("segments", [])],
                     camera_cuts=[CameraCut(**x) for x in c.get("camera_cuts", [])],
                     broll=[BRoll(**b) for b in c.get("broll", [])],
+                    transitions=[Transition(**t)
+                                 for t in c.get("transitions", [])],
                     markers=[Marker(**m) for m in c.get("markers", [])],
                     hook=c.get("hook") or None,
                 )
@@ -332,6 +358,21 @@ def parse_broll(items: List[dict]) -> List[BRoll]:
 
 def parse_markers(items: List[dict]) -> List[Marker]:
     return [_parse(Marker, d, i, "marker") for i, d in enumerate(items)]
+
+
+def parse_transitions(items: List[dict]) -> List[Transition]:
+    out = sorted((_parse(Transition, d, i, "transition")
+                  for i, d in enumerate(items)), key=lambda t: t.at)
+    used = {t.id for t in out if t.id}
+    n = 1
+    for t in out:
+        if t.id:
+            continue
+        while f"t{n}" in used:
+            n += 1
+        t.id = f"t{n}"
+        used.add(t.id)
+    return out
 
 
 def _parse(cls, d: dict, i: int, what: str):
@@ -422,6 +463,15 @@ def validate(edl: EDL, camera_ids: List[str],
             if shot_end - shot_start < MIN_SHOT_SEC:
                 warnings.append(f"{tag}: {shot_end - shot_start:.2f}s shot on "
                                 f"cam {cam} at {shot_start:.2f}s reads as a glitch")
+
+        t_ids = set()
+        for t in clip.transitions:
+            if not any(s.start - 1e-6 <= t.at <= s.end + 1e-6 for s in segs):
+                errors.append(f"{tag}: transition {t.id!r} at {t.at:.2f}s is "
+                              f"not inside a kept segment")
+            if t.id in t_ids:
+                errors.append(f"{tag}: duplicate transition id {t.id!r}")
+            t_ids.add(t.id)
 
         broll_ids = set()
         for b in clip.broll:
