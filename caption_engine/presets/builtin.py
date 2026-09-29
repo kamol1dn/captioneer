@@ -117,3 +117,18 @@ def otg_cyan() -> CaptionStyle:
         highlight_color=(25, 224, 214, 255),   # active word turns black on cyan
         highlight_box_padding=10,
     )
+
+
+def otg_red() -> CaptionStyle:
+    """On-the-go red preset: the show's red, matching the long-form layouts."""
+    return CaptionStyle(
+        font_size=70,
+        max_chars_per_line=24,
+        text_color=(255, 255, 255, 255),
+        text_stroke_color=(0, 0, 0, 0),
+        text_stroke_width=0,
+        highlight_mode="none",
+        highlight_box_color=(224, 22, 29, 255),
+        highlight_color=(224, 22, 29, 255),   # active word turns the brand red
+        highlight_box_padding=10,
+    )

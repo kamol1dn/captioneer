@@ -10,13 +10,14 @@ CLI and any existing importers keep working.
 """
 from ..style import CaptionStyle
 from .builtin import (
-    reels_classic, bold_yellow_box, minimal_white, punchy_green, otg_cyan,
+    reels_classic, bold_yellow_box, minimal_white, punchy_green, otg_cyan, otg_red,
     gashtak_main, gashtak_2,
 )
 
 # The built-in seed set, still importable for reference/reset. The live library
 # (including user-created presets) comes from the preferences store below.
 PRESETS = {
+    "otg_red": otg_red,
     "otg_cyan": otg_cyan,
     "reels_classic": reels_classic,
     "bold_yellow_box": bold_yellow_box,
@@ -29,7 +30,7 @@ PRESETS = {
 # Default grouping used to seed preferences.json. The live grouping (which the
 # GUI can extend) is read from the store via ``groups()``.
 PRESET_GROUPS = {
-    "English": ["otg_cyan", "reels_classic", "bold_yellow_box",
+    "English": ["otg_red", "otg_cyan", "reels_classic", "bold_yellow_box",
                 "minimal_white", "punchy_green"],
     "Uzbek": ["gashtak_2", "gashtak_main"],
 }
@@ -56,6 +57,6 @@ def groups() -> dict:
 
 __all__ = [
     "PRESETS", "PRESET_GROUPS", "get", "names", "groups",
-    "reels_classic", "bold_yellow_box", "minimal_white", "punchy_green", "otg_cyan",
+    "reels_classic", "bold_yellow_box", "minimal_white", "punchy_green", "otg_cyan", "otg_red",
     "gashtak_main", "gashtak_2",
 ]
