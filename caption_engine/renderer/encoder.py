@@ -3,14 +3,23 @@
 Why ProRes 4444? It's the de-facto standard for alpha-channel video in pro
 NLEs (Premiere, Resolve, Final Cut). Editors can drop the .mov on a track and
 see-through transparency just works.
+
+A ``.webm`` output path switches to VP9 with alpha instead: a few MB rather
+than hundreds, for code pipelines (Remotion, browsers) that read it natively.
 """
 import subprocess
 import threading
 from typing import List, Optional, Callable
 
+from ..media import ffmpeg_bin
 from ..style import CaptionStyle
 from ..layout import Phrase
 from .preview import render_frame
+
+_PRORES = ["-c:v", "prores_ks", "-profile:v", "4444",   # ProRes 4444 supports alpha
+           "-pix_fmt", "yuva444p10le", "-vendor", "ap10"]
+_VP9_ALPHA = ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "24",
+              "-auto-alt-ref", "0", "-row-mt", "1", "-deadline", "good", "-cpu-used", "4"]
 
 
 def render_to_mov(
@@ -41,17 +50,14 @@ def render_to_mov(
 
     # ── spin up ffmpeg ──────────────────────────────────────────────────────
     cmd = [
-        "ffmpeg", "-y",
+        ffmpeg_bin("ffmpeg"), "-y",
         "-f", "rawvideo",
         "-vcodec", "rawvideo",
         "-s", f"{style.width}x{style.height}",
         "-pix_fmt", "rgba",
         "-r", str(style.fps),
         "-i", "-",                       # stdin
-        "-c:v", "prores_ks",
-        "-profile:v", "4444",            # ProRes 4444 supports alpha
-        "-pix_fmt", "yuva444p10le",
-        "-vendor", "ap10",
+        *(_VP9_ALPHA if output_path.lower().endswith(".webm") else _PRORES),
         "-an",
         output_path,
     ]
