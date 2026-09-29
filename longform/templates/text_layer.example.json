@@ -2,6 +2,7 @@
   "name": "SHOW EPxx headlines",
   "template": "D:/.../epxx/for claude/for text layer.xml",
   "track": 3,
+  "duration_s": 1970.3,
   "out": "D:/.../epxx/for claude/longform/panels/SHOW EPxx headlines.xml",
   "headlines": [
     [0.0,   "FIRST STORY HEADLINE"],

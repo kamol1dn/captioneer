@@ -14,7 +14,13 @@ are refused, which is also the honest limit of the bar they sit in.
 headlines.json:
     {"name": "...", "template": "<Premiere-exported XML>", "out": "<xml>",
      "track": 3,                                    # optional: template's video track
+     "duration_s": 1970.3,                          # optional: this episode's length
      "headlines": [[start_seconds, "TEXT"], ...]}   # each runs to the next
+
+The template only has to hold one text clip of the right look, so an earlier
+episode's export serves a later one whose layout hasn't changed. Its sequence
+length would then be the wrong episode's, which is what ``duration_s`` is for:
+the last headline runs to there instead.
 
 Each distinct text gets its own blob hash: Premiere caches Source Text by
 hash, and reusing the template's would make every clip show the original.
@@ -77,11 +83,13 @@ def build(spec: dict) -> Path:
     tseq, track_index, tclip, teff, blob, old = find_template(root, spec.get("track"))
     clip_rate = int(tclip.findtext("rate/timebase"))       # the clip's own in/out rate
     in0 = int(tclip.findtext("in"))
-    total = int(tseq.findtext("duration"))
+    total = FPS.to_frames(spec["duration_s"]) if "duration_s" in spec else int(tseq.findtext("duration"))
 
     heads = sorted(spec["headlines"])
     for _, text in heads:  # fail before writing anything
         retext(blob, old, text)
+    if heads and FPS.to_frames(heads[-1][0]) >= total:
+        raise ValueError(f"headline at {heads[-1][0]}s starts at or past the end ({total} frames)")
 
     out = ET.Element("xmeml", version="5")
     b = ET.SubElement(out, "bin")
