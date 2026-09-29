@@ -11,10 +11,11 @@ decisions; Premiere does the rendering.
 
 ## Before you start
 
-The user exports each camera's timeline from Premiere — vertical, own audio, all
-covering the **same time range** so they share a common t=0 — and drops them in a
-folder (typically `for claude/`). The clipper project is created as `clipper/`
-right beside that media, so the whole episode folder stays self-contained.
+The user drops the episode's material in a folder (typically `for claude/`):
+normally the vertical reels sequence as FCP7 XML plus the audio to transcribe
+(see "From the timeline" below — the usual route now). The clipper
+project is created as `clipper/` right beside that media, so the whole episode
+folder stays self-contained.
 
 The MCP server is `clipper-engine`. If its tools aren't available, the server
 isn't connected — say so rather than falling back to shell commands.
@@ -90,10 +91,10 @@ think about them again; every later tool reads them off the project.
 | Show | `language` | `caption_preset` |
 |------|-----------|------------------|
 | **Gashtak** (Uzbek) | `"uz"` | `"gashtak_2"` |
-| **OTG** (English) | `"en"` | `"otg_cyan"` |
+| **OTG** (English) | `"en"` | `"otg_red"` (since EP20; `otg_cyan` before) |
 
 `language="uz"` is not cosmetic. It routes transcription to the Kotib Uzbek
-model with MMS forced alignment instead of WhisperX, selects the Uzbek section
+model with MMS forced alignment instead of the English verbatim model, selects the Uzbek section
 of `prompts.txt` (the `o‘`/`g‘` orthography and Russian-code-switch rules), and
 makes `verify_clip_audio` listen in Uzbek. Leave it unset on an Uzbek episode
 and everything still "works" — badly, and silently: a mediocre auto-detected
@@ -116,10 +117,12 @@ checks fire. It says so in its own output; read the joins yourself there.
 
 Don't ask about these; just do them.
 
-- **An enhanced/combined mix** (`enhanced audio.mp3`) usually sits beside the
-  camera exports. Register it as an extra source and make it
-  `primary_audio_camera` — it is the audio the viewer hears. It is audio-only,
-  so it is never an angle and never a diarization target.
+- **A combined mix** (`mix.mp3`, `enhanced audio.mp3`) usually sits beside the
+  other exports. Register it as an extra source and make it
+  `primary_audio_camera` — verification and previews listen to it. It is
+  audio-only, so it is never an angle and never a diarization target. If the
+  folder has none, build one by summing the per-speaker tracks rather than
+  going without.
 - **Ingest with `diarize=True`.** Each subject has their own mic, so per-speaker
   transcription gives attributed lines and survives crosstalk. The mix stays
   pinned as the audio; the camera mics supply the words.
@@ -377,7 +380,7 @@ every join and flags:
 It defaults to high-confidence findings; every deliberate trim technically
 starts mid-clause, so showing everything buries the real breakages. Pass
 `min_confidence="medium"` to see the rest. These are **warnings** — read the
-context and decide. Fix by nudging the boundary and re-snapping; `get_transcript`
+context and decide. Fix by nudging the boundary and re-snapping; `get_words`
 gives the exact word time to move to.
 
 Do this *before* captioning: changing a boundary afterwards makes the clip stale
@@ -410,7 +413,9 @@ perfectly in the EDL.
   retime one without redoing the other. `camera` is a **camera id** (`A2`), never
   a speaker name (`host`). Fill in `why` — it's how the user audits your
   reasoning.
-- `audio.mode` — leave `pinned`. Every camera records the same room, so cutting
+- `audio.mode` — `source_tracks` on the timeline route (it reproduces the
+  master's A-tracks, see above); `pinned` on the mix for flat exports. Never
+  switch audio with the picture: every camera records the same room, so cutting
   audio at each visual switch produces an audible tonal jump.
 - `broll` — placeholders with a `query` describing wanted footage. They export
   as timeline markers, not offline clips.
@@ -487,9 +492,8 @@ Each sequence is built so the editor can change decisions without a re-export:
 V3   captions (rendered overlay, spans the clip)
 V2   camera B — every shot, only B's shots enabled
 V1   camera A — every shot, only A's shots enabled
-A1   enhanced mix   — enabled   (what you hear)
-A2   camera A mic   — disabled  (scratch)
-A3   camera B mic   — disabled  (scratch)
+A1…  pinned: the mix enabled, camera mics disabled as scratch
+     source_tracks: one track per master A-track, mute state kept
 ```
 
 - **Angle changes are a toggle.** Every shot exists on every camera track;

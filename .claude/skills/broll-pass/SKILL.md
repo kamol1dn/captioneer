@@ -358,8 +358,9 @@ What the checks from the first real run taught:
   second for the entrance; under 2.5s nothing gets read, over 5s it is wallpaper.
 - **Words on a card should be fewer than the words being spoken over it.** It
   reinforces the audio; it is not a second script.
-- Write props in the language of the clip. Montserrat covers Uzbek Latin
-  (oʻ, gʻ) and Cyrillic.
+- Write props in the language of the clip. Check a render of any Uzbek
+  (oʻ, gʻ) or Cyrillic text: both shows now use Helvetica, and a missing glyph
+  only shows up in the image.
 
 **Re-rendering.** Moving or resizing a rendered entry keeps the old file, which
 Premiere would then trim or leave short — every graphics edit reports this as a
@@ -508,7 +509,7 @@ office exterior, 3s"` is useful and `"visual for this bit"` is not.
 ## Judgment
 
 Propose a full plan per clip and explain the picks briefly rather than asking
-about each placement. Aim for the rhythm above — **hook, then a beat every 6-10
+about each placement. Aim for the rhythm above — **hook, then a beat every 5-8
 seconds** — because the user has asked for more graphics, not fewer. Every beat
 still has to earn its place by saying something; when a stretch genuinely has
 nothing worth putting on screen, leave it on the face and say why.

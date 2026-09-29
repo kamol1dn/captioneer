@@ -49,3 +49,6 @@ clipper_projects.json
 # _assets is images staged for a render, copied from wherever they live.
 graphics/node_modules/
 graphics/public/_assets/
+
+# Remotion's downloaded headless Chrome (~270 MB), re-fetched on demand
+.remotion/
