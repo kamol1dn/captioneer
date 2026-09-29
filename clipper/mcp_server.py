@@ -48,7 +48,8 @@ from . import transcript as transcript_mod  # noqa: E402
 from caption_engine.transcriber.word import load_words  # noqa: E402
 
 from .compile import compile_for, compile_for_monitor  # noqa: E402
-from . import edl as edl_mod  # noqa: E402
+from . import edl as edl_mod
+from . import show as show_mod  # noqa: E402
 from .edl import EDL, validate  # noqa: E402
 from .preview import render_preview  # noqa: E402
 from .project import Project, create
@@ -224,18 +225,28 @@ def list_projects_tool() -> List[dict]:
 
 @mcp.tool()
 def set_project_defaults(project_id: str, language: Optional[str] = None,
-                        caption_preset: Optional[str] = None) -> dict:
-    """Set the project's language and/or caption preset after the fact.
+                        caption_preset: Optional[str] = None,
+                        show: Optional[str] = None) -> dict:
+    """Set the project's language, caption preset and/or show after the fact.
 
-    For a project created before either was recorded, or created under the
-    wrong show. Both are what every later call defaults to, so this is the one
-    place to fix them — don't hand-edit project.json.
+    For a project created before any of them was recorded, or created under the
+    wrong show. All three are what every later call defaults to, so this is the
+    one place to fix them — don't hand-edit project.json.
 
-    Gashtak is `language="uz"`, `caption_preset="gashtak_2"`; OTG is `"en"` and
-    `"otg_cyan"`. Changing the language does **not** re-transcribe: if the
-    transcript was produced with the wrong one, re-run ingest.
+    Gashtak is `language="uz"`, `caption_preset="gashtak_2"`, `show="gashtak"`;
+    OTG is `"en"`, `"otg_cyan"`, `"otg"`. `show` is what decides which graphics
+    templates exist, which whooshes `add_transition` can reach and whether reels
+    end on a tail card — `list_shows` has the current ones. Changing the
+    language does **not** re-transcribe: if the transcript was produced with the
+    wrong one, re-run ingest.
     """
     project = _load(project_id)
+    if show is not None:
+        known = show_mod.known()
+        if show and show not in known:
+            raise ValueError(f"unknown show {show!r}; have {known} "
+                             f"(a show is a shows/<id>.json in the repo)")
+        project.show_id = show
     if caption_preset:
         from caption_engine import presets as _presets
         # Fail here rather than at render time, three steps later.
@@ -248,6 +259,7 @@ def set_project_defaults(project_id: str, language: Optional[str] = None,
     project.save()
     return {"project_id": project.id, "language": project.language,
            "caption_preset": project.caption_preset or captions_mod.DEFAULT_PRESET,
+           "show": project.show_id,
            "note": ("transcript was produced under the previous language; "
                     "re-run ingest if it was wrong")
                    if language is not None and project.ingest_state.get(
@@ -267,6 +279,12 @@ def get_project(project_id: str) -> dict:
     d["project_dir"] = str(project.dir)
     d["media_dir"] = str(project.media_dir)
     d["speakers"] = project.speaker_map()
+    dressing = project.show()
+    d["show"] = {"id": project.show_id, "name": dressing.name,
+                 "graphics": dressing.graphics,
+                 "transitions": sorted(dressing.transitions),
+                 "outro": bool(dressing.outro),
+                 "outro_rendered": bool(project.outro_mov())}
     edl = EDL.load(project.edl_path)
     d["edl_summary"] = ({"n_clips": len(edl.clips),
                          "clip_ids": [c.id for c in edl.clips]}
@@ -861,6 +879,10 @@ def export_xml(project_id: str, out_path: Optional[str] = None,
         {c.id: c.duration for c in compiled}))
     broll_meta, broll_warnings = stock_mod.broll_file_meta(edl)
     meta.update(broll_meta)
+    dressing = project.show()
+    meta.update(show_mod.file_meta(
+        dressing, edl.frame_size, edl.timebase, project.outro_mov(),
+        dressing.outro.hold if dressing.outro else 0))
 
     out = out_path or str(project.exports_dir / f"{project.id}.xml")
     write_xmeml(compiled, out, project_name=project.name, file_meta=meta)
@@ -944,6 +966,7 @@ def _save_graphics_edit(project, edl, clip, **extra) -> dict:
                          + graphics_mod.hook_conflicts(edl)),
             "clip_id": clip.id,
             "broll": [dict(vars(b)) for b in clip.broll],
+            "transitions": [dict(vars(t)) for t in clip.transitions],
             "markers": [dict(vars(m)) for m in clip.markers],
             **extra}
 
@@ -1050,6 +1073,126 @@ def set_clip_markers(project_id: str, clip_id: str, markers: List[dict]) -> dict
     clip = _clip_or_raise(project, edl, clip_id)
     clip.markers = edl_mod.parse_markers(markers)
     return _save_graphics_edit(project, edl, clip)
+
+
+@mcp.tool()
+def list_shows() -> dict:
+    """The shows a project can wear, and what each one dresses a reel with.
+
+    A show is the look that isn't the cut: which whoosh covers a cutaway and how
+    loud it sits, which graphics family the cards come from, whether reels end
+    on a tail card. Set one with `set_project_defaults(show=...)`.
+    """
+    out = {}
+    for sid in show_mod.known():
+        sh = show_mod.load(sid)
+        out[sid] = {
+            "name": sh.name, "graphics": sh.graphics,
+            "transitions": {k: {"seconds": t.seconds, "gain_db": t.gain_db,
+                                "composite": t.composite,
+                                "exists": Path(t.path).is_file()}
+                            for k, t in sh.transitions.items()},
+            "default_transition": sh.default_transition,
+            "outro": ({"template": sh.outro.template,
+                       "hold_frames": sh.outro.hold,
+                       "props": sh.outro.props} if sh.outro else None),
+        }
+    return {"shows": out}
+
+
+@mcp.tool()
+def add_transition(project_id: str, clip_id: str, at: float,
+                   asset: str = "", transition_id: str = "",
+                   note: str = "") -> dict:
+    """Lay one of the show's whooshes across a cut.
+
+    `at` is the **master second** of the cut it covers, like every other time in
+    the EDL. The asset straddles that instant — its flash frame lands exactly
+    there and its head runs before it — so pass the moment the picture changes,
+    not the moment you want the effect to start.
+
+    Where these earn their place: going into and out of a cutaway, and on a
+    stitch between two non-adjacent parts of the conversation. On an ordinary
+    same-angle jump cut they read as decoration; the compiler's own punch-in
+    already hides those.
+
+    `asset` names one of the show's transitions (`list_shows`); empty uses the
+    show's default. A project with no show gets a timeline marker instead of a
+    clip, so the intent still reaches the editor.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    known = project.show().transitions
+    if asset and asset not in known:
+        raise ValueError(f"no transition {asset!r} in show "
+                         f"{project.show_id or 'none'!r}; have "
+                         f"{sorted(known)}")
+    if transition_id and any(t.id == transition_id for t in clip.transitions):
+        raise ValueError(f"transition {transition_id!r} already exists on clip "
+                         f"{clip_id!r}")
+    clip.transitions = edl_mod.parse_transitions(
+        [dict(vars(t)) for t in clip.transitions]
+        + [{"at": at, "id": transition_id, "asset": asset, "note": note}])
+    return _save_graphics_edit(project, edl, clip)
+
+
+@mcp.tool()
+def remove_transition(project_id: str, clip_id: str,
+                      transition_id: str) -> dict:
+    """Drop one whoosh from a clip. Leaves the cut untouched."""
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    t = next((x for x in clip.transitions if x.id == transition_id), None)
+    if t is None:
+        raise ValueError(f"no transition {transition_id!r} on clip {clip_id!r}")
+    clip.transitions.remove(t)
+    return _save_graphics_edit(project, edl, clip, removed=transition_id)
+
+
+@mcp.tool()
+def set_clip_transitions(project_id: str, clip_id: str,
+                         transitions: List[dict]) -> dict:
+    """Replace one clip's whooshes, leaving the cut untouched.
+
+    Each entry is {at, asset, id, note} — see `add_transition`. Use this when
+    laying out a whole clip at once; an empty list clears them.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    clip = _clip_or_raise(project, edl, clip_id)
+    clip.transitions = edl_mod.parse_transitions(transitions)
+    return _save_graphics_edit(project, edl, clip)
+
+
+@mcp.tool()
+def render_outro(project_id: str) -> dict:
+    """Render the show's tail card once for the whole project.
+
+    Until this exists on disk the compiler exports reels that end on the cut:
+    it will not hold ten seconds of picture under a card that was never made.
+    One file serves every clip — the card says the same thing on each.
+
+    Re-run it after editing the show's `outro` block in `shows/<id>.json`.
+    """
+    project = _load(project_id)
+    edl = EDL.load(project.edl_path)
+    if edl is None:
+        raise ValueError("no EDL saved — call set_edl first")
+    sh = project.show()
+    jobs, errors = graphics_mod.plan_outro(edl, sh, project.graphics_dir)
+    if errors or not jobs:
+        return {"ok": False, "errors": errors or ["nothing to render"]}
+    with _quiet():
+        results = graphics_mod.render(jobs, edl)
+    r, job = results[0], jobs[0]
+    if not r.get("ok"):
+        return {"ok": False, "errors": [r.get("error") or "render failed"]}
+    return {"ok": True, "path": str(job.out), "check": str(job.still),
+            "frames": job.frames,
+            "seconds": round(edl.timebase.to_seconds(job.frames), 2),
+            "note": "every clip's reel now runs this much longer than its cut"}
 
 
 @mcp.tool()
@@ -1272,16 +1415,21 @@ def collect_broll(project_id: str, assign: Optional[List[dict]] = None,
 
 
 @mcp.tool()
-def list_graphic_templates() -> dict:
+def list_graphic_templates(project_id: Optional[str] = None) -> dict:
     """The animated graphics `render_graphics` can make, with their props.
 
     Each renders as an alpha ProRes overlay sized to the sequence and timed to
     the b-roll entry it fills, with its entrance and exit animation baked in —
     so nothing needs a dissolve applied by hand in Premiere.
+
+    Scoped to the project's show, because the two shows have two looks and a
+    Gashtak reel wearing an OTG chart is a mistake nobody catches until it is
+    published. Omit `project_id` for the OTG set.
     """
-    return {"templates": {
+    show_id = _load(project_id).show_id if project_id else ""
+    return {"show": show_id or "otg", "templates": {
         name: {k: spec[k] for k in ("description", "props", "required", "example")}
-        for name, spec in graphics_mod.manifest().items()}}
+        for name, spec in graphics_mod.for_show(show_id).items()}}
 
 
 @mcp.tool()

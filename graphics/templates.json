@@ -560,6 +560,74 @@
         "text": "Meta wants your inbox *and your card*"
       },
       "frame": "title"
+    },
+    "GashtakNote": {
+      "description": "Gashtak: a note over the picture for something he just named that a viewer might not know — a book, a term, a person, a place. Cream type on a hairline rule, no card. This is the default card for this show; reach for GashtakFacts only when it will not fit in two lines.",
+      "props": {
+        "label": "Optional. Small uppercase kicker, e.g. 'KITOB', 'ATAMA', 'JOY'.",
+        "title": "The thing itself, one line. *asterisks* colour a phrase.",
+        "detail": "Optional. One short line of explanation under it.",
+        "tone": "Optional. 'warm' (default) for something off paper — a book, a name, a quote. 'cool' for something from outside the room — a place, a number, a date.",
+        "position": "Where it sits: 'bottom' stands above the caption band, over the chest in this show's framing; 'top' hangs in the upper third. Default 'bottom'. The middle of the frame is the caption strip."
+      },
+      "required": [
+        "title"
+      ],
+      "image_props": [],
+      "example": {
+        "label": "KITOB",
+        "title": "So‘z erkinligi haqida so‘z",
+        "detail": "Karim Bahriyev, 2019"
+      },
+      "frame": "card",
+      "show": "gashtak"
+    },
+    "GashtakFacts": {
+      "description": "Gashtak: a full frame that replaces the picture while something gets explained — two to four short lines under a heading. Use it when the explanation is too long to sit over a face, not to decorate a point he already made clearly.",
+      "props": {
+        "label": "Optional. Small uppercase kicker above the heading.",
+        "title": "The heading, one line. *asterisks* colour a phrase.",
+        "lines": "2-4 short strings, one fact each. Under ~55 characters reads well.",
+        "source": "Optional. Small credit line at the bottom.",
+        "tone": "Optional. 'warm' (default) for something off paper — a book, a name, a quote. 'cool' for something from outside the room — a place, a number, a date."
+      },
+      "required": [
+        "title"
+      ],
+      "image_props": [],
+      "example": {
+        "label": "ATAMA",
+        "title": "Axborot gigiyenasi",
+        "lines": [
+          "Manbani tekshirish",
+          "Xabarni saralash",
+          "Iste’molni me’yorlash"
+        ]
+      },
+      "frame": "full",
+      "show": "gashtak"
+    },
+    "GashtakOutro": {
+      "description": "Gashtak: the tail card every reel of the show ends on, over the last of the conversation still running underneath. Rendered once per project by `render_outro` from the show config, not placed on a b-roll entry.",
+      "props": {
+        "text": "The line, e.g. \"To'liq suhbatni YouTube'da tomosha qiling\".",
+        "logo": "Optional. Absolute path to the show's mark.",
+        "handle": "Optional. A small @handle under the line.",
+        "scrim": "Optional. 0-1, how far the picture is darkened. Default 0.55.",
+        "logoKey": "Optional. 'alpha' (default) for a logo with real transparency; 'luminance' when the mark is white on opaque black, which is used as a mask so only the mark shows."
+      },
+      "required": [
+        "text"
+      ],
+      "image_props": [
+        "logo"
+      ],
+      "example": {
+        "text": "To'liq suhbatni YouTube'da tomosha qiling"
+      },
+      "frame": "full",
+      "show": "gashtak",
+      "placement": "outro"
     }
   }
 }

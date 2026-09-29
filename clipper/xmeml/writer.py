@@ -187,6 +187,9 @@ class XmemlWriter:
         _text(el, "end", item.end)
         _text(el, "in", item.in_)
         _text(el, "out", item.out)
+        # Before <file>, where Premiere itself writes it.
+        if item.composite:
+            _text(el, "compositemode", item.composite)
         el.append(self._source(item, tb))
 
         if item.media_type == "audio":
@@ -273,9 +276,15 @@ class XmemlWriter:
         which also keeps the punch relative to the framing instead of replacing
         it with an absolute zoom.
         """
-        # No punch on this shot: hand the source's filters back byte-identical
-        # rather than round-tripping their numbers through float.
-        if item.media_type != "video" or abs(item.scale - 100.0) <= 1e-6:
+        if item.media_type == "audio":
+            out = [copy.deepcopy(f) for f in item.filters]
+            if item.gain_db is not None:
+                out.append(_gain(item.gain_db))
+            return out
+
+        # No punch or rotation on this shot: hand the source's filters back
+        # byte-identical rather than round-tripping their numbers through float.
+        if abs(item.scale - 100.0) <= 1e-6 and abs(item.rotation) <= 1e-6:
             return [copy.deepcopy(f) for f in item.filters]
 
         punch = item.scale / 100.0
@@ -287,12 +296,16 @@ class XmemlWriter:
                 for p in f.findall("effect/parameter"):
                     if p.findtext("parameterid") == "scale":
                         base = float(p.findtext("value") or 100.0)
-                        p.find("value").text = str(round(base * punch, 4))
+                        p.find("value").text = _num(base * punch)
                         composed = True
+                    elif (p.findtext("parameterid") == "rotation"
+                          and abs(item.rotation) > 1e-6):
+                        base = float(p.findtext("value") or 0.0)
+                        p.find("value").text = _num(base + item.rotation)
             out.append(f)
 
         if not composed:
-            out.append(_basic_motion(item.scale))
+            out.append(_basic_motion(item.scale, item.rotation))
         return out
 
     def _file(self, item: ClipItem, tb: Timebase) -> ET.Element:
@@ -384,7 +397,40 @@ def _text(parent: ET.Element, tag: str, value) -> ET.Element:
     return el
 
 
-def _basic_motion(scale: float) -> ET.Element:
+def _num(v: float) -> str:
+    """Premiere writes a whole number without a decimal point; matching it keeps
+    a re-export diffable against the file this was built from."""
+    v = round(float(v), 4)
+    return str(int(v)) if v == int(v) else str(v)
+
+
+def _gain(db: float) -> ET.Element:
+    """Premiere's clip Gain, the one audio level that survives an FCP7 trip.
+
+    The effectid is the four-char-code triple Premiere writes for it. A level set
+    on the clip's volume rubber band instead comes back as ``audiolevels``
+    keyframes, which Premiere re-reads as a *fader* move and stacks on top of
+    whatever the mix already does — so a whoosh pulled down by 19dB lands at full
+    level on re-import. Gain is a property of the clip and round trips intact.
+    """
+    filt = ET.Element("filter")
+    eff = ET.SubElement(filt, "effect")
+    _text(eff, "name", "Gain")
+    _text(eff, "effectid", "{61756678, 4761696e, 4b657947}")
+    _text(eff, "effectcategory", "audiofilter")
+    _text(eff, "effecttype", "audiofilter")
+    _text(eff, "mediatype", "audio")
+    _text(eff, "pproBypass", "false")
+    p = ET.SubElement(eff, "parameter", authoringApp="PremierePro")
+    _text(p, "parameterid", "1")
+    _text(p, "name", "Gain(dB)")
+    _text(p, "valuemin", -96)
+    _text(p, "valuemax", 96)
+    _text(p, "value", _num(db))
+    return filt
+
+
+def _basic_motion(scale: float, rotation: float = 0.0) -> ET.Element:
     """A Basic Motion filter carrying a scale, which Premiere reads as its own
     Motion > Scale.
 
@@ -405,7 +451,7 @@ def _basic_motion(scale: float) -> ET.Element:
     _text(p, "name", "Scale")
     _text(p, "valuemin", 0)
     _text(p, "valuemax", 1000)
-    _text(p, "value", round(scale, 3))
+    _text(p, "value", _num(scale))
 
     # Centre and rotation are written at their identity values so the filter is
     # complete; a partial Basic Motion block is where importers start guessing.
@@ -421,7 +467,7 @@ def _basic_motion(scale: float) -> ET.Element:
     _text(r, "name", "Rotation")
     _text(r, "valuemin", -8640)
     _text(r, "valuemax", 8640)
-    _text(r, "value", 0)
+    _text(r, "value", _num(rotation))
     return filt
 
 

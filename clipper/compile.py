@@ -20,6 +20,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+from . import show as show_mod
 from .edl import BROLL_KINDS, EDL, AudioPlan, Clip, iter_shots
 from .sources import SourceRef, SourceTrack
 from .timebase import Timebase
@@ -39,8 +40,17 @@ class ClipItem:
     source_channel: int = 1  # audio only: 1-based source track index
     link_group: Optional[int] = None   # members of a group get <link> elements
     enabled: bool = True     # FALSE -> imported muted/hidden, toggleable in Premiere
-    role: str = "camera"     # "camera" | "broll" | "title" | "caption" | "audio"
+    role: str = "camera"     # "camera" | "broll" | "title" | "caption" |
+                             # "transition" | "outro" | "audio"
     scale: float = 100.0     # percent; != 100 emits a Basic Motion filter
+    rotation: float = 0.0    # degrees; for landscape material in a tall frame
+    # xmeml <compositemode>: "" leaves Premiere's default (normal). "screen" is
+    # how a light-leak whoosh is laid over a cut — its black is dropped, so the
+    # asset does not need an alpha channel.
+    composite: str = ""
+    # Audio only. A level in dB, emitted as Premiere's own Gain effect, which is
+    # what survives a round trip; clip volume keyframes do not.
+    gain_db: Optional[float] = None
     # Set when this item came off a master timeline rather than a flat export.
     # It carries the source definition (a file, or a nested sequence with its own
     # framing) for the writer to re-emit verbatim, so a crop expressed as
@@ -60,6 +70,11 @@ class ClipItem:
             raise AssertionError(
                 f"clipitem {self.name!r} would retime: "
                 f"program {self.end - self.start}f vs source {self.out - self.in_}f")
+
+
+# Transition links are numbered above anything the audio compiler mints per
+# shot, so a reel with hundreds of cuts cannot collide with them.
+_TRANSITION_LINK_BASE = 100_000
 
 
 @dataclass
@@ -130,7 +145,9 @@ class CompiledClip:
 
 def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
                  caption_mov: Optional[str] = None,
-                 audio_tracks: Optional[List[SourceTrack]] = None) -> CompiledClip:
+                 audio_tracks: Optional[List[SourceTrack]] = None,
+                 show: Optional[show_mod.Show] = None,
+                 outro_mov: Optional[str] = None) -> CompiledClip:
     """Compile one clip. ``cameras`` maps camera id -> {"path", "offset_sec", ...}.
 
     A camera entry may instead carry ``"track"``: a ``SourceTrack`` read off the
@@ -144,8 +161,13 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
 
     ``audio_tracks`` are the master's own A-tracks, used by the ``source_tracks``
     audio mode to reproduce the episode's whole audio bed under the cut.
+
+    ``show`` supplies the dressing: which whoosh a transition means, and whether
+    reels end on a tail card. Omitting it compiles the bare cut, which is what
+    every project naming no show gets.
     """
     tb = edl.timebase
+    show = show or show_mod.DEFAULT
 
     def src_frame(master_t: float, cam_id: str) -> int:
         """Master seconds -> source frame for a given camera.
@@ -320,19 +342,135 @@ def compile_clip(edl: EDL, clip: Clip, cameras: Dict[str, dict],
                 comment=f"HOOK: {(hook.get('props') or {}).get('text', '')}",
             ))
 
-    # Bottom -> top: camera stack, b-roll footage, overlays, hook, captions.
+    # -- Outro: hold the picture past the cut and lay a card over it ---------
+    # The hold is applied to whatever already ends at the cut - every camera in
+    # the stack and every audio track - so the conversation runs on underneath
+    # the card instead of dropping to silence. Captions and b-roll stay at the
+    # cut: the card is not part of what was said.
+    hold = _outro_hold(show, total, outro_mov)
+    if hold:
+        _extend_tail(cam_tracks.values(), total, hold)
+        _extend_tail(compiled_audio, total, hold)
+
+    outro_track: List[ClipItem] = []
+    if hold and outro_mov:
+        outro_track.append(ClipItem(
+            name=f"outro {clip.id}", camera="", path=outro_mov,
+            start=total, end=total + hold, in_=0, out=hold,
+            media_type="video", role="outro",
+        ))
+
+    # -- Transitions: a whoosh over a cut, above everything it covers ---------
+    trans_video, trans_audio = _compile_transitions(
+        clip, show, tb, edl.frame_size, master_to_prog, total + hold, markers)
+
+    # Bottom -> top: camera stack, b-roll footage, overlays, hook, captions,
+    # whooshes, tail card. The whoosh sits over the captions on purpose - it is
+    # a flash across the whole frame, and captions showing through it read as a
+    # mistake rather than as a layer.
     video_tracks = ([cam_tracks[cid] for cid in stack_cams]
                     + [broll_tracks[k] for k in BROLL_KINDS if broll_tracks[k]]
                     + ([title_track] if title_track else [])
-                    + ([caption_track] if caption_track else []))
+                    + ([caption_track] if caption_track else [])
+                    + ([trans_video] if trans_video else [])
+                    + ([outro_track] if outro_track else []))
     return CompiledClip(
         id=clip.id, name=_clip_name(edl, clip),
         timebase=tb, frame_size=edl.frame_size,
-        video_tracks=video_tracks, audio_tracks=compiled_audio,
+        video_tracks=video_tracks, audio_tracks=compiled_audio + trans_audio,
         markers=sorted(markers, key=lambda m: m.frame),
-        duration=total,
+        duration=total + hold,
         coverage_gaps={k: _merge_ranges(v) for k, v in gaps.items()},
     )
+
+
+def _outro_hold(show, total: int, outro_mov: Optional[str]) -> int:
+    """Frames of picture to add after the cut; 0 when the show has no tail.
+
+    Tied to the card actually existing, not to the config alone: holding ten
+    seconds of picture under a card that was never rendered is a reel that ends
+    on the speaker staring into the gap.
+    """
+    if total <= 0 or show.outro is None or not outro_mov:
+        return 0
+    return max(0, int(show.outro.hold))
+
+
+def _extend_tail(tracks, total: int, hold: int) -> None:
+    """Run every item ending exactly at the cut on for ``hold`` more frames.
+
+    Both ends move together - ``end`` and ``out`` - because the invariant this
+    whole module is built on is that program length equals source length. An
+    item that finished earlier (a b-roll, a caption strip) is left alone; only
+    the tail of the edit is extended.
+    """
+    for track in tracks:
+        for item in track:
+            if item.end == total:
+                item.end += hold
+                item.out += hold
+
+
+def _compile_transitions(clip: Clip, show, tb, frame_size, master_to_prog,
+                         limit: int, markers: List[CompiledMarker]):
+    """Whooshes as overlay clipitems, plus their own audio tracks.
+
+    Each asset is placed so its flash lands on the cut, which means it starts
+    *before* that cut, by ``lead`` frames of its own head. Running off either end
+    of the reel is a trim, never a shift: sliding the clip along to make it fit
+    would put the flash somewhere other than the cut, which is the one thing
+    that has to stay true.
+
+    The audio arrives as two mono clipitems on two tracks, which is how Premiere
+    itself writes a stereo file, and carries the show's gain so the whoosh sits
+    under the voice rather than over it.
+    """
+    video: List[ClipItem] = []
+    left: List[ClipItem] = []
+    right: List[ClipItem] = []
+    if not clip.transitions:
+        return video, []
+
+    for n, t in enumerate(clip.transitions, start=1):
+        asset = show.transition(t.asset)
+        if asset is None or not asset.path:
+            markers.append(CompiledMarker(
+                frame=master_to_prog(t.at), name=f"TRANSITION {t.id}",
+                comment=(f"TRANSITION: no asset {t.asset or 'default'!r} in "
+                         f"show {show.id or 'none'!r}")))
+            continue
+        length = asset.length(tb)
+        if length <= 0:
+            continue
+        start = master_to_prog(t.at) - asset.lead(tb)
+        in_ = 0
+        if start < 0:                    # head trimmed off the front of the reel
+            in_, start = -start, 0
+        end = min(limit, start + (length - in_))
+        if end - start <= 0:
+            continue
+        w, h = asset.footprint()
+        scale = asset.scale or fill_scale({"width": w, "height": h}, frame_size)
+        name = f"{asset.id} {t.id}".strip()
+        group = _TRANSITION_LINK_BASE + n
+        video.append(ClipItem(
+            name=name, camera="", path=asset.path,
+            start=start, end=end, in_=in_, out=in_ + (end - start),
+            media_type="video", role="transition",
+            scale=scale, rotation=asset.rotation, composite=asset.composite,
+            link_group=group,
+        ))
+        if not asset.audio:
+            continue
+        for channel, track in ((1, left), (2, right)):
+            track.append(ClipItem(
+                name=name, camera="", path=asset.path,
+                start=start, end=end, in_=in_, out=in_ + (end - start),
+                media_type="audio", role="transition",
+                source_channel=channel, gain_db=asset.gain_db,
+                link_group=group,
+            ))
+    return video, [track for track in (left, right) if track]
 
 
 def _clip_name(edl: EDL, clip: Clip) -> str:
@@ -605,15 +743,19 @@ def _audio_run(cam_id: str, cameras: Dict[str, dict], clip: Clip,
 def compile_edl(edl: EDL, cameras: Dict[str, dict],
                 clip_ids: Optional[List[str]] = None,
                 caption_movs: Optional[Dict[str, str]] = None,
-                audio_tracks: Optional[List[SourceTrack]] = None) -> List[CompiledClip]:
+                audio_tracks: Optional[List[SourceTrack]] = None,
+                show: Optional[show_mod.Show] = None,
+                outro_mov: Optional[str] = None) -> List[CompiledClip]:
     """Compile every clip (or a named subset) in the EDL.
 
     ``caption_movs`` maps clip id -> rendered overlay path; clips without an
-    entry just get no caption track.
+    entry just get no caption track. ``show`` and ``outro_mov`` are the show's
+    dressing, shared by every clip in the export.
     """
     wanted = [c for c in edl.clips if clip_ids is None or c.id in clip_ids]
     movs = caption_movs or {}
-    return [compile_clip(edl, c, cameras, movs.get(c.id), audio_tracks)
+    return [compile_clip(edl, c, cameras, movs.get(c.id), audio_tracks,
+                         show, outro_mov)
             for c in wanted]
 
 
@@ -644,7 +786,8 @@ def compile_for(project, edl: EDL, clip_ids: Optional[List[str]] = None,
     pointing this way: ``xmeml`` already imports this module.
     """
     return compile_edl(edl, project.camera_map(), clip_ids, caption_movs,
-                       project.master_audio_tracks())
+                       project.master_audio_tracks(),
+                       project.show(), project.outro_mov())
 
 
 def compile_for_monitor(project, edl: EDL, clip_ids: Optional[List[str]] = None,
@@ -669,7 +812,8 @@ def compile_for_monitor(project, edl: EDL, clip_ids: Optional[List[str]] = None,
     monitor = copy.copy(edl)          # shallow: only the audio plan differs
     monitor.audio = AudioPlan(mode="pinned", pinned_camera=pinned,
                               channels=edl.audio.channels)
-    return compile_edl(monitor, project.camera_map(), clip_ids, caption_movs)
+    return compile_edl(monitor, project.camera_map(), clip_ids, caption_movs,
+                       show=project.show(), outro_mov=project.outro_mov())
 
 
 def _tc(tb: Timebase, frame: int) -> str:
