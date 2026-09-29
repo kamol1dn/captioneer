@@ -12,6 +12,8 @@ Usage:
     python -m clipper ingest-status 2026-07-20_ep12
     python -m clipper outline 2026-07-20_ep12
     python -m clipper transcript 2026-07-20_ep12 --start 60 --end 180
+    python -m clipper words 2026-07-20_ep12 --start 60 --end 90
+    python -m clipper audit-fillers 2026-07-20_ep12 fillers.wav --start 0 --end 600
     python -m clipper get-edl 2026-07-20_ep12
     python -m clipper set-edl 2026-07-20_ep12 --file edl.json
     python -m clipper export-xml 2026-07-20_ep12
@@ -86,7 +88,8 @@ def cmd_ingest(args):
         project.language = language
         project.save()
     job = ingest_mod.start_ingest(project, args.model, language or None,
-                                  args.camera or None, args.diarize)
+                                  args.camera or None, args.diarize,
+                                  backend=args.backend)
     if args.wait:
         job.done.wait()
     _out({"job_id": job.id, "state": project.ingest_state})
@@ -121,6 +124,53 @@ def cmd_search(args):
     project = _load(args.project_id)
     utterances = transcript_mod.load_utterances(project)
     _out(transcript_mod.search(utterances, args.query, args.regex, args.max_hits))
+
+
+def cmd_words(args):
+    project = _load(args.project_id)
+    words = transcript_mod.master_words(project)
+    utterances = transcript_mod.load_utterances(project)
+    print(transcript_mod.format_words(
+        words, utterances, args.start, args.end, args.max_chars,
+        transcript_mod.speaker_words(project, utterances))["text"])
+
+
+def cmd_audit_fillers(args):
+    """Every filler span, back to back, in one WAV — to check timing by ear.
+
+    If the file is nothing but "uh, um, uh", detection and extents are right.
+    A real word in it means a span is mistimed, and a cut placed from it would
+    clip that word.
+    """
+    import wave
+
+    import numpy as np
+
+    from caption_engine.transcriber.audio import SAMPLE_RATE, load_audio
+    from caption_engine.transcriber.word import is_filler
+
+    project = _load(args.project_id)
+    end = args.end if args.end is not None else float("inf")
+    spans = [w for w in transcript_mod.master_words(project)
+             if is_filler(w.text) and w.end > args.start and w.start < end]
+    if not spans:
+        sys.exit("no fillers in range — is this a verbatim transcript?")
+    cam = project.camera(args.camera or project.primary_audio_camera)
+    audio = load_audio(cam.path)
+    gap = np.zeros(int(0.35 * SAMPLE_RATE), dtype=np.float32)
+    pieces = []
+    for w in spans:
+        a = int((w.start + cam.offset_sec) * SAMPLE_RATE)
+        b = int((w.end + cam.offset_sec) * SAMPLE_RATE)
+        pieces += [audio[max(0, a):max(0, b)], gap]
+    pcm = (np.clip(np.concatenate(pieces), -1, 1) * 32767).astype(np.int16)
+    with wave.open(args.out, "wb") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(SAMPLE_RATE)
+        f.writeframes(pcm.tobytes())
+    _out({"fillers": len(spans), "seconds": round(sum(w.end - w.start for w in spans), 2),
+          "source": cam.id, "wav": args.out})
 
 
 def cmd_silences(args):
@@ -238,6 +288,9 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--diarize", action="store_true",
                    help="transcribe one mic per speaker and merge into a "
                         "speaker-labelled timeline (needs two+ speakers)")
+    c.add_argument("--backend", default="auto",
+                   choices=["auto", "verbatim", "whisperx"],
+                   help="auto: English verbatim (fillers kept), else as before")
     c.add_argument("--wait", action="store_true")
     c.set_defaults(func=cmd_ingest)
 
@@ -261,6 +314,20 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--regex", action="store_true")
     c.add_argument("--max-hits", type=int, default=30)
     c.set_defaults(func=cmd_search)
+
+    c = sub.add_parser("words"); c.add_argument("project_id")
+    c.add_argument("--start", type=float, required=True)
+    c.add_argument("--end", type=float, required=True)
+    c.add_argument("--max-chars", type=int, default=6000)
+    c.set_defaults(func=cmd_words)
+
+    c = sub.add_parser("audit-fillers"); c.add_argument("project_id")
+    c.add_argument("out", help="WAV to write")
+    c.add_argument("--start", type=float, default=0.0)
+    c.add_argument("--end", type=float, default=None)
+    c.add_argument("--camera", default=None,
+                   help="audio to cut from (default: the primary / mix)")
+    c.set_defaults(func=cmd_audit_fillers)
 
     c = sub.add_parser("silences"); c.add_argument("project_id")
     c.add_argument("--start", type=float, required=True)

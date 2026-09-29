@@ -19,13 +19,34 @@ from . import energy as energy_mod
 from . import transcript as transcript_mod
 from .project import Project
 
+# What ``Camera.model`` records for a verbatim transcript. Cut placement reads
+# it: word-level snapping is only as good as the word extents it snaps to.
+VERBATIM_MODEL = "verbatim:faster_CrisperWhisper"
+_VERBATIM_LANGUAGES = {"en", "de"}
+
+
+def resolve_backend(backend: str, language: Optional[str]) -> str:
+    """"auto" -> verbatim wherever the model covers the language.
+
+    Verbatim is the default for editing because it is the only backend that
+    keeps fillers and times each word to the audio (see ``verbatim_backend``).
+    Uzbek stays on Kotib; anything else on WhisperX.
+    """
+    if backend != "auto":
+        return backend
+    return "verbatim" if (language or "").lower() in _VERBATIM_LANGUAGES else "auto"
+
 
 def start_ingest(project: Project, model_size: str = "large-v3",
                  language: Optional[str] = None,
                  cameras: Optional[List[str]] = None,
-                 diarize: bool = False) -> jobs.Job:
+                 diarize: bool = False, backend: str = "auto") -> jobs.Job:
     """Queue transcription plus an energy envelope for every camera. Returns
     immediately.
+
+    ``backend`` "auto" transcribes English verbatim (fillers kept, word extents
+    measured from the audio) and everything else as before; "whisperx" forces
+    the old path.
 
     ``diarize`` transcribes one mic per *speaker* instead of the single primary
     source and merges them into one speaker-labelled timeline. It costs one
@@ -70,6 +91,7 @@ def start_ingest(project: Project, model_size: str = "large-v3",
                 f"one speaker, not two")
     speaker_of = project.camera_to_speaker()
     mic_ids = set(mic_of.values())
+    backend = resolve_backend(backend, language)
 
     project.ingest_state = {"state": "running", "progress": 0.0, "message": ""}
     project.save()
@@ -94,8 +116,9 @@ def start_ingest(project: Project, model_size: str = "large-v3",
                     words = _transcribe_out_of_process(
                         cam.path, project.words_path(cam.id),
                         model_size=model_size, language=language,
+                        backend=backend,
                     )
-                    cam.model = model_size
+                    cam.model = VERBATIM_MODEL if backend == "verbatim" else model_size
                     from datetime import datetime
                     cam.transcribed_at = datetime.now().isoformat(timespec="seconds")
                     per_camera[cam.id] = "done"
@@ -148,7 +171,8 @@ def start_ingest(project: Project, model_size: str = "large-v3",
 
 def _transcribe_out_of_process(audio_path: str, out_path: Path,
                                model_size: str = "large-v3",
-                               language: Optional[str] = None) -> list:
+                               language: Optional[str] = None,
+                               backend: str = "auto") -> list:
     """Run Whisper in a child interpreter and read back the words it wrote.
 
     In-process transcription deadlocks: WhisperX loads sklearn's OpenMP runtime
@@ -170,6 +194,7 @@ def _transcribe_out_of_process(audio_path: str, out_path: Path,
         "--out", str(out_path),
         "--model-size", model_size,
         "--language", language or "",
+        "--backend", backend,
     ]
     with open(log_path, "w", encoding="utf-8") as log:
         proc = subprocess.run(

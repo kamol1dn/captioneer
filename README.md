@@ -84,11 +84,21 @@ program monitor.
 | **WhisperX**       | English (default)       | Forced alignment, ~±20–50 ms         |
 | **faster-whisper** | English, `--no-align`   | Inferred, drifts ±100–300 ms         |
 | **Kotib + MMS**    | Uzbek (`language=uz`)   | MMS forced alignment                 |
+| **Verbatim**       | English editing (clipper default, `backend="verbatim"`) | MMS alignment, extents measured from the audio |
 
 WhisperX transcribes with faster-whisper and then force-aligns with a phoneme
 model. If WhisperX isn't installed the engine warns and falls back to plain
 faster-whisper. Kotib is a Whisper fine-tune for Uzbek text, paired with Meta's
 MMS aligner for accurate word timing.
+
+Verbatim is for cutting, not captioning. Whisper deletes "um" and "uh" and
+folds their time into the neighbouring words, so a pause in its transcript can
+be a filler, and a cut placed there lands in it. The verbatim backend runs
+[CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper)
+(`nyralabs/faster_CrisperWhisper`), which keeps fillers as `[uh]`/`[um]` tokens,
+then force-aligns each silence-cut chunk with MMS and measures every token's
+start and end from the audio. Captions never show the fillers. The weights are
+under a non-commercial licence.
 
 ## Presets
 

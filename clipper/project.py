@@ -302,6 +302,18 @@ class Project:
         """
         return self.dir / "transcript.words.json"
 
+    @property
+    def verbatim_transcript(self) -> bool:
+        """Every transcribed source went through the verbatim backend.
+
+        Then fillers are tokens and each word's extent was measured from the
+        audio, so the gaps between words are real silence and cuts can be placed
+        on them. A WhisperX transcript's gaps can hide an "uhhh", and its word
+        ends land early, so cut placement keeps to the energy envelope there.
+        """
+        done = [c for c in self.cameras if c.transcribed_at]
+        return bool(done) and all(c.model.startswith("verbatim") for c in done)
+
     # ── master timeline ──────────────────────────────────────────────────────
 
     @property

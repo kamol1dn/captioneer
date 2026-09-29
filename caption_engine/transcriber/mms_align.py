@@ -33,8 +33,10 @@ def _ensure_loaded(device: str):
     """Load (once) the MMS acoustic model, tokenizer, aligner and uroman."""
     global _MODEL, _TOKENIZER, _ALIGNER, _DICT_CHARS, _UROMAN
     if _DICT_CHARS is None:
-        # '*' is the star/out-of-vocab token; never emit it during normalization.
-        _DICT_CHARS = set(_BUNDLE.get_dict().keys()) - {"*"}
+        # '*' is the star/out-of-vocab token and '-' is the CTC blank (index 0);
+        # never emit either during normalization. Letting '-' through made any
+        # hyphenated word ("non-dilutive") fail the whole window's alignment.
+        _DICT_CHARS = set(_BUNDLE.get_dict().keys()) - {"*", "-"}
     if _UROMAN is None:
         import uroman
         _UROMAN = uroman.Uroman()
@@ -57,13 +59,20 @@ def align_words(
     audio: Union[str, np.ndarray, torch.Tensor],
     words: List[str],
     device: str = "cpu",
-) -> List[Tuple[float, float, float]]:
+    last_char: bool = False,
+) -> List[Tuple[float, ...]]:
     """Force-align `words` to `audio`; return (start_s, end_s, score) per word.
 
     The result is always 1:1 with `words`. Words that romanize to nothing
     (digits, lone symbols) have no acoustic anchor, so their timing is
     interpolated from neighbours — mirroring how the WhisperX backend fills
     unplaceable tokens.
+
+    `last_char` appends a fourth value: where the word's final letter starts.
+    CTC holds a letter until the next one fires, so a word's *end* often runs
+    over the next word's quiet onset; the start of its last letter is the
+    earliest point the word can have finished, which is what a boundary search
+    needs as its left edge.
     """
     if not words:
         return []
@@ -87,13 +96,18 @@ def align_words(
     token_spans = aligner(emission[0], tokenizer([norm[i] for i in keep]))
 
     timed: Dict[int, Tuple[float, float, float]] = {}
+    last: Dict[int, float] = {}
     for idx, spans in zip(keep, token_spans):
         start = spans[0].start * sec_per_frame
         end = spans[-1].end * sec_per_frame
         score = float(sum(float(s.score) for s in spans) / len(spans))
         timed[idx] = (start, end, score)
+        last[idx] = spans[-1].start * sec_per_frame
 
-    return _interpolate(len(words), timed, total_dur)
+    out = _interpolate(len(words), timed, total_dur)
+    if not last_char:
+        return out
+    return [(s, e, p, last.get(i, s)) for i, (s, e, p) in enumerate(out)]
 
 
 def _to_waveform(audio: Union[str, np.ndarray, torch.Tensor]) -> torch.Tensor:

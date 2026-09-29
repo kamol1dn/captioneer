@@ -2,7 +2,22 @@
 from dataclasses import dataclass, asdict
 from typing import List
 import json
+import re
 from pathlib import Path
+
+# How the verbatim backend writes a filled pause: "[uh]", "[um]".
+FILLER_LABEL = re.compile(r"\[([a-z_]+)\]")
+# The same sounds when a backend writes them as plain words. Deliberately no
+# "ah"/"oh"/"eh": those are reactions ("Ah, I see") more often than hesitations.
+_BARE_FILLERS = {"uh", "um", "uhm", "erm", "er", "hmm", "hm", "mm", "mhm"}
+
+
+def is_filler(text: str) -> bool:
+    """A filled pause rather than a word — kept for cutting, never captioned."""
+    t = (text or "").strip()
+    if FILLER_LABEL.fullmatch(t):
+        return True
+    return re.sub(r"[^\w]", "", t).lower() in _BARE_FILLERS
 
 
 @dataclass

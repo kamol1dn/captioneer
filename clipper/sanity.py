@@ -24,7 +24,7 @@ nothing is an error.
 import re
 from typing import Dict, List, Optional
 
-from caption_engine.transcriber.word import Word
+from caption_engine.transcriber.word import Word, is_filler
 
 # Speech resuming within this long of a cut was mid-flow; a longer pause is a
 # natural break and needs no punctuation to justify it.
@@ -70,11 +70,25 @@ def _overlapping(master: List[Word], start: float, end: float) -> List[Word]:
             and w.end > start + 1e-9 and w.start < end - 1e-9]
 
 
-def check_clip(master_words: List[Word], clip) -> Dict[str, object]:
-    """Read every segment of a clip and report joins that don't read cleanly."""
+def check_clip(master_words: List[Word], clip, precise: bool = False,
+               tb=None) -> Dict[str, object]:
+    """Read every segment of a clip and report joins that don't read cleanly.
+
+    ``precise`` says the word extents were measured from the audio (a verbatim
+    transcript). Only then do two more checks mean anything: a boundary inside a
+    token (``cuts_word``) and a segment that opens or closes on a filler
+    (``filler_edge``). On WhisperX timings a word's span routinely swallows the
+    pause after it, so the first would flag half the clean cuts in an episode.
+    ``tb`` rounds boundaries to frames first, as the compiler will.
+    """
     segments = sorted(clip.segments, key=lambda s: s.start)
     issues: List[dict] = []
-    ordered = [w for w in master_words if w.start is not None and w.end is not None]
+    timed = [w for w in master_words if w.start is not None and w.end is not None]
+    # Sentence logic reads words; a filler before a cut is not an unfinished
+    # sentence, and one after it is not the next sentence's opening word.
+    ordered = [w for w in timed if not is_filler(w.text)]
+    if precise:
+        issues.extend(_boundary_issues(timed, segments, tb))
 
     for i, seg in enumerate(segments):
         kept = _overlapping(ordered, seg.start, seg.end)
@@ -170,6 +184,49 @@ def check_clip(master_words: List[Word], clip) -> Dict[str, object]:
         "issues": issues,
         "ok": not issues,
     }
+
+
+# A cut this close to a token edge is on the boundary, not in the word: touching
+# words have no gap to hold a frame, so a cut there lands up to half a frame in.
+_EDGE_SLACK = 0.02
+
+
+def _boundary_issues(tokens: List[Word], segments, tb) -> List[dict]:
+    """Cuts that slice a token, and segments that open or close on a filler."""
+    out: List[dict] = []
+    for i, seg in enumerate(segments):
+        where = f"segment {i + 1}"
+        for edge, t in (("start", seg.start), ("end", seg.end)):
+            cut = tb.to_seconds(tb.to_frames(t)) if tb is not None else t
+            hit = next((w for w in tokens
+                        if w.start + _EDGE_SLACK < cut < w.end - _EDGE_SLACK), None)
+            if hit is not None:
+                out.append({
+                    "kind": "cuts_word", "where": f"{where} {edge}", "t": cut,
+                    "confidence": "high",
+                    "context": f"{(hit.text or '').strip()} "
+                               f"{hit.start:.2f}-{hit.end:.2f}",
+                    "detail": f"the cut at {cut:.2f} lands inside "
+                              f"{(hit.text or '').strip()!r} — part of it is "
+                              f"heard, part is lost; snap_to_silence moves it "
+                              f"to the boundary",
+                })
+        kept = _overlapping(tokens, seg.start, seg.end)
+        if not kept:
+            continue
+        for w, side in ((kept[0], "opens"), (kept[-1], "closes")):
+            if is_filler(w.text):
+                out.append({
+                    "kind": "filler_edge", "where": where, "t": w.start,
+                    "confidence": "high",
+                    "context": _context(kept, 4, tail=(side == "closes")),
+                    "detail": f"{where} {side} on {(w.text or '').strip()} "
+                              f"({w.start:.2f}-{w.end:.2f}) — move the "
+                              f"boundary past it",
+                })
+                if len(kept) == 1:
+                    break
+    return out
 
 
 def format_report(reports: List[Dict[str, object]],

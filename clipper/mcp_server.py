@@ -299,9 +299,17 @@ def get_project(project_id: str) -> dict:
 def ingest(project_id: str, model_size: str = "large-v3",
           language: Optional[str] = None,
           cameras: Optional[List[str]] = None,
-          diarize: bool = False) -> dict:
+          diarize: bool = False, backend: str = "auto") -> dict:
     """Start transcription + energy analysis. Returns immediately with a job id
     — call ingest_status to poll.
+
+    **English is transcribed verbatim** (`backend="auto"`): CrisperWhisper keeps
+    every "um"/"uh" (as `[um]`/`[uh]` tokens) that Whisper silently deletes,
+    and each word's start and end are measured from the audio rather than
+    guessed. That is what lets `get_words` show exactly what was said and
+    `snap_to_silence` put cuts between words instead of inside them or halfway
+    through a filler. `model_size` does not apply to it. Pass
+    `backend="whisperx"` for the old path; Uzbek always uses Kotib.
 
     Two modes:
 
@@ -334,8 +342,8 @@ def ingest(project_id: str, model_size: str = "large-v3",
     `language` defaults to the project's own (set at create_project) and is
     saved back when passed here, so a project created without one can be
     corrected on the first ingest. "uz" transcribes with the Kotib Uzbek model
-    plus MMS forced alignment instead of WhisperX; anything else (including
-    empty, which auto-detects) goes through WhisperX.
+    plus MMS forced alignment instead of WhisperX; "en" goes verbatim (above);
+    anything else (including empty, which auto-detects) goes through WhisperX.
     """
     project = _load(project_id)
     language = (language or project.language or "").strip().lower()
@@ -344,8 +352,9 @@ def ingest(project_id: str, model_size: str = "large-v3",
         project.save()
     with _quiet():
         job = ingest_mod.start_ingest(project, model_size, language or None,
-                                      cameras, diarize=diarize)
-    return {"job_id": job.id, "language": language or "auto-detect"}
+                                      cameras, diarize=diarize, backend=backend)
+    return {"job_id": job.id, "language": language or "auto-detect",
+            "backend": ingest_mod.resolve_backend(backend, language)}
 
 
 @mcp.tool()
@@ -428,18 +437,78 @@ def find_silences(project_id: str, start: float, end: float,
 
 @mcp.tool()
 def snap_to_silence(project_id: str, times: List[float], max_shift: float = 0.4,
-                    camera: Optional[str] = None) -> List[float]:
-    """Nudge proposed cut points onto the nearest silence, within max_shift
-    seconds. Call this on segment/camera-cut boundaries before set_edl — cuts
-    that land mid-word are the most common flaw in an automated cut."""
+                    camera: Optional[str] = None,
+                    roles: Optional[List[str]] = None, explain: bool = False):
+    """Move proposed cut points to where they clip nobody. Call this on every
+    segment boundary before set_edl — cuts that land mid-word are the most
+    common flaw in an automated cut.
+
+    On a verbatim transcript (English ingests) each time goes to the nearest
+    boundary *between tokens* — words and `[uh]`/`[um]` fillers, across every
+    speaker — and onto a frame inside it. Give `roles` ("in" where a kept
+    stretch starts, "out" where one ends, one per time) for a tight edit: an out
+    point keeps ~60 ms after its last word, an in point ~40 ms before its first,
+    so a join carries ~100 ms of room tone instead of the whole pause. Without
+    roles a time already clear of every token stays put.
+
+    `explain=True` returns, per time, the new time plus the words either side
+    (`"growth. ⟩|⟨ [uh]"`) and a `note` where the words run together with no
+    pause — those joins are the ones to listen to, and usually one word earlier
+    or later there is a real pause to cut on instead. `ok: False` means no
+    boundary was within `max_shift`: the time sits inside a word.
+
+    Older (WhisperX) transcripts fall back to the energy envelope: the nearest
+    >=0.35 s silence within `max_shift`, else the time unchanged.
+    """
     project = _load(project_id)
+    if roles is not None and len(roles) != len(times):
+        raise ValueError("roles must give one entry ('in', 'out' or null) per time")
+    if project.verbatim_transcript:
+        from . import cuts as cuts_mod
+        words = transcript_mod.master_words(project)
+        gap_list = cuts_mod.gaps(words, project.master_duration or None)
+        placed = [cuts_mod.place(t, gap_list, (roles or [None] * len(times))[i],
+                                 project.timebase, max_shift)
+                  for i, t in enumerate(times)]
+        return placed if explain else [p["t"] for p in placed]
+
     cam = camera or project.primary_audio_camera
     env = energy_mod.load_envelope(project.energy_path(cam))
     if not env:
         raise ValueError(f"no energy envelope for camera {cam!r} — run ingest first")
     lo, hi = min(times) - 2.0, max(times) + 2.0
     silences = energy_mod.find_silences(env, max(0, lo), hi)
-    return energy_mod.snap(times, silences, max_shift)
+    snapped = energy_mod.snap(times, silences, max_shift)
+    if explain:
+        return [{"t": t, "ok": True, "moved": round(t - o, 3)}
+                for t, o in zip(snapped, times)]
+    return snapped
+
+
+@mcp.tool()
+def get_words(project_id: str, start: float, end: float,
+              max_chars: int = 6000) -> dict:
+    """Exactly what was said in [start, end), word by word, with times — the
+    view to pick cut points from.
+
+    One line per speaker turn; each token is `start text`, fillers show as
+    `[uh]`/`[um]`, and pauses of 0.25 s or more appear as `(0.42s)`:
+
+        guest 2464.94-2479.98
+          2464.94 everyone (0.46s) 2465.85 [uh] 2466.31 there 2466.59 is ...
+
+    A word's time is its onset; it ends where the next token (or pause) begins.
+    Keep windows short (a minute or two) — `get_transcript` is the map, this is
+    the magnifier. Fillers only appear on verbatim (English) transcripts.
+    """
+    project = _load(project_id)
+    words = transcript_mod.master_words(project)
+    if not words:
+        raise ValueError("no transcript — run ingest first")
+    utterances = transcript_mod.load_utterances(project)
+    return transcript_mod.format_words(
+        words, utterances, start, end, min(max_chars, 20000),
+        transcript_mod.speaker_words(project, utterances))
 
 
 # ── EDL ──────────────────────────────────────────────────────────────────────
@@ -499,6 +568,11 @@ def check_segments(project_id: str, clip_ids: Optional[List[str]] = None,
     `empty_segment`. Run it after set_edl and before captioning — fixing a
     boundary afterwards makes the clip stale and costs the caption polish.
 
+    On a verbatim transcript it also flags `cuts_word` (a boundary inside a
+    word or filler — half of it is heard) and `filler_edge` (a segment opens or
+    closes on `[uh]`/`[um]`, so the join carries the hesitation). Both are
+    fixed by moving the boundary; `get_words` shows where.
+
     Everything here is a warning. English resists word lists, so read the
     findings and decide; don't apply them blindly.
 
@@ -516,7 +590,8 @@ def check_segments(project_id: str, clip_ids: Optional[List[str]] = None,
         raise ValueError("no transcript — run ingest first")
 
     clips = [c for c in edl.clips if clip_ids is None or c.id in clip_ids]
-    reports = [sanity_mod.check_clip(words, c) for c in clips]
+    precise = project.verbatim_transcript
+    reports = [sanity_mod.check_clip(words, c, precise, edl.timebase) for c in clips]
     partial = project.language not in ("", "en")
     note = (f"note: the word-list checks are English-only; on a "
             f"{project.language!r} project only punctuation and gap checks ran")
