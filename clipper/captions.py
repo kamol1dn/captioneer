@@ -28,7 +28,7 @@ from typing import Dict, List, Optional, Tuple
 from caption_engine import presets
 from caption_engine.prompt import build_prompt
 from caption_engine.style import CaptionStyle
-from caption_engine.transcriber.word import Word, load_words, save_words
+from caption_engine.transcriber.word import Word, is_filler, load_words, save_words
 
 from .edl import EDL, Clip
 from .timebase import Timebase
@@ -104,16 +104,22 @@ def to_master(clip: Clip, tb: Timebase, program_t: float) -> Optional[float]:
 
 
 def words_for_clip(master_words: List[Word], clip: Clip,
-                   tb: Timebase) -> List[Word]:
+                   tb: Timebase, keep_fillers: bool = False) -> List[Word]:
     """Remap master-timeline words onto a clip's program timeline.
 
     Words in discarded regions vanish. A word straddling a segment boundary is
     clamped to the part that survived — dropping it outright would silently lose
     the first or last word of a clip, which is usually the hook.
+
+    Fillers (``[uh]``, ``[um]`` from a verbatim transcript) are left out: they
+    exist to be cut around, not captioned, and a Whisper re-listen in
+    ``verify`` never hears them either.
     """
     ranges = program_ranges(clip, tb)
     out: List[Word] = []
     for w in master_words:
+        if not keep_fillers and is_filler(w.text):
+            continue
         for m_start, m_end, p_start in ranges:
             if w.end <= m_start or w.start >= m_end:
                 continue

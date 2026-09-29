@@ -166,6 +166,19 @@ transcribes at word level. Minutes on an hour of audio — tell the user it's
 running rather than sitting silent. It uses the project's language; pass
 `language=` only to correct a project created without one (it's saved back).
 
+**English transcribes verbatim.** WhisperX deletes "um"/"uh" and folds their
+duration into the words around them — the transcript shows a clean pause where
+the speaker said "uhhh", and a cut placed in that pause lands mid-filler. It
+also drops restarts ("it's been like… of… it's been like a bad attitude") and
+then force-aligns the words it kept onto the audio of the ones it dropped:
+on EP21 that put "a bad attitude" 1.1 s early. So English ingests go through
+CrisperWhisper instead: fillers come back as `[uh]`/`[um]` tokens, restarts are
+kept, and every word's start and end are measured from the audio. On a guest
+stretch of EP21 that found 21 fillers in 580 words where WhisperX found none,
+and trims placed from it came through intact 50/56 times against 43/56. It
+runs ~5x realtime, so a three-mic hour is ~30-40 minutes. `backend="whisperx"`
+forces the old path; Uzbek is unaffected.
+
 **Prefer `diarize=True` when each camera carries its own subject's mic** (the
 normal two-track setup here). It transcribes one mic per speaker and merges them
 into one speaker-labelled timeline, so `get_transcript` returns `A:` / `B:` per
@@ -194,6 +207,19 @@ stretches, and `search_transcript` when the user names a topic.
 
 Never pull the full transcript in one call. It's capped server-side; if
 `truncated` comes back, continue from `next_start`.
+
+**Pick boundaries from `get_words`, not from utterance times.** An utterance
+line gives its start and end only; any cut inside it was a guess, and a guess
+lands in a word. `get_words(start, end)` shows every token with its onset,
+fillers included, and every pause of 0.25 s or more:
+
+    guest 2464.94-2479.98
+      2464.94 everyone (0.46s) 2465.85 [uh] 2466.31 there 2466.59 is ...
+
+A word ends where the next token or pause begins. Read a minute or two around
+each join you're about to make, and prefer boundaries that have a pause after
+the last kept word — a join between words that run together is the one most
+likely to leave a sliver of the dropped word.
 
 **4. Pick the clips.** What makes a good short:
 
@@ -313,9 +339,25 @@ Grouping matters upstream too: two angles on one person must share a `speaker` a
 person says lands in the master timeline **twice**.
 
 **6. Snap the cuts.** Run every segment boundary through
-`snap_to_silence(times)` before saving. Cuts landing mid-word are the single
-most audible flaw in an automated edit, and this is cheap insurance.
-`find_silences(start, end)` shows legal cut points directly.
+`snap_to_silence(times, roles=[...], explain=True)` before saving — role `"in"`
+for each segment start, `"out"` for each end. Cuts landing mid-word are the
+single most audible flaw in an automated edit, and this is cheap insurance.
+
+On a verbatim transcript it snaps to the boundary between tokens nearest each
+time — never into a word or a filler, of any speaker — and onto a frame inside
+that boundary: an out point keeps ~60 ms after its last word, an in point
+~40 ms before its first. Read what it returns:
+
+- `context` — the tokens either side (`"growth. ⟩|⟨ [uh]"`). Check it is the
+  join you meant; a time a little off picks the neighbouring boundary.
+- `note` — the words run together there with no pause. Listen to that join,
+  or move it one word to where `get_words` shows a pause.
+- `ok: False` — no boundary within `max_shift`; the time is inside a long word.
+
+A segment should neither open nor close on a filler: drop the `[uh]` by ending
+the previous segment before it and starting the next after it.
+`find_silences(start, end)` still shows the energy view; on a WhisperX-era
+project, `snap_to_silence` falls back to it.
 
 Snapping only guarantees you didn't cut *through* a word — it can't tell you the
 words you kept form a sentence. **`check_segments(project_id)` does that**, so
@@ -328,6 +370,9 @@ every join and flags:
 - `orphan_close` — stopping on a dangling "And"/"as"/"The", so the audio trails
   off mid-thought even when the caption reads fine.
 - `hook` / `empty_segment`.
+- `cuts_word` / `filler_edge` (verbatim projects) — a boundary inside a word,
+  or a segment opening or closing on `[uh]`/`[um]`. Both are always real; fix
+  them before anything else.
 
 It defaults to high-confidence findings; every deliberate trim technically
 starts mid-clause, so showing everything buries the real breakages. Pass

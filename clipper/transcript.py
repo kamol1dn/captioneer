@@ -20,6 +20,7 @@ otherwise need N transcripts or a diarization model. Isolated mics make that
 signal sharper, not weaker — but the mix itself must stay out of the comparison,
 since it contains every voice at once (see ``ingest.load_envelopes``).
 """
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -31,6 +32,9 @@ from . import paths
 
 GAP_SPLIT_SEC = 0.6     # a pause this long ends an utterance
 MAX_UTTERANCE_SEC = 12.0  # even without a pause, cap so one line doesn't run on
+
+# A verbatim filler token and the space around it.
+_FILLER_RUN = re.compile(r"\s*\[[a-z_]+\]\s*")
 
 
 @dataclass
@@ -96,6 +100,24 @@ def master_words(project) -> List[Word]:
     if merged.exists():
         return load_words(str(merged))
     return load_words(str(project.words_path(project.primary_audio_camera)))
+
+
+def speaker_words(project, utterances: List[Utterance]) -> Dict[str, List[Word]]:
+    """Each labelled speaker's own transcript, from their own mic.
+
+    A diarized master interleaves speakers wherever they overlap, so slicing it
+    by one utterance's span would show a host's "yeah" inside the guest's
+    sentence. Empty for a single-source project.
+    """
+    from caption_engine.transcriber.word import load_words
+
+    out: Dict[str, List[Word]] = {}
+    for spk in {u.speaker for u in utterances if u.speaker}:
+        mic = project.transcription_mic(spk)
+        path = project.words_path(mic) if mic else None
+        if path is not None and path.exists():
+            out[spk] = load_words(str(path))
+    return out
 
 
 def save_utterances(utterances: List[Utterance], project) -> None:
@@ -216,13 +238,71 @@ def build_outline(utterances: List[Utterance], envelopes: Dict[str, dict],
 
 def search(utterances: List[Utterance], query: str, regex: bool = False,
           max_hits: int = 30, context_sec: float = 4.0) -> List[dict]:
-    """Find where something was said without reading the whole transcript."""
-    import re
+    """Find where something was said without reading the whole transcript.
+
+    Matches with fillers taken out too, so "asset class" still finds a line
+    that went "asset [uh] class".
+    """
     pattern = re.compile(query if regex else re.escape(query), re.IGNORECASE)
     hits = []
     for u in utterances:
-        if pattern.search(u.text):
+        if pattern.search(u.text) or pattern.search(_FILLER_RUN.sub(" ", u.text)):
             hits.append({"t": u.start, "index": u.index, "text": u.text})
             if len(hits) >= max_hits:
                 break
     return hits
+
+
+# ── word level ───────────────────────────────────────────────────────────────
+
+PAUSE_SHOW_SEC = 0.25     # shorter gaps are just the space between words
+_TOKENS_PER_LINE = 12
+
+
+def format_words(words: List[Word], utterances: List[Utterance],
+                 start: float, end: float, max_chars: int = 6000,
+                 by_speaker: Optional[Dict[str, List[Word]]] = None) -> dict:
+    """Every token in [start, end) with its onset, grouped by utterance.
+
+    The utterance view is for finding a moment; this one is for cutting it —
+    it shows the fillers, the pauses and the exact word times a boundary has to
+    be placed between. ``by_speaker`` (speaker -> that speaker's own words) keeps
+    overlapping speech attributed correctly on a diarized project; without it
+    the merged master is sliced by utterance span.
+    """
+    lines: List[str] = []
+    used, truncated, next_start = 0, False, None
+    for u in utterances:
+        if u.end <= start or u.start >= end:
+            continue
+        pool = (by_speaker or {}).get(u.speaker) or words
+        toks = [w for w in pool
+                if w.start >= u.start - 1e-3 and w.end <= u.end + 1e-3
+                and w.end > start and w.start < end]
+        if not toks:
+            continue
+        body: List[str] = []
+        for i, w in enumerate(toks):
+            if i:
+                gap = w.start - toks[i - 1].end
+                if gap >= PAUSE_SHOW_SEC:
+                    body.append(f"({gap:.2f}s)")
+            body.append(f"{w.start:.2f} {(w.text or '').strip()}")
+        rows, row, n = [], [], 0
+        for item in body:
+            row.append(item)
+            n += not item.startswith("(")
+            if n >= _TOKENS_PER_LINE:
+                rows.append(" ".join(row))
+                row, n = [], 0
+        if row:
+            rows.append(" ".join(row))
+        who = u.speaker or f"#{u.index:04d}"
+        block = f"{who} {toks[0].start:.2f}-{toks[-1].end:.2f}\n  " + "\n  ".join(rows)
+        if used + len(block) + 1 > max_chars and lines:
+            truncated, next_start = True, u.start
+            break
+        lines.append(block)
+        used += len(block) + 1
+    return {"text": "\n".join(lines), "truncated": truncated,
+            "next_start": next_start}

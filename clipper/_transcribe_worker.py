@@ -17,6 +17,10 @@ windowed variant, which slices on silence and offsets the timings back onto the
 global timeline. Peak VRAM is then set by the window, not the episode.
 Non-Uzbek languages are delegated to the engine unchanged.
 
+``--backend verbatim`` runs CrisperWhisper instead, which keeps fillers and
+measures word extents from the audio (see ``verbatim_backend``). It chunks on
+silence itself, so its VRAM is bounded without the windowing.
+
 Invoked by ``ingest._transcribe_out_of_process``; not meant to be run by hand.
 """
 import argparse
@@ -46,16 +50,22 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=4)
     # Uzbek only: how much audio MMS aligns at once. Lower it if VRAM is tight.
     ap.add_argument("--window", type=float, default=DEFAULT_WINDOW_S)
+    ap.add_argument("--backend", default="auto")
     args = ap.parse_args()
 
-    words = transcribe_long(
-        args.audio,
-        language=args.language or None,
-        model_size=args.model_size,
-        batch_size=args.batch_size,
-        window_s=args.window,
-        progress=True,
-    )
+    if args.backend == "verbatim":
+        from caption_engine.transcriber import transcribe
+        words = transcribe(args.audio, language=args.language or "en",
+                           batch_size=args.batch_size, backend="verbatim")
+    else:
+        words = transcribe_long(
+            args.audio,
+            language=args.language or None,
+            model_size=args.model_size,
+            batch_size=args.batch_size,
+            window_s=args.window,
+            progress=True,
+        )
     save_words(words, args.out)
 
 

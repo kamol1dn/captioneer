@@ -12,14 +12,20 @@
   with MMS forced alignment for word timing (Whisper's own word timings are the
   jittery kind WhisperX exists to fix). See `kotib_backend` / `mms_align`.
 
+* **Verbatim** (English/German, opt-in) — CrisperWhisper, which keeps "um" and
+  "uh" that Whisper deletes, force-aligned with MMS and with each word's extent
+  measured from the audio. The one to *edit* from: fillers are visible and the
+  gaps between words are real silence. See `verbatim_backend`.
+
 `transcribe()` routes to Kotib automatically when `language="uz"`, or when
-`backend="kotib"` is passed explicitly. Otherwise it uses WhisperX (with a
-transparent fall back to faster-whisper if WhisperX isn't installed).
+`backend="kotib"` is passed explicitly; `backend="verbatim"` picks the verbatim
+path. Otherwise it uses WhisperX (with a transparent fall back to
+faster-whisper if WhisperX isn't installed).
 """
 from typing import List, Optional
 import warnings
 
-from .word import Word, save_words, load_words
+from .word import Word, save_words, load_words, is_filler
 from .device import resolve_device, resolve_compute_type
 from .faster_whisper_backend import transcribe_faster_whisper
 from .whisperx_backend import transcribe_whisperx
@@ -62,13 +68,20 @@ def transcribe(
                (The Kotib backend always aligns, via MMS.)
         batch_size: WhisperX batch size (higher = faster, more VRAM).
         backend: "auto" (route by language), "whisperx"/"faster" (honour
-                 `align`), or "kotib" (force the Uzbek backend).
+                 `align`), "kotib" (force the Uzbek backend), or "verbatim"
+                 (CrisperWhisper with fillers; `model_size` is ignored).
 
     Returns:
         List of Word objects with start/end times in seconds.
     """
     device = resolve_device(device)
     compute_type = resolve_compute_type(compute_type, device)
+
+    if backend == "verbatim":
+        from .verbatim_backend import transcribe_verbatim
+        return transcribe_verbatim(audio_path, language=language or "en",
+                                   device=device, compute_type=compute_type,
+                                   batch_size=batch_size, progress=print)
 
     if _use_kotib(backend, language):
         # Imported lazily so the English path needs no transformers / uroman.
@@ -95,4 +108,4 @@ def transcribe(
     )
 
 
-__all__ = ["Word", "transcribe", "save_words", "load_words"]
+__all__ = ["Word", "transcribe", "save_words", "load_words", "is_filler"]
