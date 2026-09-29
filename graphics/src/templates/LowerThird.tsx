@@ -1,62 +1,51 @@
 import React from "react";
-import { interpolate } from "remotion";
-import { Band, COLORS, FONT, Position, SAFE_W, fitSize, useEnterExit, useUnit } from "../theme";
+import { Band, COLORS, DISPLAY, FONT, Position, SAFE_W, fitSize, reveal, useCue, useEnterExit, useUnit } from "../theme";
 
 export type LowerThirdProps = { name: string; role: string; position?: Position };
 
-// Not a card: a name plate with an accent bar that draws in first, then the
-// text slides out from behind it. Lighter than a card, because a person's name
-// should not cover more of them than it has to.
+// The show's own lower third: the name in the condensed headline face on a
+// near-black block, the role on the brand-red band under it. The band wipes in
+// a beat after the name, the way the long-form super does.
 export const LowerThird: React.FC<LowerThirdProps> = ({ name, role, position = "bottom" }) => {
   const u = useUnit();
-  const { enter, exit } = useEnterExit(16, 9);
-  const bar = interpolate(enter, [0, 0.5], [0, 1], { extrapolateRight: "clamp" });
-  const text = interpolate(enter, [0.3, 1], [0, 1], { extrapolateLeft: "clamp" });
+  const { exit } = useEnterExit();
+  const nameIn = useCue(0, 10);
+  const band = useCue(6, 12);
+  const roleIn = useCue(10, 10);
   return (
     <Band position={position}>
-      <div style={{ display: "flex", alignItems: "stretch", opacity: exit, fontFamily: FONT }}>
-        <div
-          style={{
-            width: 14 * u,
-            background: COLORS.accent,
-            borderRadius: 7 * u,
-            transform: `scaleY(${bar})`,
-          }}
-        />
-        <div
-          style={{
-            overflow: "hidden",
-            paddingLeft: 28 * u,
-          }}
-        >
+      <div style={{ width: SAFE_W * u, opacity: exit }}>
+        <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "stretch", maxWidth: SAFE_W * u }}>
           <div
             style={{
-              transform: `translateX(${(1 - text) * -40 * u}px)`,
-              opacity: text,
-              background: COLORS.card,
-              borderRadius: 22 * u,
-              padding: `${26 * u}px ${40 * u}px`,
-              // The accent bar and gap take 42 of the safe width.
-              maxWidth: (SAFE_W - 42) * u,
+              background: COLORS.bg,
+              color: COLORS.text,
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: fitSize(name, 84, 16, 58) * u,
+              lineHeight: 1.0,
+              textTransform: "uppercase",
+              padding: `${22 * u}px ${34 * u}px ${16 * u}px`,
+              ...reveal(nameIn, u),
+            }}
+          >
+            {name}
+          </div>
+          <div
+            style={{
+              background: COLORS.brand,
+              clipPath: `inset(0 ${(1 - band) * 100}% 0 0)`,
+              padding: `${14 * u}px ${34 * u}px`,
             }}
           >
             <div
               style={{
                 color: COLORS.text,
-                fontWeight: 800,
-                fontSize: fitSize(name, 72, 18, 48) * u,
-                lineHeight: 1.1,
-              }}
-            >
-              {name}
-            </div>
-            <div
-              style={{
-                color: COLORS.accent,
-                fontWeight: 600,
-                fontSize: fitSize(role, 40, 30, 28) * u,
-                lineHeight: 1.25,
-                marginTop: 10 * u,
+                fontFamily: FONT,
+                fontWeight: 500,
+                fontSize: fitSize(role, 36, 34, 26) * u,
+                lineHeight: 1.2,
+                opacity: roleIn,
               }}
             >
               {role}

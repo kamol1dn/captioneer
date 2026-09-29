@@ -1,6 +1,6 @@
 import React from "react";
 import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { Band, COLORS, Card, Position, fitSize, formatNumber, useUnit } from "../theme";
+import { Band, COLORS, Card, DISPLAY, Position, Rule, fitSize, formatNumber, reveal, useCue, useUnit } from "../theme";
 
 export type StatProps = {
   value: number;
@@ -37,29 +37,32 @@ export const Stat: React.FC<StatProps> = ({
   const final = `${prefix}${formatNumber(value, decimals)}${suffix}`;
   // Number beside the label rather than above it: half the height, which is
   // what lets the card sit on the chest in a tight shot instead of the mouth.
-  const numSize = fitSize(final, 150, 4, 96);
+  const numSize = fitSize(final, 170, 4, 110);
+  const text = useCue(8, 10);
   return (
     <Band position={position}>
-      <Card width={940} padding={36} style={{ display: "flex", alignItems: "center", gap: 32 * u }}>
+      <Card width={940} padding={34} style={{ display: "flex", alignItems: "center", gap: 32 * u }}>
         <div
           style={{
             flex: "none",
+            fontFamily: DISPLAY,
             color: COLORS.accent,
-            fontWeight: 900,
+            fontWeight: 700,
             fontSize: numSize * u,
-            lineHeight: 1,
+            lineHeight: 0.95,
             fontVariantNumeric: "tabular-nums",
             // Reserve the final width so the label doesn't slide as it counts.
-            minWidth: `${final.length * 0.62}em`,
+            minWidth: `${final.length * 0.5}em`,
             textAlign: "center",
           }}
         >
           {shown}
         </div>
-        <div style={{ borderLeft: `${4 * u}px solid rgba(255,220,0,0.5)`, paddingLeft: 28 * u }}>
+        <Rule vertical />
+        <div style={{ minWidth: 0, ...reveal(text, u) }}>
           <div style={{ fontWeight: 700, fontSize: fitSize(label, 44, 26, 32) * u, lineHeight: 1.2 }}>{label}</div>
           {sublabel ? (
-            <div style={{ marginTop: 10 * u, color: COLORS.muted, fontWeight: 500, fontSize: 28 * u }}>{sublabel}</div>
+            <div style={{ marginTop: 10 * u, color: COLORS.muted, fontWeight: 400, fontSize: 30 * u, lineHeight: 1.25 }}>{sublabel}</div>
           ) : null}
         </div>
       </Card>
