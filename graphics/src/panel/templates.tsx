@@ -1,22 +1,25 @@
-// Long-form panel templates. See ./theme.tsx for the frame they fill.
+// Long-form panel templates. See ./theme.tsx for the frame they fill and the
+// rules of the look: flat black, Helvetica, hairlines, red only where it counts.
 import React from "react";
 import { Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import {
-  Block,
-  Chip,
+  BODY,
   DISPLAY,
   FADE,
   Footer,
   Framed,
   Header,
+  Label,
   PC,
   Panel,
   PanelBg,
   Rich,
+  Rule,
   fit,
   fmt,
   panelAsset,
   plain,
+  rise,
   useBuild,
   useDrift,
   usePanel,
@@ -24,8 +27,19 @@ import {
 } from "./theme";
 
 const longest = (xs: string[]) => xs.reduce((m, x) => Math.max(m, plain(x).length), 0);
+const pad2 = (i: number) => String(i + 1).padStart(2, "0");
 
-// ── PShot: a web page in a browser window ───────────────────────────────────
+/** A flat brand-red band with one line of white text — the show's lower third. */
+const Band: React.FC<{ text: string; p: number; size?: number }> = ({ text, p, size = 50 }) => {
+  const { u } = usePanel();
+  return (
+    <div style={{ ...rise(p, u), background: PC.brand, padding: `${20 * u}px ${30 * u}px`, fontWeight: 700, fontSize: fit(text, size, 46, size * 0.76) * u, lineHeight: 1.2 }}>
+      {plain(text)}
+    </div>
+  );
+};
+
+// ── PShot: a web page ───────────────────────────────────────────────────────
 
 type Rect = { x: number; y: number; w: number; h: number };
 /**
@@ -40,7 +54,7 @@ export type PShotProps = {
   imgW: number;
   imgH: number;
   url?: string;
-  source?: string; // chip on the right of the URL bar, e.g. "TECHCRUNCH · 8 SEP"
+  source?: string; // outlet on the strip above the page, e.g. "TECHCRUNCH · 8 SEP"
   x0?: number; // image fraction at the window's left edge (crop)
   x1?: number; // ... and right edge
   y0?: number; // image fraction at the window's top edge, start
@@ -51,7 +65,7 @@ export type PShotProps = {
   path?: [number, number][]; // [fraction of duration, y0-style image fraction] keyframes; overrides y0/y1
   marks?: Mark[];
   spotlight?: boolean; // dim the page around the last box/circle
-  caption?: string; // optional takeaway band at the bottom
+  caption?: string; // optional takeaway line under the page
   // Back-compat: a single red box.
   highlight?: Rect;
   highlightAt?: number;
@@ -84,9 +98,9 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
           top: y - 2 * u,
           width: (w + 12 * u) * p,
           height: h + 4 * u,
-          background: "rgba(255, 214, 0, 0.62)",
+          background: "rgba(255, 214, 0, 0.6)",
           mixBlendMode: "multiply",
-          borderRadius: `${4 * u}px ${10 * u}px ${6 * u}px ${12 * u}px`,
+          borderRadius: `${3 * u}px ${8 * u}px ${5 * u}px ${9 * u}px`,
           transform: "rotate(-0.4deg)",
         }}
       />
@@ -99,7 +113,7 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
           d={`M0 ${10 * u} C ${w * 0.3} ${4 * u}, ${w * 0.7} ${16 * u}, ${w + 12 * u} ${8 * u}`}
           fill="none"
           stroke={PC.red}
-          strokeWidth={8 * u}
+          strokeWidth={7 * u}
           strokeLinecap="round"
           pathLength={1}
           strokeDasharray={`${p} 1`}
@@ -121,7 +135,7 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
         width={rx * 2 + 20 * u}
         height={ry * 2 + 20 * u}
       >
-        <path d={d} fill="none" stroke={PC.red} strokeWidth={8 * u} strokeLinecap="round" pathLength={1} strokeDasharray={`${p} 1`} />
+        <path d={d} fill="none" stroke={PC.red} strokeWidth={7 * u} strokeLinecap="round" pathLength={1} strokeDasharray={`${p} 1`} />
       </svg>
     );
   }
@@ -133,13 +147,9 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
         top: y - 8 * u,
         width: w + 20 * u,
         height: h + 16 * u,
-        border: `${6 * u}px solid ${PC.red}`,
-        borderRadius: 10 * u,
+        border: `${5 * u}px solid ${PC.red}`,
         opacity: p,
-        transform: `scale(${1.04 - 0.04 * p})`,
-        boxShadow: spotlight
-          ? `0 0 0 ${4000 * u}px rgba(0,0,0,${0.36 * p}), 0 0 ${30 * u}px rgba(224,22,29,${0.6 * p})`
-          : `0 0 ${30 * u}px rgba(224,22,29,${0.5 * p})`,
+        boxShadow: spotlight ? `0 0 0 ${4000 * u}px rgba(0,0,0,${0.36 * p})` : "none",
       }}
     />
   );
@@ -155,7 +165,7 @@ export const PShot: React.FC<PShotProps> = ({
   x1 = 1,
   y0 = 0,
   y1,
-  zoom = 1.06,
+  zoom = 1.05,
   s0 = 0.12,
   s1 = 0.7,
   path,
@@ -171,10 +181,11 @@ export const PShot: React.FC<PShotProps> = ({
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const t = useDrift();
+  const padL = 62 * u;
   const pad = 46 * u;
   const bar = 64 * u;
   const capH = caption ? 132 * u : 0;
-  const winW = W - pad * 2;
+  const winW = W - padL - pad;
   const winH = H - pad * 2 - capH - (caption ? 22 * u : 0);
   const viewH = winH - bar;
   // x0..x1 of the image spans the window: a crop onto the article column.
@@ -200,52 +211,18 @@ export const PShot: React.FC<PShotProps> = ({
   const scroll = Math.min(maxScroll, Math.max(0, yAt * dispH));
   const scale = 1 + (zoom - 1) * t;
   const enter = useBuild(0, 1, 0.1, 1, 10);
-  const cap = useBuild(0, 1, 0.3, FADE + 14, 14);
+  const cap = useBuild(0, 1, 0.3, FADE + 14, 12);
   // Push-in centred on the last mark (or the middle of the view).
   const ox = focus ? (focus.x + focus.w / 2) * dispW + ix : winW / 2;
   const oy = focus ? Math.min(viewH, Math.max(0, (focus.y + focus.h / 2) * dispH - scroll)) : viewH / 2;
   return (
     <PanelBg>
-      <div
-        style={{
-          position: "absolute",
-          left: pad,
-          top: pad,
-          width: winW,
-          height: winH,
-          borderRadius: 18 * u,
-          overflow: "hidden",
-          background: "#1B1B1E",
-          boxShadow: `0 ${24 * u}px ${70 * u}px rgba(0,0,0,0.6), 0 0 0 ${2 * u}px rgba(255,255,255,0.1)`,
-          opacity: enter,
-          transform: `translateY(${(1 - enter) * 30 * u}px)`,
-        }}
-      >
-        <div style={{ height: bar, display: "flex", alignItems: "center", gap: 12 * u, padding: `0 ${22 * u}px`, background: "#232327" }}>
-          {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => (
-            <span key={c} style={{ width: 18 * u, height: 18 * u, borderRadius: 9 * u, background: c, flex: "none" }} />
-          ))}
-          <div
-            style={{
-              marginLeft: 18 * u,
-              flex: 1,
-              height: 40 * u,
-              borderRadius: 20 * u,
-              background: "#111113",
-              color: "rgba(255,255,255,0.7)",
-              fontWeight: 600,
-              fontSize: 22 * u,
-              display: "flex",
-              alignItems: "center",
-              padding: `0 ${22 * u}px`,
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {url ?? ""}
-          </div>
-          {source ? <Chip size={30}>{source}</Chip> : null}
+      <div style={{ position: "absolute", left: padL, top: pad, width: winW, height: winH, overflow: "hidden", background: "#161616", ...rise(enter, u, 16) }}>
+        <div style={{ height: bar, display: "flex", alignItems: "center", gap: 24 * u, padding: `0 ${26 * u}px`, borderBottom: `${2 * u}px solid ${PC.brand}` }}>
+          {source ? (
+            <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 34 * u, textTransform: "uppercase", whiteSpace: "nowrap", color: PC.white, letterSpacing: 0.5 * u }}>{source}</div>
+          ) : null}
+          <div style={{ flex: 1, color: PC.dim, fontSize: 22 * u, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textAlign: source ? "right" : "left" }}>{url ?? ""}</div>
         </div>
         <div style={{ position: "relative", height: viewH, overflow: "hidden", background: "#fff" }}>
           <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: `${ox}px ${oy}px` }}>
@@ -257,36 +234,10 @@ export const PShot: React.FC<PShotProps> = ({
         </div>
       </div>
       {caption ? (
-        <div
-          style={{
-            position: "absolute",
-            left: pad,
-            right: pad,
-            bottom: pad,
-            height: capH,
-            display: "flex",
-            alignItems: "stretch",
-            opacity: cap,
-            transform: `translateY(${(1 - cap) * 20 * u}px)`,
-          }}
-        >
-          <div style={{ width: 14 * u, background: PC.red, flex: "none" }} />
-          <div
-            style={{
-              flex: 1,
-              background: PC.white,
-              color: PC.ink,
-              display: "flex",
-              alignItems: "center",
-              padding: `0 ${34 * u}px`,
-              fontWeight: 800,
-              fontSize: fit(caption, 52, 48, 36) * u,
-              lineHeight: 1.12,
-            }}
-          >
-            <div>
-              <Rich text={caption} />
-            </div>
+        <div style={{ position: "absolute", left: padL, right: pad, bottom: pad, height: capH, display: "flex", alignItems: "center", gap: 28 * u, ...rise(cap, u) }}>
+          <div style={{ width: 10 * u, alignSelf: "stretch", background: PC.red, flex: "none" }} />
+          <div style={{ fontWeight: 700, fontSize: fit(caption, 52, 48, 36) * u, lineHeight: 1.15 }}>
+            <Rich text={caption} />
           </div>
         </div>
       ) : null}
@@ -294,7 +245,7 @@ export const PShot: React.FC<PShotProps> = ({
   );
 };
 
-// ── PHeadline: a story, when there is no clean page to screenshot ────────────
+// ── PHeadline: a story, as a clipping ───────────────────────────────────────
 
 export type PHeadlineProps = {
   outlet: string;
@@ -315,42 +266,36 @@ export const PHeadline: React.FC<PHeadlineProps> = ({ outlet, date, headline, de
       <div
         style={{
           position: "absolute",
-          inset: `${70 * u}px ${80 * u}px ${110 * u}px`,
+          inset: `${70 * u}px ${80 * u}px ${100 * u}px ${96 * u}px`,
           display: "flex",
           flexDirection: wide ? "row" : "column",
-          gap: 40 * u,
+          gap: 56 * u,
           justifyContent: "center",
           alignItems: wide ? "center" : "stretch",
         }}
       >
-        <div style={{ flex: wide ? 1.35 : "none", opacity: card, transform: `translateY(${(1 - card) * 40 * u}px)` }}>
-          {kicker ? <Chip size={36} style={{ marginBottom: 20 * u }}>{kicker}</Chip> : null}
-          <Block tone="paper" pad={0} style={{ overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${26 * u}px ${40 * u}px`, borderBottom: `${3 * u}px solid ${PC.ink}` }}>
-              <div style={{ fontWeight: 900, fontSize: 44 * u, letterSpacing: -0.5 * u, textTransform: "uppercase" }}>{outlet}</div>
-              {date ? <div style={{ fontWeight: 700, fontSize: 28 * u, color: "rgba(0,0,0,0.55)" }}>{date}</div> : null}
+        <div style={{ flex: wide ? 1.35 : "none", ...rise(card, u, 16) }}>
+          {kicker ? <Label style={{ marginBottom: 18 * u }}>{kicker}</Label> : null}
+          <div style={{ background: PC.paper, color: PC.ink, padding: `${30 * u}px ${40 * u}px ${40 * u}px` }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderBottom: `${3 * u}px solid ${PC.ink}`, paddingBottom: 14 * u }}>
+              <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 46 * u, textTransform: "uppercase" }}>{outlet}</div>
+              {date ? <div style={{ fontWeight: 500, fontSize: 26 * u, color: "#666" }}>{date}</div> : null}
             </div>
-            <div style={{ display: "flex" }}>
-              <div style={{ width: 14 * u, background: PC.red, flex: "none" }} />
-              <div style={{ padding: `${36 * u}px ${40 * u}px ${40 * u}px` }}>
-                <div style={{ fontWeight: 800, fontSize: fit(headline, 74, 52, 50) * u, lineHeight: 1.1, letterSpacing: -1 * u }}>
-                  <Rich text={headline} />
-                </div>
-                {dek ? <div style={{ marginTop: 22 * u, fontWeight: 500, fontSize: 34 * u, lineHeight: 1.35, color: "rgba(0,0,0,0.7)" }}>{dek}</div> : null}
-                {byline ? <div style={{ marginTop: 22 * u, fontWeight: 700, fontSize: 26 * u, color: "rgba(0,0,0,0.5)" }}>{byline}</div> : null}
-              </div>
+            <div style={{ fontWeight: 700, fontSize: fit(headline, 72, 52, 48) * u, lineHeight: 1.1, letterSpacing: -0.5 * u, marginTop: 26 * u }}>
+              <Rich text={headline} mark={PC.brand} />
             </div>
-          </Block>
+            {dek ? <div style={{ marginTop: 20 * u, fontWeight: 400, fontSize: 34 * u, lineHeight: 1.35, color: "#444" }}>{dek}</div> : null}
+            {byline ? <div style={{ marginTop: 18 * u, fontWeight: 500, fontSize: 26 * u, color: "#777" }}>{byline}</div> : null}
+          </div>
         </div>
         {shown.length ? (
-          <div style={{ flex: wide ? 1 : "none", display: "flex", flexDirection: wide ? "column" : "row", gap: 20 * u }}>
+          <div style={{ flex: wide ? 1 : "none" }}>
             {shown.map((f, i) => (
               <Fact key={i} i={i} n={shown.length} text={f} />
             ))}
           </div>
         ) : null}
       </div>
-      <Footer />
     </PanelBg>
   );
 };
@@ -359,12 +304,10 @@ const Fact: React.FC<{ i: number; n: number; text: string }> = ({ i, n, text }) 
   const { u } = usePanel();
   const p = useBuild(i + 1, n + 1);
   return (
-    <div style={{ flex: 1, opacity: p, transform: `translateY(${(1 - p) * 24 * u}px)` }}>
-      <Block pad={26} style={{ borderLeft: `${8 * u}px solid ${PC.red}`, height: "100%", boxSizing: "border-box" }}>
-        <div style={{ fontWeight: 700, fontSize: fit(text, 36, 40, 28) * u, lineHeight: 1.25 }}>
-          <Rich text={text} />
-        </div>
-      </Block>
+    <div style={{ ...rise(p, u), borderTop: `${2 * u}px solid ${i === 0 ? PC.ruleStrong : PC.rule}`, padding: `${20 * u}px 0` }}>
+      <div style={{ fontWeight: 700, fontSize: fit(text, 38, 40, 30) * u, lineHeight: 1.25 }}>
+        <Rich text={text} />
+      </div>
     </div>
   );
 };
@@ -378,122 +321,125 @@ export type PStatProps = Framed & {
   decimals?: number;
   label: string;
   context?: string;
-  ring?: boolean; // for percentages: a ring fills to value/100
+  ring?: boolean; // for percentages: a thin arc fills to value/100
 };
 
 export const PStat: React.FC<PStatProps> = ({ kicker, title, source, value, prefix = "", suffix = "", decimals = 0, label, context, ring }) => {
   const { u, wide } = usePanel();
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
-  const count = interpolate(frame, [FADE + 4, Math.max(FADE + 20, durationInFrames * 0.4)], [0, 1], {
+  const count = interpolate(frame, [FADE + 4, Math.max(FADE + 20, durationInFrames * 0.35)], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.out(Easing.cubic),
   });
-  const lab = useBuild(1, 3);
-  const ctx = useBuild(2, 3);
-  const numSize = fit(`${prefix}${fmt(value, decimals)}${suffix}`, 400, 5, 240);
+  const head = useBuild(0, 3, 0.2);
+  const num = useBuild(1, 3, 0.2);
+  const lab = useBuild(2, 3, 0.3);
+  const text = `${prefix}${fmt(value, decimals)}${suffix}`;
+  const numSize = fit(text, wide ? 560 : 440, 4, wide ? 340 : 260);
   const r = 210;
   const circ = 2 * Math.PI * r;
+  const big = ring ? (
+    <svg width={560 * u} height={560 * u} viewBox="0 0 500 500" style={{ flex: "none" }}>
+      <circle cx={250} cy={250} r={r} fill="none" stroke={PC.rule} strokeWidth={14} />
+      <circle cx={250} cy={250} r={r} fill="none" stroke={PC.red} strokeWidth={14} strokeDasharray={`${circ * (value / 100) * count} ${circ}`} transform="rotate(-90 250 250)" />
+      <text x={250} y={300} textAnchor="middle" fill="#fff" style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 170 }}>
+        {prefix}
+        {fmt(value * count, decimals)}
+        {suffix}
+      </text>
+    </svg>
+  ) : (
+    <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: numSize * u, lineHeight: 0.82, whiteSpace: "nowrap", flex: "none", letterSpacing: -0.01 * numSize * u, ...rise(num, u, 20) }}>
+      {prefix ? <span style={{ color: PC.red }}>{prefix}</span> : null}
+      {fmt(value * count, decimals)}
+      {suffix ? <span style={{ color: PC.red }}>{suffix}</span> : null}
+    </div>
+  );
   return (
-    <Panel kicker={kicker} title={title} source={source} titleSize={96}>
-      <div style={{ display: "flex", alignItems: "center", gap: 60 * u, flexDirection: wide || ring ? "row" : "column" }}>
-        {ring ? (
-          <svg width={580 * u} height={580 * u} viewBox="0 0 500 500" style={{ flex: "none" }}>
-            <circle cx={250} cy={250} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={46} />
-            <circle
-              cx={250}
-              cy={250}
-              r={r}
-              fill="none"
-              stroke={PC.red}
-              strokeWidth={46}
-              strokeDasharray={`${circ * (value / 100) * count} ${circ}`}
-              transform="rotate(-90 250 250)"
-              strokeLinecap="butt"
-            />
-            <text x={250} y={295} textAnchor="middle" fill="#fff" style={{ fontFamily: DISPLAY, fontSize: 150 }}>
-              {prefix}
-              {fmt(value * count, decimals)}
-              {suffix}
-            </text>
-          </svg>
-        ) : (
-          <div style={{ fontFamily: DISPLAY, fontSize: numSize * u, lineHeight: 0.85, whiteSpace: "nowrap", flex: "none" }}>
-            <span style={{ color: PC.red }}>{prefix}</span>
-            {fmt(value * count, decimals)}
-            <span style={{ color: PC.red }}>{suffix}</span>
-          </div>
-        )}
-        <div style={{ flex: 1, textAlign: wide || ring ? "left" : "center" }}>
-          <div style={{ fontWeight: 800, fontSize: fit(label, 74, 40, 52) * u, lineHeight: 1.15, opacity: lab, transform: `translateY(${(1 - lab) * 20 * u}px)` }}>
-            <Rich text={label} />
-          </div>
-          {context ? (
-            <div style={{ marginTop: 24 * u, color: PC.muted, fontWeight: 600, fontSize: fit(context, 46, 60, 36) * u, lineHeight: 1.3, opacity: ctx }}>
-              <Rich text={context} />
+    <PanelBg>
+      <div style={{ position: "absolute", left: 96 * u, right: 80 * u, top: 70 * u, bottom: 96 * u, display: "flex", flexDirection: "column", justifyContent: "safe center" }}>
+        <div style={rise(head, u)}>
+          {kicker ? <Label>{kicker}</Label> : null}
+          {title ? <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: fit(title, 72, 30, 52) * u, textTransform: "uppercase", marginTop: 10 * u, lineHeight: 1 }}>{title}</div> : null}
+        </div>
+        <div style={{ display: "flex", flexDirection: wide ? "row" : "column", alignItems: wide ? "flex-end" : "flex-start", gap: (wide ? 70 : 30) * u, marginTop: 40 * u }}>
+          {big}
+          <div style={{ flex: 1, paddingBottom: (wide ? 24 : 0) * u, borderLeft: wide ? `${2 * u}px solid ${PC.ruleStrong}` : "none", paddingLeft: (wide ? 50 : 0) * u, ...rise(lab, u) }}>
+            <div style={{ fontWeight: 700, fontSize: fit(label, 60, 30, 44) * u, lineHeight: 1.15, textTransform: "uppercase", letterSpacing: 0.5 * u }}>
+              <Rich text={label} />
             </div>
-          ) : null}
+            {context ? (
+              <div style={{ marginTop: 20 * u, color: "#C8C8C8", fontWeight: 400, fontSize: fit(context, 44, 60, 34) * u, lineHeight: 1.3 }}>
+                <Rich text={context} />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-    </Panel>
+      <Footer source={source} />
+    </PanelBg>
   );
 };
 
-// ── PPoints: numbered points in a grid ──────────────────────────────────────
+// ── PPoints: numbered points ────────────────────────────────────────────────
 
 export type PPointsProps = Framed & { points: (string | { title: string; text?: string })[]; reveal?: number[] };
 
 export const PPoints: React.FC<PPointsProps> = ({ kicker, title, source, points, reveal }) => {
   const { u, wide } = usePanel();
   const shown = points.slice(0, 6).map((p) => (typeof p === "string" ? { title: p } : p));
-  const cols = wide ? Math.min(shown.length, shown.length === 4 ? 4 : 3) : shown.length <= 3 ? 1 : 2;
-  const sizes = longest(shown.map((p) => p.title));
-  const tsize = fit("x".repeat(sizes), cols === 1 ? 66 : 60, cols === 1 ? 34 : 18, 42);
+  // Wide pane with titled points: columns. Everything else: rows.
+  const columns = wide && shown.some((p) => p.text) && shown.length <= 4;
+  const tsize = columns
+    ? fit("x".repeat(longest(shown.map((p) => p.title))), 72, 18, 52)
+    : fit("x".repeat(longest(shown.map((p) => p.title))), wide ? 66 : 62, wide ? 44 : 26, 44);
   return (
     <Panel kicker={kicker} title={title} source={source}>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 24 * u }}>
-        {shown.map((p, i) => (
-          <PointCard key={i} i={i} n={shown.length} title={p.title} text={p.text} size={tsize} row={cols === 1} reveal={reveal} />
-        ))}
-      </div>
+      {columns ? (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${shown.length}, 1fr)` }}>
+          {shown.map((p, i) => (
+            <PointColumn key={i} i={i} n={shown.length} title={p.title} text={p.text} size={tsize} reveal={reveal} />
+          ))}
+        </div>
+      ) : (
+        <div>
+          {shown.map((p, i) => (
+            <PointRow key={i} i={i} n={shown.length} title={p.title} text={p.text} size={tsize} reveal={reveal} />
+          ))}
+        </div>
+      )}
     </Panel>
   );
 };
 
-const PointCard: React.FC<{ i: number; n: number; title: string; text?: string; size: number; row: boolean; reveal?: number[] }> = ({ i, n, title, text, size, row, reveal }) => {
+const PointRow: React.FC<{ i: number; n: number; title: string; text?: string; size: number; reveal?: number[] }> = ({ i, n, title, text, size, reveal }) => {
   const { u } = usePanel();
   const p = useReveal(i, n, reveal);
-  const glow = interpolate(p, [0.5, 1], [0, 1], { extrapolateLeft: "clamp" });
   return (
-    <div style={{ opacity: p, transform: `translateY(${(1 - p) * 30 * u}px)` }}>
-      <Block pad={30} style={{ display: "flex", flexDirection: row ? "row" : "column", alignItems: row ? "center" : "flex-start", gap: 24 * u, height: "100%", boxSizing: "border-box" }}>
-        <div
-          style={{
-            flex: "none",
-            width: 104 * u,
-            height: 104 * u,
-            background: PC.red,
-            borderRadius: 12 * u,
-            fontFamily: DISPLAY,
-            fontSize: 80 * u,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: 6 * u,
-            boxSizing: "border-box",
-            boxShadow: `0 0 ${30 * u * glow}px rgba(224,22,29,${0.6 * glow})`,
-          }}
-        >
-          {i + 1}
+    <div style={{ display: "flex", alignItems: "baseline", gap: 34 * u, padding: `${22 * u}px 0`, borderBottom: i < n - 1 ? `${2 * u}px solid ${PC.rule}` : "none", ...rise(p, u) }}>
+      <div style={{ flex: "none", width: 70 * u, fontFamily: DISPLAY, fontWeight: 700, fontSize: 52 * u, color: PC.red, lineHeight: 1 }}>{pad2(i)}</div>
+      <div>
+        <div style={{ fontWeight: 700, fontSize: size * u, lineHeight: 1.15 }}>
+          <Rich text={title} />
         </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: size * u, lineHeight: 1.15 }}>
-            <Rich text={title} />
-          </div>
-          {text ? <div style={{ marginTop: 10 * u, color: PC.muted, fontWeight: 600, fontSize: size * 0.72 * u, lineHeight: 1.3 }}><Rich text={text} /></div> : null}
-        </div>
-      </Block>
+        {text ? <div style={{ marginTop: 8 * u, color: "#BDBDBD", fontWeight: 400, fontSize: size * 0.7 * u, lineHeight: 1.3 }}><Rich text={text} /></div> : null}
+      </div>
+    </div>
+  );
+};
+
+const PointColumn: React.FC<{ i: number; n: number; title: string; text?: string; size: number; reveal?: number[] }> = ({ i, n, title, text, size, reveal }) => {
+  const { u } = usePanel();
+  const p = useReveal(i, n, reveal);
+  return (
+    <div style={{ padding: `0 ${36 * u}px`, paddingLeft: (i === 0 ? 0 : 36) * u, borderLeft: i > 0 ? `${2 * u}px solid ${PC.rule}` : "none", ...rise(p, u) }}>
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 64 * u, color: PC.red, lineHeight: 1 }}>{pad2(i)}</div>
+      <div style={{ fontWeight: 700, fontSize: size * u, lineHeight: 1.12, marginTop: 18 * u }}>
+        <Rich text={title} />
+      </div>
+      {text ? <div style={{ marginTop: 12 * u, color: "#BDBDBD", fontWeight: 400, fontSize: size * 0.72 * u, lineHeight: 1.3 }}><Rich text={text} /></div> : null}
     </div>
   );
 };
@@ -504,62 +450,43 @@ type Side = { name: string; tag?: string; points: string[] };
 export type PCompareProps = Framed & { left: Side; right: Side; verdict?: string };
 
 export const PCompare: React.FC<PCompareProps> = ({ kicker, title, source, left, right, verdict }) => {
-  const { u } = usePanel();
+  const { u, wide } = usePanel();
   const rows = Math.max(left.points.length, right.points.length, 1);
-  const size = fit("x".repeat(longest([...left.points, ...right.points])), 48, 22, 38);
-  const vs = useBuild(0, 1, 0.1, FADE + 6, 10);
+  const size = fit("x".repeat(longest([...left.points, ...right.points])), wide ? 58 : 46, wide ? 30 : 22, wide ? 44 : 36);
   const v = useBuild(rows + 1, rows + 2);
   return (
-    <Panel kicker={kicker} title={title} source={source} titleSize={104}>
-      <div style={{ position: "relative", display: "flex", gap: 28 * u }}>
+    <Panel kicker={kicker} title={title} source={source} titleSize={110}>
+      <div style={{ display: "flex" }}>
         {[left, right].map((side, s) => (
-          <Block key={s} tone={s === 1 ? "red" : "none"} pad={34} style={{ flex: 1 }}>
-            {side.tag ? <Chip size={34} tone={s === 1 ? "red" : "ghost"}>{side.tag}</Chip> : null}
-            <div style={{ fontFamily: DISPLAY, fontSize: fit(side.name, 96, 12, 72) * u, lineHeight: 1, marginTop: (side.tag ? 16 : 0) * u, color: s === 1 ? PC.white : "rgba(255,255,255,0.88)" }}>
-              {side.name}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 * u, marginTop: 24 * u }}>
-              {side.points.slice(0, 5).map((p, i) => (
-                <CompareRow key={i} i={i} n={rows} text={p} size={size} good={s === 1} />
-              ))}
-            </div>
-          </Block>
+          <CompareSide key={s} side={side} s={s} rows={rows} size={size} />
         ))}
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: 40 * u,
-            width: 96 * u,
-            height: 96 * u,
-            marginLeft: -48 * u,
-            borderRadius: 48 * u,
-            background: PC.ink,
-            border: `${4 * u}px solid ${PC.red}`,
-            fontFamily: DISPLAY,
-            fontSize: 48 * u,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: 4 * u,
-            boxSizing: "border-box",
-            transform: `scale(${vs})`,
-          }}
-        >
-          VS
-        </div>
       </div>
       {verdict ? (
-        <div style={{ marginTop: 26 * u, opacity: v, transform: `translateY(${(1 - v) * 16 * u}px)` }}>
-          <div style={{ display: "flex" }}>
-            <div style={{ width: 14 * u, background: PC.red }} />
-            <div style={{ flex: 1, background: PC.white, color: PC.ink, padding: `${22 * u}px ${30 * u}px`, fontWeight: 800, fontSize: fit(verdict, 54, 44, 40) * u, lineHeight: 1.2 }}>
-              <Rich text={verdict} />
-            </div>
-          </div>
+        <div style={{ marginTop: 30 * u }}>
+          <Band text={verdict} p={v} size={56} />
         </div>
       ) : null}
     </Panel>
+  );
+};
+
+const CompareSide: React.FC<{ side: Side; s: number; rows: number; size: number }> = ({ side, s, rows, size }) => {
+  const { u } = usePanel();
+  const h = useBuild(s, 2, 0.12);
+  return (
+    <div style={{ flex: 1, paddingLeft: (s ? 44 : 0) * u, paddingRight: (s ? 0 : 44) * u, borderLeft: s ? `${2 * u}px solid ${PC.ruleStrong}` : "none" }}>
+      <div style={rise(h, u)}>
+        {side.tag ? <Label size={26} color={s ? PC.red : PC.muted}>{side.tag}</Label> : null}
+        <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: fit(side.name, 96, 14, 66) * u, lineHeight: 1, marginTop: (side.tag ? 10 : 0) * u, textTransform: "uppercase", color: s ? PC.white : "#CFCFCF" }}>
+          {side.name}
+        </div>
+      </div>
+      <div style={{ marginTop: 18 * u }}>
+        {side.points.slice(0, 5).map((p, i) => (
+          <CompareRow key={i} i={i} n={rows} text={p} size={size} good={s === 1} />
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -567,9 +494,9 @@ const CompareRow: React.FC<{ i: number; n: number; text: string; size: number; g
   const { u } = usePanel();
   const p = useBuild(i + 1, n + 2);
   return (
-    <div style={{ display: "flex", gap: 16 * u, alignItems: "baseline", opacity: p, transform: `translateX(${(1 - p) * 20 * u}px)` }}>
-      <span style={{ flex: "none", width: 14 * u, height: 14 * u, background: good ? PC.red : "rgba(255,255,255,0.5)", transform: `translateY(${-4 * u}px) rotate(45deg)` }} />
-      <span style={{ fontWeight: 600, fontSize: size * u, lineHeight: 1.25 }}>
+    <div style={{ display: "flex", gap: 18 * u, alignItems: "baseline", padding: `${14 * u}px 0`, borderTop: `${2 * u}px solid ${PC.rule}`, ...rise(p, u) }}>
+      <span style={{ flex: "none", width: 22 * u, height: 4 * u, background: good ? PC.red : PC.dim, transform: `translateY(${-10 * u}px)` }} />
+      <span style={{ fontWeight: good ? 700 : 500, fontSize: size * u, lineHeight: 1.25, color: good ? PC.white : "#D0D0D0" }}>
         <Rich text={text} />
       </span>
     </div>
@@ -581,7 +508,7 @@ const CompareRow: React.FC<{ i: number; n: number; text: string; size: number; g
 export type PTimelineProps = Framed & { events: { date: string; text: string; hot?: boolean }[]; reveal?: number[] };
 
 export const PTimeline: React.FC<PTimelineProps> = ({ kicker, title, source, events, reveal }) => {
-  const { u } = usePanel();
+  const { u, wide } = usePanel();
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const shown = events.slice(0, 6);
@@ -591,14 +518,14 @@ export const PTimeline: React.FC<PTimelineProps> = ({ kicker, title, source, eve
     extrapolateRight: "clamp",
     easing: Easing.inOut(Easing.cubic),
   });
-  const size = fit("x".repeat(longest(shown.map((e) => e.text))), 52, 26, 40);
+  const size = fit("x".repeat(longest(shown.map((e) => e.text))), wide ? 58 : 48, 26, wide ? 44 : 38);
   return (
     <Panel kicker={kicker} title={title} source={source}>
-      <div style={{ position: "relative", paddingTop: 30 * u }}>
-        <div style={{ position: "absolute", left: 0, right: 0, top: 30 * u + 26 * u, height: 8 * u, background: "rgba(255,255,255,0.12)" }}>
-          <div style={{ height: "100%", width: `${line * 100}%`, background: PC.red, boxShadow: `0 0 ${20 * u}px rgba(224,22,29,0.6)` }} />
+      <div style={{ position: "relative", paddingTop: 10 * u }}>
+        <div style={{ position: "absolute", left: 0, right: 0, top: 10 * u + 9 * u, height: 4 * u, background: PC.rule }}>
+          <div style={{ height: "100%", width: `${line * 100}%`, background: PC.ruleStrong }} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 28 * u }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 36 * u }}>
           {shown.map((e, i) => (
             <TimelineStop key={i} i={i} n={n} ev={e} size={size} last={i === n - 1} reveal={reveal} />
           ))}
@@ -609,25 +536,14 @@ export const PTimeline: React.FC<PTimelineProps> = ({ kicker, title, source, eve
 };
 
 const TimelineStop: React.FC<{ i: number; n: number; ev: { date: string; text: string; hot?: boolean }; size: number; last: boolean; reveal?: number[] }> = ({ i, n, ev, size, last, reveal }) => {
-  const { u } = usePanel();
+  const { u, wide } = usePanel();
   const p = useReveal(i, n, reveal, 0.4);
   const hot = ev.hot ?? last;
   return (
-    <div style={{ opacity: p, transform: `translateY(${(1 - p) * 26 * u}px)` }}>
-      <div
-        style={{
-          width: 60 * u,
-          height: 60 * u,
-          borderRadius: 30 * u,
-          background: hot ? PC.red : PC.ink,
-          border: `${6 * u}px solid ${hot ? PC.white : PC.red}`,
-          boxSizing: "border-box",
-          transform: `scale(${p})`,
-          boxShadow: hot ? `0 0 ${30 * u}px rgba(224,22,29,0.8)` : "none",
-        }}
-      />
-      <div style={{ fontFamily: DISPLAY, fontSize: 88 * u, lineHeight: 1, color: hot ? PC.red : PC.white, marginTop: 28 * u }}>{ev.date}</div>
-      <div style={{ fontWeight: 700, fontSize: size * u, lineHeight: 1.22, marginTop: 12 * u }}>
+    <div style={rise(p, u)}>
+      <div style={{ width: 22 * u, height: 22 * u, background: hot ? PC.red : PC.white }} />
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: (wide ? 88 : 64) * u, lineHeight: 1, color: hot ? PC.red : PC.white, marginTop: 26 * u, whiteSpace: "nowrap", textTransform: "uppercase" }}>{ev.date}</div>
+      <div style={{ fontWeight: 500, fontSize: size * u, lineHeight: 1.25, marginTop: 12 * u, color: hot ? PC.white : "#D0D0D0" }}>
         <Rich text={ev.text} />
       </div>
     </div>
@@ -642,45 +558,24 @@ export const PQuote: React.FC<PQuoteProps> = ({ kicker, source, quote, author, r
   const { u, wide } = usePanel();
   const q = useBuild(0, 2, 0.2);
   const a = useBuild(1, 2, 0.3);
-  const t = useDrift();
+  const bar = useBuild(0, 1, 0.15, FADE + 1, 14);
   return (
     <PanelBg>
-      <div
-        style={{
-          position: "absolute",
-          inset: `${70 * u}px ${wide ? 140 : 80}px ${120 * u}px`,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}
-      >
-        {kicker ? <div style={{ opacity: a, position: "relative", zIndex: 2 }}><Chip size={40}>{kicker}</Chip></div> : null}
-        <div style={{ position: "relative", marginTop: (kicker ? 150 : 20) * u }}>
-          <div style={{ position: "absolute", left: -20 * u, top: -150 * u, fontFamily: DISPLAY, fontSize: 420 * u, lineHeight: 1, color: PC.red, opacity: 0.9 * q }}>“</div>
-          <div
-            style={{
-              position: "relative",
-              paddingTop: 110 * u,
-              fontWeight: 800,
-              fontSize: fit(quote, wide ? 120 : 110, 34, 52) * u,
-              lineHeight: 1.24,
-              opacity: q,
-              transform: `translateY(${(1 - q) * 30 * u}px) scale(${1 + t * 0.015})`,
-              transformOrigin: "left center",
-            }}
-          >
-            <Rich text={quote} />
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 26 * u, marginTop: 44 * u, opacity: a, transform: `translateY(${(1 - a) * 16 * u}px)` }}>
-          {photo ? (
-            <Img src={panelAsset(photo)} style={{ width: 110 * u, height: 110 * u, borderRadius: 55 * u, objectFit: "cover", border: `${4 * u}px solid ${PC.red}` }} />
-          ) : (
-            <div style={{ width: 12 * u, height: 100 * u, background: PC.red }} />
-          )}
+      <div style={{ position: "absolute", inset: `${70 * u}px ${wide ? 150 : 80}px ${110 * u}px ${wide ? 130 : 96}px`, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        {kicker ? <Label style={{ opacity: a, marginBottom: 36 * u }}>{kicker}</Label> : null}
+        <div style={{ display: "flex", gap: 44 * u }}>
+          <div style={{ flex: "none", width: 12 * u, background: PC.red, transform: `scaleY(${bar})`, transformOrigin: "top" }} />
           <div>
-            <div style={{ fontFamily: DISPLAY, fontSize: 84 * u, lineHeight: 1 }}>{author}</div>
-            {role ? <div style={{ color: PC.muted, fontWeight: 600, fontSize: 38 * u, marginTop: 8 * u }}>{role}</div> : null}
+            <div style={{ fontWeight: 700, fontSize: fit(quote, wide ? 112 : 96, 60, wide ? 80 : 64) * u, lineHeight: 1.2, letterSpacing: -0.4 * u, ...rise(q, u, 16) }}>
+              <Rich text={quote} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 24 * u, marginTop: 40 * u, ...rise(a, u) }}>
+              {photo ? <Img src={panelAsset(photo)} style={{ width: 104 * u, height: 104 * u, objectFit: "cover", filter: "grayscale(0.2)" }} /> : null}
+              <div>
+                <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 58 * u, lineHeight: 1, textTransform: "uppercase" }}>{author}</div>
+                {role ? <div style={{ color: PC.muted, fontWeight: 400, fontSize: 34 * u, marginTop: 8 * u }}>{role}</div> : null}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -708,12 +603,12 @@ export const PBars: React.FC<PBarsProps> = ({ kicker, title, source, items, pref
   const nb = useBuild(shown.length + 1, shown.length + 2);
   return (
     <Panel kicker={kicker} title={title} source={source}>
-      <div style={{ display: "flex", flexDirection: "column", gap: (dense ? 22 : 34) * u }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: (dense ? 26 : 38) * u }}>
         {shown.map((item, i) => (
           <BarRow key={i} i={i} n={shown.length} item={item} max={max} prefix={prefix} suffix={suffix} decimals={decimals} dense={dense} />
         ))}
       </div>
-      {note ? <div style={{ marginTop: 30 * u, color: PC.muted, fontWeight: 600, fontSize: 38 * u, opacity: nb }}><Rich text={note} /></div> : null}
+      {note ? <div style={{ marginTop: 28 * u, color: PC.muted, fontWeight: 400, fontSize: 32 * u, opacity: nb }}><Rich text={note} /></div> : null}
     </Panel>
   );
 };
@@ -738,21 +633,14 @@ const BarRow: React.FC<{
   return (
     <div style={{ opacity: appear }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 * u }}>
-        <span style={{ fontWeight: 800, fontSize: (dense ? 44 : 60) * u }}>
+        <span style={{ fontWeight: 700, fontSize: (dense ? 38 : 52) * u, textTransform: "uppercase", letterSpacing: 0.5 * u }}>
           {item.label}
-          {item.note ? <span style={{ color: PC.muted, fontWeight: 600, fontSize: (dense ? 30 : 40) * u, marginLeft: 16 * u }}>{item.note}</span> : null}
+          {item.note ? <span style={{ color: PC.muted, fontWeight: 400, fontSize: (dense ? 28 : 36) * u, marginLeft: 16 * u, textTransform: "none" }}>{item.note}</span> : null}
         </span>
-        <span style={{ fontFamily: DISPLAY, fontSize: (dense ? 80 : 120) * u, lineHeight: 0.9, color: hl ? PC.red : PC.white }}>{shownValue}</span>
+        <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: (dense ? 74 : 110) * u, lineHeight: 0.9, color: hl ? PC.red : PC.white }}>{shownValue}</span>
       </div>
-      <div style={{ height: (dense ? 36 : 64) * u, background: "rgba(255,255,255,0.08)", borderRadius: 6 * u, overflow: "hidden" }}>
-        <div
-          style={{
-            height: "100%",
-            width: `${Math.max(0.6, (Math.abs(item.value) / max) * 100 * grow)}%`,
-            background: hl ? `linear-gradient(90deg, ${PC.brand}, ${PC.red})` : "linear-gradient(90deg, rgba(255,255,255,0.45), rgba(255,255,255,0.85))",
-            boxShadow: hl ? `0 0 ${24 * u}px rgba(224,22,29,0.6)` : "none",
-          }}
-        />
+      <div style={{ height: (dense ? 22 : 36) * u, background: "#1C1C1C" }}>
+        <div style={{ height: "100%", width: `${Math.max(0.6, (Math.abs(item.value) / max) * 100 * grow)}%`, background: hl ? PC.red : "#8A8A8A" }} />
       </div>
     </div>
   );
@@ -766,10 +654,10 @@ const stepTimes = (r: number[]) => r.flatMap((t, i) => (i === 0 ? [t] : [Math.ma
 export type PFlowProps = Framed & { steps: { title: string; text?: string }[]; foot?: string; reveal?: number[] };
 
 export const PFlow: React.FC<PFlowProps> = ({ kicker, title, source, steps, foot, reveal }) => {
-  const { u } = usePanel();
+  const { u, wide } = usePanel();
   const shown = steps.slice(0, 5);
   const n = shown.length;
-  const tsize = fit("x".repeat(longest(shown.map((s) => s.title))), 60, 12, 40);
+  const tsize = fit("x".repeat(longest(shown.map((s) => s.title))), wide ? 72 : 60, 12, wide ? 50 : 40);
   const ft = useBuild(n + 1, n + 2);
   return (
     <Panel kicker={kicker} title={title} source={source}>
@@ -782,11 +670,8 @@ export const PFlow: React.FC<PFlowProps> = ({ kicker, title, source, steps, foot
         ))}
       </div>
       {foot ? (
-        <div style={{ marginTop: 34 * u, opacity: ft, display: "flex" }}>
-          <div style={{ width: 14 * u, background: PC.red }} />
-          <div style={{ flex: 1, background: PC.white, color: PC.ink, padding: `${20 * u}px ${28 * u}px`, fontWeight: 800, fontSize: fit(foot, 50, 50, 38) * u, lineHeight: 1.2 }}>
-            <Rich text={foot} />
-          </div>
+        <div style={{ marginTop: 34 * u }}>
+          <Band text={foot} p={ft} size={46} />
         </div>
       ) : null}
     </Panel>
@@ -795,14 +680,15 @@ export const PFlow: React.FC<PFlowProps> = ({ kicker, title, source, steps, foot
 
 const FlowStep: React.FC<{ i: number; n: number; step: { title: string; text?: string }; size: number; reveal?: number[] }> = ({ i, n, step, size, reveal }) => {
   const { u } = usePanel();
+  const { wide } = usePanel();
   const p = useReveal(i * 2, n * 2 - 1, reveal ? stepTimes(reveal) : undefined, 0.45);
+  const last = i === n - 1;
   return (
-    <div style={{ flex: 1, opacity: p, transform: `translateY(${(1 - p) * 30 * u}px)` }}>
-      <Block tone={i === n - 1 ? "red" : "none"} pad={28} style={{ height: "100%", boxSizing: "border-box" }}>
-        <div style={{ fontFamily: DISPLAY, fontSize: 46 * u, color: PC.red, lineHeight: 1 }}>STEP {i + 1}</div>
-        <div style={{ fontFamily: DISPLAY, fontSize: size * u, lineHeight: 1, marginTop: 10 * u }}>{step.title}</div>
-        {step.text ? <div style={{ marginTop: 14 * u, fontWeight: 600, fontSize: 38 * u, lineHeight: 1.3, color: "rgba(255,255,255,0.82)" }}><Rich text={step.text} /></div> : null}
-      </Block>
+    <div style={{ flex: 1, minWidth: 0, ...rise(p, u) }}>
+      <div style={{ height: (last ? 8 : 4) * u, background: last ? PC.red : PC.ruleStrong }} />
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: (wide ? 48 : 40) * u, color: PC.red, lineHeight: 1, marginTop: 22 * u }}>{pad2(i)}</div>
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: size * u, lineHeight: 1, marginTop: 10 * u, textTransform: "uppercase" }}>{step.title}</div>
+      {step.text ? <div style={{ marginTop: 14 * u, fontWeight: 400, fontSize: (wide ? 44 : 36) * u, lineHeight: 1.3, color: "#C8C8C8" }}><Rich text={step.text} /></div> : null}
     </div>
   );
 };
@@ -811,16 +697,15 @@ const FlowArrow: React.FC<{ i: number; n: number; reveal?: number[] }> = ({ i, n
   const { u } = usePanel();
   const p = useReveal(i * 2 + 1, n * 2 - 1, reveal ? stepTimes(reveal) : undefined, 0.45);
   return (
-    <div style={{ flex: "none", width: 70 * u, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <svg width={56 * u} height={40 * u} viewBox="0 0 56 40" style={{ opacity: p }}>
-        <path d={`M2 20 H${2 + 40 * p}`} stroke={PC.red} strokeWidth={7} strokeLinecap="round" />
-        <path d="M34 6 L52 20 L34 34" fill="none" stroke={PC.red} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: p > 0.8 ? 1 : 0 }} />
+    <div style={{ flex: "none", width: 64 * u, paddingTop: 70 * u, display: "flex", justifyContent: "center" }}>
+      <svg width={40 * u} height={24 * u} viewBox="0 0 40 24" style={{ opacity: p }}>
+        <path d="M2 12 H36 M28 4 L36 12 L28 20" fill="none" stroke={PC.muted} strokeWidth={2.5} strokeLinecap="square" />
       </svg>
     </div>
   );
 };
 
-// ── PExplainer: what a company / thing is ───────────────────────────────────
+// ── PExplainer: what a company / person / thing is ──────────────────────────
 
 export type PExplainerProps = Framed & {
   name: string;
@@ -839,31 +724,32 @@ export const PExplainer: React.FC<PExplainerProps> = ({ kicker, source, name, lo
       <div
         style={{
           position: "absolute",
-          inset: `${70 * u}px ${80 * u}px ${110 * u}px`,
+          inset: `${70 * u}px ${80 * u}px ${100 * u}px ${96 * u}px`,
           display: "flex",
           flexDirection: wide ? "row" : "column",
-          gap: 50 * u,
+          gap: (wide ? 70 : 44) * u,
           justifyContent: "center",
           alignItems: wide ? "center" : "stretch",
         }}
       >
-        <div style={{ flex: wide ? 1.1 : "none", opacity: a, transform: `translateY(${(1 - a) * 30 * u}px)` }}>
-          {kicker ? <Chip size={36}>{kicker}</Chip> : null}
-          <div style={{ display: "flex", alignItems: "center", gap: 34 * u, marginTop: 24 * u }}>
-            {logo ? (
-              <div style={{ flex: "none", width: 190 * u, height: 190 * u, borderRadius: 26 * u, background: PC.white, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                <Img src={panelAsset(logo)} style={{ maxWidth: "80%", maxHeight: "80%", objectFit: "contain" }} />
-              </div>
-            ) : null}
-            <div style={{ fontFamily: DISPLAY, fontSize: fit(name, 150, 12, 96) * u, lineHeight: 0.92 }}>{name}</div>
+        <div style={{ flex: wide ? 1.1 : "none" }}>
+          <div style={rise(a, u)}>
+            {kicker ? <Label>{kicker}</Label> : null}
+            <div style={{ display: "flex", alignItems: "center", gap: 30 * u, marginTop: 14 * u }}>
+              {logo ? (
+                <div style={{ flex: "none", width: 170 * u, height: 170 * u, background: PC.white, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  <Img src={panelAsset(logo)} style={{ maxWidth: "80%", maxHeight: "80%", objectFit: "contain" }} />
+                </div>
+              ) : null}
+              <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: fit(name, 150, 13, 92) * u, lineHeight: 0.92, textTransform: "uppercase" }}>{name}</div>
+            </div>
           </div>
-          <div style={{ height: 8 * u, width: 140 * u, background: PC.red, margin: `${28 * u}px 0` }} />
-          <div style={{ fontWeight: 700, fontSize: fit(lead, 60, 60, 44) * u, lineHeight: 1.25, opacity: b }}>
+          <div style={{ fontWeight: 400, fontSize: fit(lead, wide ? 58 : 50, 70, wide ? 44 : 38) * u, lineHeight: 1.3, marginTop: 30 * u, color: "#E4E4E4", ...rise(b, u) }}>
             <Rich text={lead} />
           </div>
         </div>
         {shown.length ? (
-          <div style={{ flex: wide ? 1 : "none", display: "grid", gridTemplateColumns: wide || shown.length < 3 ? "1fr" : "1fr 1fr", gap: 18 * u }}>
+          <div style={{ flex: wide ? 1 : "none" }}>
             {shown.map((f, i) => (
               <ExplainFact key={i} i={i} n={shown.length} f={f} />
             ))}
@@ -876,16 +762,14 @@ export const PExplainer: React.FC<PExplainerProps> = ({ kicker, source, name, lo
 };
 
 const ExplainFact: React.FC<{ i: number; n: number; f: { label: string; value: string } }> = ({ i, n, f }) => {
-  const { u } = usePanel();
+  const { u, wide } = usePanel();
   const p = useBuild(i + 2, n + 2);
   return (
-    <div style={{ opacity: p, transform: `translateX(${(1 - p) * 30 * u}px)` }}>
-      <Block pad={24} style={{ borderLeft: `${8 * u}px solid ${PC.red}` }}>
-        <div style={{ fontFamily: DISPLAY, fontSize: 44 * u, letterSpacing: 1.5 * u, color: PC.red, lineHeight: 1 }}>{f.label}</div>
-        <div style={{ fontWeight: 800, fontSize: fit(f.value, 54, 26, 40) * u, lineHeight: 1.2, marginTop: 8 * u }}>
-          <Rich text={f.value} />
-        </div>
-      </Block>
+    <div style={{ borderTop: `${2 * u}px solid ${i === 0 ? PC.ruleStrong : PC.rule}`, padding: `${18 * u}px 0`, ...rise(p, u) }}>
+      <Label size={26}>{f.label}</Label>
+      <div style={{ fontWeight: 700, fontSize: fit(f.value, wide ? 56 : 48, 28, wide ? 42 : 36) * u, lineHeight: 1.2, marginTop: 6 * u }}>
+        <Rich text={f.value} />
+      </div>
     </div>
   );
 };
@@ -899,12 +783,11 @@ export type PStackProps = Framed & {
 };
 
 export const PStack: React.FC<PStackProps> = ({ kicker, title, source, layers, highlight, reveal }) => {
-  const { u } = usePanel();
   const shown = layers.slice(0, 5);
   const n = shown.length;
   return (
     <Panel kicker={kicker} title={title} source={source} titleSize={110}>
-      <div style={{ display: "flex", flexDirection: "column-reverse", gap: 14 * u }}>
+      <div style={{ display: "flex", flexDirection: "column-reverse" }}>
         {shown.map((l, i) => (
           <StackLayer key={i} i={i} n={n} layer={l} hot={i === highlight} reveal={reveal} />
         ))}
@@ -922,15 +805,22 @@ const StackLayer: React.FC<{ i: number; n: number; layer: { title: string; text?
 }) => {
   const { u } = usePanel();
   const p = useReveal(i, n, reveal, 0.4);
-  // Each layer is a little narrower than the one under it: a stack, not a list.
-  const inset = (i / Math.max(1, n - 1)) * 6;
   return (
-    <div style={{ margin: `0 ${inset}%`, opacity: p, transform: `translateY(${(1 - p) * -40 * u}px)` }}>
-      <Block tone={hot ? "red" : "none"} pad={22} style={{ display: "flex", alignItems: "center", gap: 30 * u, boxShadow: hot ? `0 0 ${40 * u}px rgba(224,22,29,0.45)` : undefined }}>
-        <div style={{ fontFamily: DISPLAY, fontSize: 70 * u, lineHeight: 1, flex: "none", minWidth: 520 * u }}>{layer.title}</div>
-        {layer.text ? <div style={{ flex: 1, fontWeight: 600, fontSize: 38 * u, lineHeight: 1.25, color: "rgba(255,255,255,0.85)" }}><Rich text={layer.text} /></div> : <div style={{ flex: 1 }} />}
-        {layer.tag ? <Chip size={40} tone={hot ? "white" : "ghost"}>{layer.tag}</Chip> : null}
-      </Block>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 34 * u,
+        padding: `${18 * u}px ${hot ? 26 : 0}px`,
+        background: hot ? PC.brand : "transparent",
+        borderTop: i < n - 1 && !hot ? `${2 * u}px solid ${PC.rule}` : `${2 * u}px solid transparent`,
+        opacity: p,
+        transform: `translateY(${(1 - p) * -14 * u}px)`,
+      }}
+    >
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 76 * u, lineHeight: 1, flex: "none", minWidth: 560 * u, textTransform: "uppercase" }}>{layer.title}</div>
+      {layer.text ? <div style={{ flex: 1, fontWeight: 400, fontSize: 44 * u, lineHeight: 1.25, color: hot ? PC.white : "#C8C8C8" }}><Rich text={layer.text} mark={hot ? PC.white : PC.red} /></div> : <div style={{ flex: 1 }} />}
+      {layer.tag ? <Label size={26} color={hot ? PC.white : PC.muted}>{layer.tag}</Label> : null}
     </div>
   );
 };
@@ -949,5 +839,5 @@ export const PANEL_TEMPLATES = {
   PExplainer,
 };
 
-// Silence unused-import lint for Header in files that re-export it.
-export { Header };
+// Kept for files that import them from here.
+export { Header, BODY };

@@ -1,6 +1,6 @@
 import React from "react";
-import { Img, interpolate } from "remotion";
-import { Band, COLORS, Card, Position, assetSrc, fitSize, useEnterExit, useUnit } from "../theme";
+import { Img } from "remotion";
+import { Band, COLORS, Card, DISPLAY, Position, Rule, assetSrc, fitSize, reveal, useCue, useUnit } from "../theme";
 
 export type HeadlineProps = {
   source: string;
@@ -10,49 +10,45 @@ export type HeadlineProps = {
   position?: Position;
 };
 
+// A news card: the outlet in the condensed face, the date in grey, a hairline,
+// then the headline. The headline lands a beat after, so the eye reads the
+// source first.
 export const Headline: React.FC<HeadlineProps> = ({ source, headline, date, logo, position = "bottom" }) => {
   const u = useUnit();
-  const { enter } = useEnterExit();
-  // The headline lands a beat after the card, so the eye reads source first.
-  const body = interpolate(enter, [0.4, 1], [0, 1], { extrapolateLeft: "clamp" });
+  const body = useCue(7, 10);
   return (
     <Band position={position}>
       <Card width={940}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18 * u }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 18 * u }}>
           {logo ? (
-            <Img
-              src={assetSrc(logo)}
-              style={{ height: 56 * u, width: 56 * u, objectFit: "contain", borderRadius: 12 * u }}
-            />
+            <Img src={assetSrc(logo)} style={{ height: 48 * u, width: 48 * u, objectFit: "contain", alignSelf: "center" }} />
           ) : null}
           <div
             style={{
-              background: COLORS.accent,
-              color: COLORS.accentInk,
-              fontWeight: 800,
-              fontSize: 30 * u,
-              letterSpacing: 1.5 * u,
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: 40 * u,
+              lineHeight: 1.05,
               textTransform: "uppercase",
-              padding: `${8 * u}px ${18 * u}px`,
-              borderRadius: 10 * u,
+              color: COLORS.accent,
+              minWidth: 0,
             }}
           >
             {source}
           </div>
           {date ? (
-            <div style={{ color: COLORS.muted, fontWeight: 600, fontSize: 30 * u, marginLeft: "auto" }}>
+            <div style={{ color: COLORS.muted, fontWeight: 400, fontSize: 28 * u, marginLeft: "auto", flex: "none", textAlign: "right" }}>
               {date}
             </div>
           ) : null}
         </div>
+        <Rule style={{ margin: `${20 * u}px 0 ${22 * u}px` }} />
         <div
           style={{
-            marginTop: 28 * u,
-            fontWeight: 800,
-            fontSize: fitSize(headline, 64, 42, 40) * u,
+            fontWeight: 700,
+            fontSize: fitSize(headline, 60, 42, 40) * u,
             lineHeight: 1.18,
-            opacity: body,
-            transform: `translateY(${(1 - body) * 16 * u}px)`,
+            ...reveal(body, u),
           }}
         >
           {headline}

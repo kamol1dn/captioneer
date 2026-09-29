@@ -1,63 +1,33 @@
-// Denser vertical templates for the shorts: more motion, bigger type, and the
-// real page on screen. Full-screen ones build on FullFrame (so they share the
-// background, entrance and the block centred between the logo zone and the
-// captions); cards build on Band/Card like the originals.
+// Denser vertical templates for the shorts: the real page on screen, the number
+// at full size, the flow drawn out, a line of the audio punched up. Full-screen
+// ones build on FullFrame; cards build on Band/Card like the originals.
 //
-// Written after the first EP19 import read as empty: a talking head with a
-// small dark card every 15 seconds. These are the beats in between — the
-// article itself, the number at full size, the flow drawn out, a line of the
-// audio punched up on screen.
+// Same broadcast language as the rest: Helvetica, flat near-black, hairlines
+// between items, the brand-red bar as the signature, red only as an accent.
 import React from "react";
-import { Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import {
   Band,
   COLORS,
   Card,
+  DISPLAY,
   FONT,
   FullFrame,
-  Glass,
   Position,
+  Rich,
+  Rule,
   SAFE,
   SAFE_W,
   assetSrc,
   fitSize,
   formatNumber,
+  plain,
+  reveal,
+  superLines,
+  useCue,
   useStagger,
   useUnit,
 } from "../theme";
-
-const RED = "#FF4D4D";
-const PAPER = "#FAFAF7";
-const INK = "#0E0F12";
-
-/** "Hokodo raised *$177M*" -> [{t:"Hokodo raised ", hl:false}, {t:"$177M", hl:true}] */
-const rich = (text: string) =>
-  text.split("*").map((t, i) => ({ t, hl: i % 2 === 1 })).filter((p) => p.t);
-const plain = (text: string) => text.replace(/\*/g, "");
-
-const Rich: React.FC<{ text: string; ink?: string; bg?: string }> = ({ text, ink = COLORS.accentInk, bg = COLORS.accent }) => (
-  <>
-    {rich(text).map((p, i) =>
-      p.hl ? (
-        <span
-          key={i}
-          style={{
-            color: ink,
-            background: bg,
-            padding: "0 0.18em",
-            borderRadius: "0.14em",
-            boxDecorationBreak: "clone",
-            WebkitBoxDecorationBreak: "clone",
-          }}
-        >
-          {p.t}
-        </span>
-      ) : (
-        <span key={i}>{p.t}</span>
-      ),
-    )}
-  </>
-);
 
 // ── Website: the real page, in a browser window ─────────────────────────────
 
@@ -96,19 +66,7 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
   const w = m.w * dispW;
   const h = m.h * dispH;
   if (style === "underline") {
-    return (
-      <svg style={{ position: "absolute", left: x - 4 * u, top: y + h - 4 * u, overflow: "visible" }} width={w + 8 * u} height={20 * u}>
-        <path
-          d={`M0 ${8 * u} C ${w * 0.3} ${3 * u}, ${w * 0.7} ${13 * u}, ${w + 8 * u} ${6 * u}`}
-          fill="none"
-          stroke={RED}
-          strokeWidth={6 * u}
-          strokeLinecap="round"
-          pathLength={1}
-          strokeDasharray={`${p} 1`}
-        />
-      </svg>
-    );
+    return <div style={{ position: "absolute", left: x, top: y + h - 2 * u, width: w * p, height: 5 * u, background: COLORS.accent }} />;
   }
   if (style === "box") {
     return (
@@ -119,14 +77,13 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
           top: y - 6 * u,
           width: w + 16 * u,
           height: h + 12 * u,
-          border: `${5 * u}px solid ${RED}`,
-          borderRadius: 8 * u,
+          border: `${4 * u}px solid ${COLORS.accent}`,
           opacity: p,
-          boxShadow: `0 0 ${24 * u}px rgba(255,77,77,${0.5 * p})`,
         }}
       />
     );
   }
+  // A flat red highlighter pass, multiplied into the page so the type stays black.
   return (
     <div
       style={{
@@ -135,9 +92,8 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
         top: y - 1 * u,
         width: (w + 8 * u) * p,
         height: h + 2 * u,
-        background: "rgba(255, 214, 0, 0.62)",
+        background: "rgba(224, 22, 29, 0.28)",
         mixBlendMode: "multiply",
-        borderRadius: `${3 * u}px ${8 * u}px ${5 * u}px ${9 * u}px`,
       }}
     />
   );
@@ -199,67 +155,46 @@ export const Website: React.FC<WebsiteProps> = ({
   const cy = caption ? viewH * 0.36 : viewH * 0.45;
   const tx = fx + (winW / 2 - fx) * zp - s * fx;
   const ty = fy + (cy - fy) * zp - s * fy;
-  const enter = spring({ frame: frame - 3, fps, config: { damping: 16, mass: 0.7 }, durationInFrames: 20 });
-  const capIn = spring({
-    frame: frame - Math.round(durationInFrames * Math.min(0.55, (marks[marks.length - 1]?.at ?? 0.3) + 0.12)),
-    fps,
-    config: { damping: 13, mass: 0.6 },
-    durationInFrames: 18,
-  });
+  const enter = useCue(2, 10);
+  const capIn = useCue(Math.round(durationInFrames * Math.min(0.55, (marks[marks.length - 1]?.at ?? 0.3) + 0.12)), 10);
+  const hair = Math.max(1, 2 * u);
   return (
     <FullFrame>
-      <div style={{ position: "relative", height: winH }}>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 26 * u,
-            overflow: "hidden",
-            background: "#1B1B1E",
-            boxShadow: `0 ${30 * u}px ${80 * u}px rgba(0,0,0,0.65), 0 0 0 ${2 * u}px rgba(255,255,255,0.12)`,
-            transform: `translateY(${(1 - enter) * 120 * u}px) scale(${0.92 + 0.08 * enter}) rotate(${(1 - enter) * -2}deg)`,
-            opacity: Math.min(1, enter * 1.5),
-          }}
-        >
-          <div style={{ height: WEB.bar * u, display: "flex", alignItems: "center", gap: 12 * u, padding: `0 ${22 * u}px`, background: "#26262B" }}>
-            {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => (
-              <span key={c} style={{ width: 18 * u, height: 18 * u, borderRadius: 9 * u, background: c, flex: "none" }} />
-            ))}
+      <div style={{ position: "relative", height: winH, ...reveal(enter, u) }}>
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#141414", border: `${hair}px solid ${COLORS.rule}` }}>
+          <div
+            style={{
+              height: WEB.bar * u,
+              display: "flex",
+              alignItems: "center",
+              gap: 20 * u,
+              padding: `0 ${24 * u}px`,
+              borderBottom: `${hair}px solid ${COLORS.rule}`,
+              fontFamily: FONT,
+            }}
+          >
             <div
               style={{
-                marginLeft: 14 * u,
                 flex: 1,
                 minWidth: 0,
-                height: 42 * u,
-                borderRadius: 21 * u,
-                background: "#141417",
-                color: "rgba(255,255,255,0.75)",
-                fontFamily: FONT,
-                fontWeight: 600,
+                color: COLORS.muted,
+                fontWeight: 400,
                 fontSize: 24 * u,
-                display: "flex",
-                alignItems: "center",
-                padding: `0 ${20 * u}px`,
                 overflow: "hidden",
                 whiteSpace: "nowrap",
                 textOverflow: "ellipsis",
               }}
             >
-              <span style={{ color: "#28C840", marginRight: 10 * u }}>●</span>
               {url ?? ""}
             </div>
             {source ? (
               <div
                 style={{
                   flex: "none",
-                  background: COLORS.accent,
-                  color: COLORS.accentInk,
-                  fontFamily: FONT,
-                  fontWeight: 900,
-                  fontSize: 24 * u,
-                  letterSpacing: 1 * u,
-                  padding: `${6 * u}px ${14 * u}px`,
-                  borderRadius: 8 * u,
+                  color: COLORS.accent,
+                  fontFamily: DISPLAY,
+                  fontWeight: 700,
+                  fontSize: 30 * u,
                   textTransform: "uppercase",
                 }}
               >
@@ -274,49 +209,31 @@ export const Website: React.FC<WebsiteProps> = ({
                 <MarkView key={i} m={m} dispW={imgW * k} dispH={dispH} ix={ix} scroll={scroll} />
               ))}
             </div>
-            {/* Bottom fade so the caption sticker sits on something calm. */}
-            {caption ? (
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: WEB.capH * 1.6 * u,
-                  background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.55))",
-                  opacity: capIn,
-                }}
-              />
-            ) : null}
           </div>
         </div>
         {caption ? (
           <div
             style={{
               position: "absolute",
-              left: 28 * u,
-              right: 28 * u,
-              bottom: 26 * u,
+              left: 0,
+              right: 0,
+              bottom: 0,
               display: "flex",
               alignItems: "stretch",
-              opacity: Math.min(1, capIn * 1.4),
-              transform: `translateY(${(1 - capIn) * 60 * u}px) rotate(${(1 - capIn) * 2 - 0.6}deg)`,
-              boxShadow: `0 ${16 * u}px ${40 * u}px rgba(0,0,0,0.5)`,
-              borderRadius: 16 * u,
-              overflow: "hidden",
+              ...reveal(capIn, u),
             }}
           >
-            <div style={{ width: 16 * u, background: COLORS.accent, flex: "none" }} />
+            <div style={{ width: 12 * u, background: COLORS.brand, flex: "none" }} />
             <div
               style={{
                 flex: 1,
-                background: INK,
+                background: COLORS.bg,
                 color: COLORS.text,
                 fontFamily: FONT,
-                fontWeight: 800,
+                fontWeight: 700,
                 fontSize: fitSize(plain(caption), 52, 34, 38) * u,
                 lineHeight: 1.18,
-                padding: `${24 * u}px ${30 * u}px`,
+                padding: `${26 * u}px ${32 * u}px`,
               }}
             >
               <Rich text={caption} />
@@ -353,72 +270,34 @@ export const BigNumber: React.FC<BigNumberProps> = ({ value, prefix = "", suffix
   });
   const final = `${prefix}${formatNumber(value, decimals)}${suffix}`;
   const shown = `${prefix}${formatNumber(value * t, decimals)}${suffix}`;
-  // Sized to fill the safe width at its final length (Montserrat Black runs
-  // ~0.78em a character).
-  const size = Math.min(300, (SAFE_W - 20) / (final.length * 0.78));
-  // A beat when the count lands: a pulse of the number and two rings out.
-  const land = spring({ frame: frame - countEnd, fps, config: { damping: 9, mass: 0.5 }, durationInFrames: 18 });
-  const ring = (delay: number) =>
-    interpolate(frame, [countEnd + delay, countEnd + delay + 26], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Sized to fill the safe width at its final length (condensed bold runs
+  // ~0.5em a character).
+  const size = Math.min(420, (SAFE_W - 20) / (final.length * 0.5));
   const lab = useStagger(0, 2, 0.3, 10);
   const ctx = useStagger(1, 2, 0.35, 10);
   return (
     <FullFrame kicker={kicker} source={source}>
-      <div style={{ position: "relative", textAlign: "center" }}>
-        {[0, 7].map((d) => {
-          const r = ring(d);
-          return (
-            <div
-              key={d}
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: size * 0.55 * u,
-                width: 900 * u * (0.4 + r),
-                height: 900 * u * (0.4 + r),
-                marginLeft: -450 * u * (0.4 + r),
-                marginTop: -450 * u * (0.4 + r),
-                borderRadius: "50%",
-                border: `${6 * u}px solid rgba(255,220,0,${0.5 * (1 - r)})`,
-                opacity: r > 0 ? 1 : 0,
-              }}
-            />
-          );
-        })}
+      <div style={{ textAlign: "left" }}>
         <div
           style={{
-            position: "relative",
-            fontWeight: 900,
+            fontFamily: DISPLAY,
+            fontWeight: 700,
             fontSize: size * u,
-            lineHeight: 1.05,
-            letterSpacing: -4 * u,
+            lineHeight: 0.92,
             color: COLORS.accent,
             fontVariantNumeric: "tabular-nums",
-            textShadow: `0 0 ${60 * u}px rgba(255,220,0,0.35)`,
-            transform: `scale(${0.9 + 0.1 * Math.min(1, t * 1.2) + 0.05 * (land - Math.min(1, land))})`,
             whiteSpace: "nowrap",
           }}
         >
           {shown}
         </div>
-        <div
-          style={{
-            position: "relative",
-            marginTop: 18 * u,
-            fontWeight: 800,
-            fontSize: fitSize(plain(label), 66, 26, 44) * u,
-            lineHeight: 1.15,
-            opacity: lab,
-            transform: `translateY(${(1 - lab) * 30 * u}px)`,
-          }}
-        >
+        <Rule style={{ margin: `${28 * u}px 0 ${24 * u}px` }} />
+        <div style={{ fontWeight: 700, fontSize: fitSize(plain(label), 62, 26, 44) * u, lineHeight: 1.15, ...reveal(lab, u) }}>
           <Rich text={label} />
         </div>
         {context ? (
-          <div style={{ marginTop: 34 * u, display: "flex", justifyContent: "center", opacity: ctx, transform: `translateY(${(1 - ctx) * 20 * u}px)` }}>
-            <Glass tint="cyan" padding={20} style={{ fontWeight: 700, fontSize: fitSize(plain(context), 42, 36, 32) * u, lineHeight: 1.2, color: COLORS.text }}>
-              <Rich text={context} ink={INK} bg={COLORS.cyan} />
-            </Glass>
+          <div style={{ marginTop: 18 * u, color: COLORS.muted, fontWeight: 400, fontSize: fitSize(plain(context), 42, 36, 32) * u, lineHeight: 1.25, ...reveal(ctx, u) }}>
+            <Rich text={context} />
           </div>
         ) : null}
       </div>
@@ -437,7 +316,6 @@ export type FlowProps = {
 };
 
 export const Flow: React.FC<FlowProps> = ({ kicker, title, source, nodes, edges = [] }) => {
-  const u = useUnit();
   const shown = nodes.slice(0, 5);
   const n = shown.length;
   const dense = n > 3;
@@ -460,103 +338,62 @@ const FlowNode: React.FC<{ i: number; n: number; node: FlowProps["nodes"][number
   const p = useStagger(i, n, 0.5);
   const hl = !!node.highlight;
   return (
-    <div style={{ opacity: p, transform: `scale(${0.85 + 0.15 * p})` }}>
-      <Glass tint={hl ? "accent" : "none"} padding={dense ? 18 : 26} style={{ display: "flex", alignItems: "center", gap: 24 * u }}>
+    <div style={{ display: "flex", alignItems: "stretch", gap: 28 * u, ...reveal(p, u) }}>
+      <div style={{ flex: "none", width: 10 * u, background: hl ? COLORS.brand : COLORS.text }} />
+      <div style={{ minWidth: 0, padding: `${4 * u}px 0` }}>
         <div
           style={{
-            flex: "none",
-            width: (dense ? 58 : 72) * u,
-            height: (dense ? 58 : 72) * u,
-            borderRadius: 18 * u,
-            background: hl ? `linear-gradient(145deg, ${COLORS.accent}, #FFB800)` : `linear-gradient(145deg, ${COLORS.cyan}, #0FA8A0)`,
-            color: COLORS.accentInk,
-            fontWeight: 900,
-            fontSize: (dense ? 30 : 36) * u,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            fontFamily: DISPLAY,
+            fontWeight: 700,
+            fontSize: fitSize(node.label, dense ? 60 : 72, 16, 46) * u,
+            lineHeight: 1,
+            textTransform: "uppercase",
+            color: hl ? COLORS.accent : COLORS.text,
           }}
         >
-          {i + 1}
+          {node.label}
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 900, fontSize: fitSize(node.label, dense ? 46 : 54, 20, 38) * u, lineHeight: 1.1, color: hl ? COLORS.accent : COLORS.text }}>
-            {node.label}
+        {node.sub ? (
+          <div style={{ fontWeight: 400, fontSize: fitSize(node.sub, dense ? 30 : 34, 36, 26) * u, color: COLORS.muted, marginTop: 8 * u, lineHeight: 1.2 }}>
+            {node.sub}
           </div>
-          {node.sub ? (
-            <div style={{ fontWeight: 600, fontSize: fitSize(node.sub, dense ? 30 : 34, 36, 26) * u, color: COLORS.muted, marginTop: 6 * u, lineHeight: 1.2 }}>
-              {node.sub}
-            </div>
-          ) : null}
-        </div>
-      </Glass>
+        ) : null}
+      </div>
     </div>
   );
 };
 
 const FlowEdge: React.FC<{ i: number; n: number; label?: string; dense: boolean }> = ({ i, n, label, dense }) => {
   const u = useUnit();
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  // The edge draws between this node landing and the next.
+  // The connector draws between this node landing and the next.
   const a = useStagger(i, n, 0.5);
   const b = useStagger(i + 1, n, 0.5);
   const draw = Math.min(1, a * 0.4 + b * 0.8);
-  const h = (dense ? 58 : 84) * u;
-  // A packet travelling down the edge, forever, once it has drawn.
-  const cycle = fps * 1.1;
-  const pk = ((frame + i * 9) % cycle) / cycle;
+  const h = (dense ? 52 : 76) * u;
   return (
     <div style={{ position: "relative", height: h, display: "flex", alignItems: "center" }}>
-      <div style={{ position: "absolute", left: (dense ? 56 : 62) * u, top: 0, height: h * draw, width: 6 * u, borderRadius: 3 * u, background: `linear-gradient(180deg, ${COLORS.cyan}, ${COLORS.accent})` }} />
-      <div
-        style={{
-          position: "absolute",
-          left: (dense ? 49 : 55) * u,
-          top: h * draw - 12 * u,
-          width: 0,
-          height: 0,
-          borderLeft: `${10 * u}px solid transparent`,
-          borderRight: `${10 * u}px solid transparent`,
-          borderTop: `${14 * u}px solid ${COLORS.accent}`,
-          opacity: draw > 0.95 ? 1 : 0,
-        }}
-      />
-      {draw >= 1 ? (
-        <div
-          style={{
-            position: "absolute",
-            left: (dense ? 51 : 57) * u,
-            top: pk * (h - 16 * u),
-            width: 16 * u,
-            height: 16 * u,
-            borderRadius: 8 * u,
-            background: "#fff",
-            boxShadow: `0 0 ${18 * u}px ${COLORS.accent}`,
-            opacity: Math.sin(pk * Math.PI),
-          }}
-        />
-      ) : null}
+      <div style={{ position: "absolute", left: 4 * u, top: 6 * u, height: (h - 12 * u) * draw, width: Math.max(1, 2 * u), background: COLORS.muted }} />
       {label ? (
-        <div
-          style={{
-            marginLeft: 110 * u,
-            color: COLORS.cyan,
-            fontWeight: 800,
-            fontSize: (dense ? 28 : 32) * u,
-            letterSpacing: 1 * u,
-            textTransform: "uppercase",
-            opacity: b,
-          }}
-        >
-          {label}
+        <div style={{ marginLeft: 38 * u, opacity: b }}>
+          <span
+            style={{
+              fontFamily: FONT,
+              fontWeight: 500,
+              fontSize: (dense ? 24 : 26) * u,
+              letterSpacing: 3 * u,
+              textTransform: "uppercase",
+              color: COLORS.muted,
+            }}
+          >
+            ↓ {label}
+          </span>
         </div>
       ) : null}
     </div>
   );
 };
 
-// ── NewsStack: the pattern, as a pile of headlines ──────────────────────────
+// ── NewsStack: the pattern, as a run of headlines ───────────────────────────
 
 export type NewsStackProps = {
   kicker?: string;
@@ -569,54 +406,33 @@ export const NewsStack: React.FC<NewsStackProps> = ({ kicker, title, source, ite
   const shown = items.slice(0, 4);
   return (
     <FullFrame kicker={kicker} title={title} source={source}>
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {shown.map((it, i) => (
-          <NewsCard key={i} i={i} n={shown.length} item={it} />
-        ))}
-      </div>
+      {shown.map((it, i) => (
+        <NewsRow key={i} i={i} n={shown.length} item={it} />
+      ))}
     </FullFrame>
   );
 };
 
-const NewsCard: React.FC<{ i: number; n: number; item: NewsStackProps["items"][number] }> = ({ i, n, item }) => {
+const NewsRow: React.FC<{ i: number; n: number; item: NewsStackProps["items"][number] }> = ({ i, n, item }) => {
   const u = useUnit();
-  const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  const window = Math.max(n * 8, durationInFrames * 0.5 - 10);
-  const start = 10 + (i * window) / n;
-  const p = spring({ frame: frame - start, fps, config: { damping: 14, mass: 0.7 }, durationInFrames: 20 });
+  const p = useStagger(i, n, 0.5, 10);
   const last = i === n - 1;
   const dense = n > 3;
-  const tilt = (i % 2 === 0 ? -1.4 : 1.2) * (last ? 0.4 : 1);
   return (
-    <div
-      style={{
-        position: "relative",
-        zIndex: i,
-        marginTop: i === 0 ? 0 : (dense ? -8 : 4) * u,
-        opacity: Math.min(1, p * 1.6),
-        transform: `translateX(${(1 - p) * (i % 2 === 0 ? -700 : 700) * u}px) rotate(${tilt}deg)`,
-      }}
-    >
-      <div
-        style={{
-          background: PAPER,
-          color: INK,
-          borderRadius: 18 * u,
-          padding: `${(dense ? 20 : 28) * u}px ${32 * u}px`,
-          boxShadow: `0 ${18 * u}px ${44 * u}px rgba(0,0,0,0.5)`,
-          borderLeft: `${12 * u}px solid ${last ? COLORS.accent : "#D8D8D2"}`,
-          fontFamily: FONT,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 * u, marginBottom: 10 * u }}>
-          <span style={{ background: INK, color: "#fff", fontWeight: 900, fontSize: 24 * u, letterSpacing: 1.5 * u, padding: `${4 * u}px ${12 * u}px`, borderRadius: 6 * u, textTransform: "uppercase" }}>
-            {item.source}
-          </span>
-          {item.date ? <span style={{ color: "#6B6B66", fontWeight: 700, fontSize: 24 * u, textTransform: "uppercase", letterSpacing: 1 * u }}>{item.date}</span> : null}
-        </div>
-        <div style={{ fontWeight: 800, fontSize: fitSize(plain(item.headline), dense ? 40 : 46, 44, 32) * u, lineHeight: 1.18 }}>
-          <Rich text={item.headline} />
+    <div style={reveal(p, u)}>
+      {i > 0 ? <Rule /> : null}
+      <div style={{ display: "flex", alignItems: "stretch", gap: 26 * u, padding: `${(dense ? 18 : 26) * u}px 0` }}>
+        <div style={{ flex: "none", width: 10 * u, background: last ? COLORS.brand : "transparent" }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 18 * u, marginBottom: 8 * u }}>
+            <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 38 * u, textTransform: "uppercase", color: last ? COLORS.accent : COLORS.text }}>
+              {item.source}
+            </span>
+            {item.date ? <span style={{ color: COLORS.muted, fontWeight: 400, fontSize: 26 * u }}>{item.date}</span> : null}
+          </div>
+          <div style={{ fontWeight: 700, fontSize: fitSize(plain(item.headline), dense ? 42 : 50, 40, 34) * u, lineHeight: 1.18 }}>
+            <Rich text={item.headline} />
+          </div>
         </div>
       </div>
     </div>
@@ -639,21 +455,13 @@ export const Chat: React.FC<ChatProps> = ({ kicker, title, source, app = "AI ass
   const n = shown.length;
   return (
     <FullFrame kicker={kicker} title={title} source={source}>
-      <Glass padding={0} style={{ overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 * u, padding: `${20 * u}px ${28 * u}px`, borderBottom: `${2 * u}px solid rgba(255,255,255,0.1)`, background: "rgba(255,255,255,0.04)" }}>
-          <div style={{ width: 52 * u, height: 52 * u, borderRadius: 26 * u, background: `conic-gradient(${COLORS.cyan}, ${COLORS.accent}, ${COLORS.cyan})` }} />
-          <div style={{ fontWeight: 800, fontSize: 36 * u }}>{app}</div>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 * u, color: COLORS.cyan, fontWeight: 700, fontSize: 24 * u }}>
-            <span style={{ width: 12 * u, height: 12 * u, borderRadius: 6 * u, background: COLORS.cyan }} />
-            online
-          </div>
-        </div>
-        <div style={{ padding: `${26 * u}px ${24 * u}px`, display: "flex", flexDirection: "column", gap: 18 * u }}>
-          {shown.map((m, i) => (
-            <Bubble key={i} i={i} n={n} m={m} />
-          ))}
-        </div>
-      </Glass>
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 40 * u, textTransform: "uppercase", paddingBottom: 18 * u }}>{app}</div>
+      <Rule />
+      <div style={{ paddingTop: 28 * u, display: "flex", flexDirection: "column", gap: 20 * u }}>
+        {shown.map((m, i) => (
+          <Bubble key={i} i={i} n={n} m={m} />
+        ))}
+      </div>
     </FullFrame>
   );
 };
@@ -666,46 +474,39 @@ const Bubble: React.FC<{ i: number; n: number; m: ChatProps["messages"][number] 
   const slot = window / n;
   const start = 10 + i * slot;
   const ai = m.from === "ai";
-  // The assistant "types" for part of its slot before the bubble lands.
+  // The assistant "types" for part of its slot before the message lands.
   const typing = ai ? Math.min(slot * 0.5, fps * 0.8) : 0;
-  const p = spring({ frame: frame - start - typing, fps, config: { damping: 15, mass: 0.6 }, durationInFrames: 14 });
+  const p = interpolate(frame, [start + typing, start + typing + 10], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
   const dotsOn = ai && frame >= start && frame < start + typing;
   if (frame < start) return null;
+  const box: React.CSSProperties = {
+    maxWidth: "82%",
+    padding: `${20 * u}px ${28 * u}px`,
+    background: ai ? "#1C1C1C" : COLORS.brand,
+    color: COLORS.text,
+  };
   return (
     <div style={{ display: "flex", justifyContent: ai ? "flex-start" : "flex-end" }}>
       {dotsOn ? (
-        <div style={{ display: "flex", gap: 10 * u, padding: `${22 * u}px ${28 * u}px`, borderRadius: 30 * u, background: "rgba(255,255,255,0.1)" }}>
+        <div style={{ ...box, display: "flex", gap: 10 * u, padding: `${24 * u}px ${28 * u}px` }}>
           {[0, 1, 2].map((d) => (
             <span
               key={d}
               style={{
-                width: 14 * u,
-                height: 14 * u,
-                borderRadius: 7 * u,
-                background: "#fff",
+                width: 12 * u,
+                height: 12 * u,
+                background: COLORS.muted,
                 opacity: 0.35 + 0.65 * Math.max(0, Math.sin(((frame - start) / fps) * 9 - d * 0.9)),
               }}
             />
           ))}
         </div>
       ) : (
-        <div
-          style={{
-            maxWidth: "82%",
-            padding: `${20 * u}px ${28 * u}px`,
-            borderRadius: 30 * u,
-            borderBottomRightRadius: ai ? 30 * u : 8 * u,
-            borderBottomLeftRadius: ai ? 8 * u : 30 * u,
-            background: ai ? "rgba(255,255,255,0.1)" : `linear-gradient(145deg, ${COLORS.cyan}, #0FA8A0)`,
-            color: ai ? COLORS.text : INK,
-            fontWeight: ai ? 600 : 700,
-            fontSize: fitSize(plain(m.text), 40, 50, 32) * u,
-            lineHeight: 1.25,
-            opacity: p,
-            transform: `translateY(${(1 - p) * 24 * u}px) scale(${0.9 + 0.1 * p})`,
-            transformOrigin: ai ? "left bottom" : "right bottom",
-          }}
-        >
+        <div style={{ ...box, fontWeight: ai ? 400 : 500, fontSize: fitSize(plain(m.text), 40, 50, 32) * u, lineHeight: 1.25, ...reveal(p, u) }}>
           <Rich text={m.text} />
         </div>
       )}
@@ -718,69 +519,61 @@ const Bubble: React.FC<{ i: number; n: number; m: ChatProps["messages"][number] 
 export type PunchProps = { text: string; position?: Position };
 
 /**
- * A sticker, not a card: white boxes with black type, the marked phrase on
- * yellow, popping in with overshoot and a slight tilt. For the line the clip
- * turns on — "Necessary and *irrelevant*" — so it lands twice, heard and read.
+ * The line a clip turns on, as a broadcast super: big condensed caps on flat
+ * near-black blocks, one block per line, the marked phrase in red. Words fade
+ * up one after another, so it lands twice — heard and read.
  */
 export const Punch: React.FC<PunchProps> = ({ text, position = "bottom" }) => {
   const u = useUnit();
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
+  const { durationInFrames } = useVideoConfig();
   const exit = interpolate(frame, [durationInFrames - 8, durationInFrames - 1], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const lines = text.split("\n");
-  const size = fitSize(plain(text).replace(/\n/g, " "), 84, 24, 58);
+  const flat = plain(text).replace(/\n/g, " ");
+  const size = fitSize(flat, 104, 22, 76);
+  // Condensed caps run ~0.42em a character.
+  const maxChars = Math.max(8, Math.floor((SAFE_W - 60) / (size * 0.42)));
+  const lines = superLines(text, maxChars);
+  const blockIn = interpolate(frame, [0, 6], [0, 1], { extrapolateRight: "clamp" });
   let k = 0;
   return (
     <Band position={position}>
-      <div
-        style={{
-          width: SAFE_W * u,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 10 * u,
-          fontFamily: FONT,
-          opacity: exit,
-          transform: `rotate(-2deg) scale(${1 - (1 - exit) * 0.1})`,
-        }}
-      >
+      <div style={{ width: SAFE_W * u, display: "flex", flexDirection: "column", alignItems: "center", opacity: exit }}>
         {lines.map((line, li) => (
-          <div key={li} style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10 * u }}>
-            {rich(line).flatMap((part) =>
-              (part.hl ? [part.t.trim()] : part.t.trim().split(/\s+/)).filter(Boolean).map((w) => {
-                const idx = k++;
-                const s = spring({
-                  frame: frame - 2 - idx * 3,
-                  fps,
-                  config: { damping: part.hl ? 8 : 12, mass: 0.5 },
-                  durationInFrames: 16,
-                });
-                return (
-                  <span
-                    key={`${li}-${idx}`}
-                    style={{
-                      display: "inline-block",
-                      background: part.hl ? COLORS.accent : "#fff",
-                      color: INK,
-                      fontWeight: 900,
-                      fontSize: size * u,
-                      lineHeight: 1.12,
-                      padding: `${4 * u}px ${18 * u}px`,
-                      borderRadius: 12 * u,
-                      boxShadow: `0 ${10 * u}px ${28 * u}px rgba(0,0,0,0.4)`,
-                      opacity: Math.min(1, s * 2),
-                      transform: `scale(${0.4 + 0.6 * s}) rotate(${(1 - s) * (idx % 2 ? 8 : -8)}deg)`,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {w}
-                  </span>
-                );
-              }),
-            )}
+          <div
+            key={li}
+            style={{
+              background: COLORS.bg,
+              opacity: blockIn,
+              padding: `${10 * u}px ${26 * u}px ${2 * u}px`,
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: size * u,
+              lineHeight: 1.04,
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {line.map((w, wi) => {
+              const delay = 2 + k++ * 3;
+              const p = interpolate(frame, [delay, delay + 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+              return (
+                <span
+                  key={wi}
+                  style={{
+                    display: "inline-block",
+                    marginRight: wi < line.length - 1 ? 0.22 * size * u : 0,
+                    color: w.hl ? COLORS.accent : COLORS.text,
+                    opacity: p,
+                    transform: `translateY(${(1 - p) * 12 * u}px)`,
+                  }}
+                >
+                  {w.t}
+                </span>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -798,28 +591,19 @@ export const Ring: React.FC<RingProps> = ({ value, label, sublabel, prefix = "",
   const { fps, durationInFrames } = useVideoConfig();
   const end = Math.max(8, Math.min(Math.round(fps * 1.2), Math.floor(durationInFrames / 2)));
   const t = interpolate(frame, [6, end], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
-  const R = 92;
+  const R = 96;
   const C = 2 * Math.PI * R;
   // A sliver still shows for tiny shares, so "<0.01%" isn't an empty ring.
   const frac = Math.max(0.012, Math.min(1, value / 100)) * t;
   const final = `${prefix}${formatNumber(value, decimals)}${suffix}`;
+  const text = useCue(8, 10);
   return (
     <Band position={position}>
       <Card width={940} padding={30} style={{ display: "flex", alignItems: "center", gap: 34 * u }}>
         <div style={{ position: "relative", flex: "none", width: 230 * u, height: 230 * u }}>
           <svg viewBox="0 0 230 230" width={230 * u} height={230 * u} style={{ transform: "rotate(-90deg)" }}>
-            <circle cx={115} cy={115} r={R} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={26} />
-            <circle
-              cx={115}
-              cy={115}
-              r={R}
-              fill="none"
-              stroke={COLORS.accent}
-              strokeWidth={26}
-              strokeLinecap="round"
-              strokeDasharray={`${C * frac} ${C}`}
-              style={{ filter: "drop-shadow(0 0 8px rgba(255,220,0,0.6))" }}
-            />
+            <circle cx={115} cy={115} r={R} fill="none" stroke={COLORS.rule} strokeWidth={14} />
+            <circle cx={115} cy={115} r={R} fill="none" stroke={COLORS.accent} strokeWidth={14} strokeDasharray={`${C * frac} ${C}`} />
           </svg>
           <div
             style={{
@@ -828,9 +612,10 @@ export const Ring: React.FC<RingProps> = ({ value, label, sublabel, prefix = "",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontWeight: 900,
-              fontSize: fitSize(final, 64, 4, 40) * u,
-              color: COLORS.accent,
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: fitSize(final, 76, 4, 48) * u,
+              color: COLORS.text,
               fontVariantNumeric: "tabular-nums",
             }}
           >
@@ -839,11 +624,11 @@ export const Ring: React.FC<RingProps> = ({ value, label, sublabel, prefix = "",
             {suffix}
           </div>
         </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: fitSize(plain(label), 48, 26, 34) * u, lineHeight: 1.18 }}>
+        <div style={{ minWidth: 0, ...reveal(text, u) }}>
+          <div style={{ fontWeight: 700, fontSize: fitSize(plain(label), 46, 26, 34) * u, lineHeight: 1.18 }}>
             <Rich text={label} />
           </div>
-          {sublabel ? <div style={{ marginTop: 12 * u, color: COLORS.muted, fontWeight: 500, fontSize: 28 * u }}>{sublabel}</div> : null}
+          {sublabel ? <div style={{ marginTop: 12 * u, color: COLORS.muted, fontWeight: 400, fontSize: 28 * u }}>{sublabel}</div> : null}
         </div>
       </Card>
     </Band>
@@ -859,13 +644,11 @@ export const Checklist: React.FC<ChecklistProps> = ({ title, items, position = "
   const shown = items.slice(0, 4);
   return (
     <Band position={position}>
-      <Card width={920} padding={38}>
-        {title ? <div style={{ fontWeight: 900, fontSize: fitSize(title, 52, 24, 38) * u, lineHeight: 1.1, marginBottom: 24 * u }}>{title}</div> : null}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 * u }}>
-          {shown.map((it, i) => (
-            <CheckRow key={i} i={i} n={shown.length} item={it} />
-          ))}
-        </div>
+      <Card width={920} padding={38} style={{ paddingBottom: 22 * u }}>
+        {title ? <div style={{ fontWeight: 700, fontSize: fitSize(title, 50, 24, 38) * u, lineHeight: 1.12, marginBottom: 16 * u }}>{title}</div> : null}
+        {shown.map((it, i) => (
+          <CheckRow key={i} i={i} n={shown.length} item={it} />
+        ))}
       </Card>
     </Band>
   );
@@ -875,36 +658,25 @@ const CheckRow: React.FC<{ i: number; n: number; item: ChecklistProps["items"][n
   const u = useUnit();
   const p = useStagger(i, n, 0.45, 14);
   const tick = interpolate(p, [0.4, 1], [0, 1], { extrapolateLeft: "clamp" });
-  const col = item.ok ? COLORS.cyan : RED;
+  const col = item.ok ? COLORS.text : COLORS.accent;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 22 * u, opacity: Math.min(1, p * 1.5), transform: `translateX(${(1 - p) * 40 * u}px)` }}>
-      <div
-        style={{
-          flex: "none",
-          width: 64 * u,
-          height: 64 * u,
-          borderRadius: 32 * u,
-          border: `${5 * u}px solid ${col}`,
-          background: `rgba(${item.ok ? "25,224,214" : "255,77,77"},${0.18 * tick})`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxSizing: "border-box",
-        }}
-      >
-        <svg width={34 * u} height={34 * u} viewBox="0 0 34 34">
+    <div style={reveal(p, u)}>
+      <Rule />
+      <div style={{ display: "flex", alignItems: "center", gap: 24 * u, padding: `${16 * u}px 0` }}>
+        <svg width={40 * u} height={40 * u} viewBox="0 0 34 34" style={{ flex: "none" }}>
           {item.ok ? (
-            <path d="M5 18 L14 26 L29 8" fill="none" stroke={col} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={`${tick} 1`} />
+            <path d="M4 18 L13 27 L30 7" fill="none" stroke={col} strokeWidth={4} strokeLinecap="square" pathLength={1} strokeDasharray={`${tick} 1`} />
           ) : (
             <>
-              <path d="M8 8 L26 26" fill="none" stroke={col} strokeWidth={5} strokeLinecap="round" pathLength={1} strokeDasharray={`${Math.min(1, tick * 2)} 1`} />
-              <path d="M26 8 L8 26" fill="none" stroke={col} strokeWidth={5} strokeLinecap="round" pathLength={1} strokeDasharray={`${Math.max(0, tick * 2 - 1)} 1`} />
+              <path d="M6 6 L28 28" fill="none" stroke={col} strokeWidth={4} strokeLinecap="square" pathLength={1} strokeDasharray={`${Math.min(1, tick * 2)} 1`} />
+              <path d="M28 6 L6 28" fill="none" stroke={col} strokeWidth={4} strokeLinecap="square" pathLength={1} strokeDasharray={`${Math.max(0, tick * 2 - 1)} 1`} />
             </>
           )}
         </svg>
+        <div style={{ fontWeight: item.ok ? 700 : 400, fontSize: fitSize(item.text, 42, 28, 32) * u, lineHeight: 1.2, color: item.ok ? COLORS.text : COLORS.muted }}>
+          {item.text}
+        </div>
       </div>
-      <div style={{ fontWeight: 700, fontSize: fitSize(item.text, 44, 28, 32) * u, lineHeight: 1.2 }}>{item.text}</div>
     </div>
   );
 };
-

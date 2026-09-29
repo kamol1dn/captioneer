@@ -1,40 +1,46 @@
-// Shared look and motion for every template.
+// Shared look and motion for every shorts template.
+//
+// The show's own broadcast language, not a motion-graphics kit: Helvetica only,
+// flat near-black, white type, the layout's brand red as solid bars and bands,
+// hairline rules between items instead of boxes, square corners. The bright red
+// is an accent only — a number, one emphasised phrase, a thin rule. No
+// gradients, glows, pills or scale pops; things fade in with a small slide.
 //
 // Everything is drawn in "units" of a 1080-wide frame, so the same template
 // renders correctly at 1080x1920 and at the 1440x2560 the OTG episodes use —
 // the renderer only ever changes the composition size, never the design.
 import { loadFont } from "@remotion/fonts";
 import React from "react";
-import {
-  AbsoluteFill,
-  Easing,
-  interpolate,
-  spring,
-  staticFile,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
+import { AbsoluteFill, Easing, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
-export const FONT = "Montserrat";
-const fontsReady = loadFont({
-  family: FONT,
-  url: staticFile("fonts/Montserrat-VariableFont_wght.ttf"),
-  weight: "100 900",
-});
-// Renders wait on this through delayRender inside loadFont, so text never
-// rasterises in the fallback face and then pops.
-void fontsReady;
+// Own family names, so these never collide with the long-form panels' faces
+// (panel/theme.tsx) when both are registered in one bundle.
+export const FONT = "Shorts Helvetica";
+export const DISPLAY = "Shorts Helvetica Condensed";
+const faces: [string, string, string][] = [
+  [FONT, "fonts/Helvetica-Light.ttf", "300"],
+  [FONT, "fonts/Helvetica.ttf", "400"],
+  [FONT, "fonts/Helvetica-Medium.otf", "500"],
+  [FONT, "fonts/Helvetica-Bold.ttf", "700"],
+  // The show's headline-bar face: titles, names, numbers, dates, uppercase.
+  [DISPLAY, "fonts/HelveticaNeue-CondensedBold.ttf", "700"],
+];
+// Renders wait on these through delayRender inside loadFont, so text never
+// rasterises in a fallback face and then pops.
+for (const [family, url, weight] of faces) void loadFont({ family, url: staticFile(url), weight });
 
 export const COLORS = {
-  card: "rgba(14, 15, 18, 0.9)",
-  cardEdge: "rgba(255, 255, 255, 0.08)",
+  bg: "#0B0B0B",
   text: "#FFFFFF",
-  muted: "rgba(255, 255, 255, 0.62)",
-  // The caption highlight colour, so graphics and captions read as one system.
-  accent: "#FFDC00",
-  accentInk: "#0E0F12",
-  // The OTG caption highlight, the second colour on full-screen frames.
-  cyan: "#19E0D6",
+  muted: "#9A9A9A",
+  rule: "#333333",
+  // The long-form layout's lower-third band: solid bars and bands.
+  brand: "#880401",
+  // Accent only: a number, one emphasised phrase, a thin rule. Also the
+  // captions' highlight colour, so graphics and captions read as one system.
+  accent: "#E0161D",
+  // Text sitting on red.
+  accentInk: "#FFFFFF",
 };
 
 export type Position = "top" | "center" | "bottom";
@@ -42,28 +48,46 @@ export type Position = "top" | "center" | "bottom";
 /** Pixels per design unit: 1 at 1080 wide. */
 export const useUnit = () => useVideoConfig().width / 1080;
 
+const EASE = Easing.out(Easing.cubic);
+/** How far things travel on their way in, in design units. Small on purpose. */
+export const SLIDE = 12;
+
 /**
  * 0 -> 1 on the way in, 1 -> 0 on the way out. Every graphic enters and leaves
  * inside its own file, so nothing needs a dissolve applied in Premiere — which
  * matters, since a dissolve applied by hand does not survive a re-export.
  */
-export const useEnterExit = (enterFrames = 14, exitFrames = 9) => {
+export const useEnterExit = (enterFrames = 10, exitFrames = 8) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  const enter = spring({
-    frame,
-    fps,
-    config: { damping: 200, mass: 0.6 },
-    durationInFrames: enterFrames,
+  const { durationInFrames } = useVideoConfig();
+  const enter = interpolate(frame, [0, enterFrames], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: EASE,
   });
-  const exit = interpolate(
-    frame,
-    [durationInFrames - exitFrames, durationInFrames - 1],
-    [1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.cubic) },
-  );
+  const exit = interpolate(frame, [durationInFrames - exitFrames, durationInFrames - 1], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.in(Easing.cubic),
+  });
   return { enter, exit, visible: Math.min(enter, exit) };
 };
+
+/** 0 -> 1 over ``frames`` starting at ``start``: the one reveal curve. */
+export const useCue = (start: number, frames = 10) => {
+  const frame = useCurrentFrame();
+  return interpolate(frame, [start, start + frames], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: EASE,
+  });
+};
+
+/** Fade plus a small rise, for a reveal value p in 0..1. */
+export const reveal = (p: number, u: number, dx = 0): React.CSSProperties => ({
+  opacity: p,
+  transform: dx ? `translateX(${(1 - p) * dx * u}px)` : `translateY(${(1 - p) * SLIDE * u}px)`,
+});
 
 /**
  * The frame's reserved zones, as fractions of height.
@@ -121,38 +145,184 @@ export const Band: React.FC<{ position?: Position; children: React.ReactNode }> 
   );
 };
 
-/** The dark rounded card most templates sit on, with the shared entrance. */
+/**
+ * The card most templates sit on: a flat near-black block, square, with the
+ * brand-red bar down its left edge — the show's lower-third signature. Flat
+ * rather than translucent, so it reads over a bright wall without a shadow.
+ */
 export const Card: React.FC<{
   children: React.ReactNode;
   width?: number;
   padding?: number;
   style?: React.CSSProperties;
-}> = ({ children, width = 900, padding = 48, style }) => {
+}> = ({ children, width = 900, padding = 44, style }) => {
   const u = useUnit();
   const { enter, exit } = useEnterExit();
   width = Math.min(width, SAFE_W);
-  const rise = (1 - enter) * 60 * u;
-  const scale = 0.94 + 0.06 * enter - (1 - exit) * 0.03;
   return (
     <div
       style={{
         width: width * u,
         boxSizing: "border-box",
-        padding: padding * u,
-        background: COLORS.card,
-        border: `${2 * u}px solid ${COLORS.cardEdge}`,
-        borderRadius: 34 * u,
-        boxShadow: `0 ${18 * u}px ${60 * u}px rgba(0,0,0,0.45)`,
-        color: COLORS.text,
-        fontFamily: FONT,
+        display: "flex",
+        alignItems: "stretch",
         opacity: Math.min(enter, exit),
-        transform: `translateY(${rise}px) scale(${scale})`,
+        transform: `translateY(${(1 - enter) * SLIDE * u}px)`,
+      }}
+    >
+      <div style={{ flex: "none", width: 12 * u, background: COLORS.brand }} />
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          padding: padding * u,
+          background: COLORS.bg,
+          color: COLORS.text,
+          fontFamily: FONT,
+          ...style,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
+/** A hairline between items: the structure, in place of boxes. */
+export const Rule: React.FC<{ vertical?: boolean; color?: string; style?: React.CSSProperties }> = ({
+  vertical,
+  color = COLORS.rule,
+  style,
+}) => {
+  const u = useUnit();
+  return (
+    <div
+      style={
+        vertical
+          ? { flex: "none", width: Math.max(1, 2 * u), alignSelf: "stretch", background: color, ...style }
+          : { flex: "none", height: Math.max(1, 2 * u), width: "100%", background: color, ...style }
+      }
+    />
+  );
+};
+
+/** Small uppercase label, letter-spaced, grey. Not a pill. */
+export const Kicker: React.FC<{ children: React.ReactNode; size?: number; color?: string; style?: React.CSSProperties }> = ({
+  children,
+  size = 28,
+  color = COLORS.muted,
+  style,
+}) => {
+  const u = useUnit();
+  return (
+    <div
+      style={{
+        fontFamily: FONT,
+        fontWeight: 500,
+        fontSize: size * u,
+        letterSpacing: 0.14 * size * u,
+        textTransform: "uppercase",
+        color,
+        lineHeight: 1.2,
         ...style,
       }}
     >
       {children}
     </div>
   );
+};
+
+/** "Hokodo raised *$177M*" -> the marked words in red. A colour change, not a pill. */
+export const rich = (text: string) => text.split("*").map((t, i) => ({ t, hl: i % 2 === 1 })).filter((p) => p.t);
+export const plain = (text: string) => text.replace(/\*/g, "");
+export const Rich: React.FC<{ text: string; color?: string }> = ({ text, color = COLORS.accent }) => (
+  <>
+    {rich(text).map((p, i) =>
+      p.hl ? (
+        <span key={i} style={{ color, fontWeight: 700 }}>
+          {p.t}
+        </span>
+      ) : (
+        <span key={i}>{p.t}</span>
+      ),
+    )}
+  </>
+);
+
+export type SuperWord = { t: string; hl: boolean };
+
+/**
+ * Lines for a broadcast super (the hook, a punch line): breaks where the
+ * thought breaks — after a sentence, and either side of the *marked* phrase —
+ * and only wraps inside a piece that won't fit on one line, into lines of even
+ * length. A newline in the text always breaks. ``maxChars`` is what fits the
+ * width at the chosen size.
+ */
+export const superLines = (text: string, maxChars: number): SuperWord[][] => {
+  const pieces: SuperWord[][] = [];
+  for (const forced of text.split("\n")) {
+    let cur: SuperWord[] = [];
+    const flush = () => {
+      if (cur.length) pieces.push(cur);
+      cur = [];
+    };
+    rich(forced).forEach((part) => {
+      if (part.hl) {
+        flush();
+        pieces.push([{ t: part.t.trim(), hl: true }]);
+        return;
+      }
+      for (const w of part.t.trim().split(/\s+/).filter(Boolean)) {
+        cur.push({ t: w, hl: false });
+        if (/[.!?:]$/.test(w)) flush();
+      }
+      flush();
+    });
+    flush();
+  }
+  const width = (ws: SuperWord[]) => ws.reduce((m, w) => m + w.t.length, 0) + ws.length - 1;
+  // A lone short word ("The *fabric*…") would stand on a line of its own:
+  // keep it with the piece after it when they fit together.
+  for (let i = pieces.length - 2; i >= 0; i--) {
+    const p = pieces[i];
+    if (p.length === 1 && !p[0].hl && p[0].t.length <= 4 && width([...p, ...pieces[i + 1]]) <= maxChars) {
+      pieces.splice(i, 2, [...p, ...pieces[i + 1]]);
+    }
+  }
+  const lines: SuperWord[][] = [];
+  for (const piece of pieces) {
+    const total = width(piece);
+    if (total <= maxChars || piece.length === 1) {
+      lines.push(piece);
+      continue;
+    }
+    // The fewest lines that fit, as even as possible: widen the limit from the
+    // even split until the greedy wrap needs no more lines than that.
+    const n = Math.ceil(total / maxChars);
+    const wrap = (limit: number) => {
+      const out: SuperWord[][] = [];
+      let cur: SuperWord[] = [];
+      for (const w of piece) {
+        if (cur.length && width([...cur, w]) > limit) {
+          out.push(cur);
+          cur = [];
+        }
+        cur.push(w);
+      }
+      if (cur.length) out.push(cur);
+      return out;
+    };
+    let best = wrap(maxChars);
+    for (let limit = Math.ceil(total / n); limit < maxChars; limit++) {
+      const tried = wrap(limit);
+      if (tried.length <= n) {
+        best = tried;
+        break;
+      }
+    }
+    lines.push(...best);
+  }
+  return lines;
 };
 
 /**
@@ -170,19 +340,19 @@ export const useStagger = (i: number, n: number, share = 0.4, startAt = 12) => {
   return interpolate(frame, [start, start + 10], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: Easing.out(Easing.cubic),
+    easing: EASE,
   });
 };
 
 /**
  * Full-screen frame: replaces the picture for its duration.
  *
- * Laid out around the reserved zones rather than under them: the logo and
- * sponsor overlay own the top 20%, the captions own a band lower down, and the
- * whole block — title and content together — is centred in the space between.
- * Both zones are left as quiet background, so the overlay and the captions stay
- * readable over it. The panel slides up over the speaker and fades back off
- * them; both are in the file's alpha, so it needs no transition in Premiere.
+ * Flat near-black, laid out around the reserved zones rather than under them:
+ * the logo and sponsor overlay own the top 20%, the captions own a band lower
+ * down, and the whole block — header and content together — is centred in the
+ * space between. Both zones are left as plain background, so the overlay and
+ * the captions stay readable over it. The frame fades up over the speaker and
+ * back off them; both are in the file's alpha, so it needs no transition.
  */
 export const FullFrame: React.FC<{
   kicker?: string;
@@ -192,160 +362,70 @@ export const FullFrame: React.FC<{
 }> = ({ kicker, title, source, children }) => {
   const u = useUnit();
   const frame = useCurrentFrame();
-  const { height, width, durationInFrames, fps } = useVideoConfig();
-  const enter = spring({ frame, fps, config: { damping: 200, mass: 0.7 }, durationInFrames: 12 });
+  const { height, durationInFrames } = useVideoConfig();
+  const bg = interpolate(frame, [0, 7], [0, 1], { extrapolateRight: "clamp" });
   const exit = interpolate(frame, [durationInFrames - 8, durationInFrames - 1], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const head = interpolate(enter, [0.5, 1], [0, 1], { extrapolateLeft: "clamp" });
-  const rule = interpolate(frame, [10, 28], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.out(Easing.cubic),
-  });
-  // Slow drift on every layer, so a long text-heavy frame never looks frozen.
-  const t = frame / Math.max(1, durationInFrames);
-  const orb = (x: number, y: number, size: number, rgb: string, a: number): React.CSSProperties => ({
-    position: "absolute",
-    left: x * width - (size * width) / 2,
-    top: y * height - (size * width) / 2,
-    width: size * width,
-    height: size * width,
-    borderRadius: "50%",
-    background: `radial-gradient(circle, rgba(${rgb},${a}) 0%, rgba(${rgb},0) 62%)`,
-  });
+  const head = useCue(4);
+  const body = useCue(8);
   return (
     <AbsoluteFill style={{ opacity: exit }}>
-      <AbsoluteFill
+      <AbsoluteFill style={{ background: COLORS.bg, opacity: bg }} />
+      <div
         style={{
-          transform: `translateY(${(1 - enter) * height}px)`,
-          background: "linear-gradient(170deg, #0D1017 0%, #07080C 55%, #0A0D14 100%)",
-          overflow: "hidden",
+          position: "absolute",
+          left: SAFE.side * u,
+          right: SAFE.side * u,
+          top: height * SAFE.top,
+          bottom: height * (1 - SAFE.bottom),
+          fontFamily: FONT,
+          color: COLORS.text,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
         }}
       >
-        {/* Two colour pools: the graphics' yellow and the captions' cyan, so
-            the frame and the words over it read as one palette. */}
-        <div style={orb(0.88 - t * 0.06, 0.3 + t * 0.03, 1.25, "255,220,0", 0.2)} />
-        <div style={orb(0.08 + t * 0.07, 0.62 - t * 0.04, 1.15, "25,224,214", 0.13)} />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
-            backgroundSize: `${96 * u}px ${96 * u}px`,
-            backgroundPosition: `0 ${-t * 96 * u}px`,
-            // The grid fades toward the edges and the reserved zones.
-            maskImage: "radial-gradient(ellipse 75% 45% at 50% 42%, #000 30%, transparent 100%)",
-            WebkitMaskImage: "radial-gradient(ellipse 75% 45% at 50% 42%, #000 30%, transparent 100%)",
-          }}
-        />
+        {kicker || title ? (
+          <div style={{ flex: "none", marginBottom: 40 * u, ...reveal(head, u) }}>
+            {kicker ? <Kicker style={{ marginBottom: 14 * u }}>{kicker}</Kicker> : null}
+            {title ? (
+              <div
+                style={{
+                  fontFamily: DISPLAY,
+                  fontWeight: 700,
+                  fontSize: fitSize(title, 92, 22, 62) * u,
+                  lineHeight: 1.02,
+                  textTransform: "uppercase",
+                }}
+              >
+                {title}
+              </div>
+            ) : null}
+            <Rule style={{ marginTop: 26 * u }} />
+          </div>
+        ) : null}
+        <div style={{ flex: "none", opacity: body }}>{children}</div>
+      </div>
+      {source ? (
         <div
           style={{
             position: "absolute",
             left: SAFE.side * u,
             right: SAFE.side * u,
-            top: height * SAFE.top,
-            bottom: height * (1 - SAFE.bottom),
+            bottom: height * 0.055,
             fontFamily: FONT,
-            color: COLORS.text,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            color: COLORS.muted,
+            fontWeight: 400,
+            fontSize: 26 * u,
+            opacity: bg,
           }}
         >
-          {kicker || title ? (
-            <div style={{ flex: "none", opacity: head, transform: `translateY(${(1 - head) * 20 * u}px)` }}>
-              {kicker ? (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14 * u,
-                    color: COLORS.accent,
-                    fontWeight: 800,
-                    fontSize: 30 * u,
-                    letterSpacing: 3 * u,
-                    textTransform: "uppercase",
-                    marginBottom: 16 * u,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 14 * u,
-                      height: 14 * u,
-                      borderRadius: 7 * u,
-                      background: COLORS.accent,
-                      boxShadow: `0 0 ${18 * u}px ${COLORS.accent}`,
-                    }}
-                  />
-                  {kicker}
-                </div>
-              ) : null}
-              {title ? (
-                <div style={{ fontWeight: 900, fontSize: fitSize(title, 84, 24, 54) * u, lineHeight: 1.08, letterSpacing: -1 * u }}>
-                  {title}
-                </div>
-              ) : null}
-              <div
-                style={{
-                  marginTop: 22 * u,
-                  height: 8 * u,
-                  width: `${rule * 26}%`,
-                  borderRadius: 4 * u,
-                  background: `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.cyan})`,
-                }}
-              />
-            </div>
-          ) : null}
-          <div style={{ flex: "none", marginTop: (title || kicker ? 44 : 0) * u }}>{children}</div>
+          {source}
         </div>
-        {source ? (
-          <div
-            style={{
-              position: "absolute",
-              left: SAFE.side * u,
-              right: SAFE.side * u,
-              bottom: height * 0.055,
-              fontFamily: FONT,
-              color: COLORS.muted,
-              fontWeight: 500,
-              fontSize: 28 * u,
-            }}
-          >
-            {source}
-          </div>
-        ) : null}
-      </AbsoluteFill>
+      ) : null}
     </AbsoluteFill>
-  );
-};
-
-/** A frosted panel — the unit the full-screen templates build their content from. */
-export const Glass: React.FC<{
-  children: React.ReactNode;
-  tint?: "none" | "accent" | "cyan";
-  padding?: number;
-  style?: React.CSSProperties;
-}> = ({ children, tint = "none", padding = 30, style }) => {
-  const u = useUnit();
-  const bg = { none: "rgba(255,255,255,0.055)", accent: "rgba(255,220,0,0.09)", cyan: "rgba(25,224,214,0.08)" }[tint];
-  const edge = { none: "rgba(255,255,255,0.12)", accent: "rgba(255,220,0,0.45)", cyan: "rgba(25,224,214,0.4)" }[tint];
-  return (
-    <div
-      style={{
-        position: "relative",
-        background: bg,
-        border: `${2 * u}px solid ${edge}`,
-        borderRadius: 28 * u,
-        padding: padding * u,
-        boxShadow: `inset 0 ${2 * u}px 0 rgba(255,255,255,0.07), 0 ${20 * u}px ${50 * u}px rgba(0,0,0,0.35)`,
-        ...style,
-      }}
-    >
-      {children}
-    </div>
   );
 };
 
