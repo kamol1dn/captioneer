@@ -390,6 +390,71 @@ def refine_extents(words: List[Word], env: np.ndarray,
         w.start = round(max(prev_end, min(start, s0)), 3)
         w.end = round(max(ends[i], w.start), 3)
 
+    trim_overlong(words, env, thr)
+
+
+# A word never holds this much silence inside it — a stop closure is < 100 ms.
+INTERNAL_QUIET_S = 0.25
+
+
+def max_token_s(text: str) -> float:
+    """The longest a token can plausibly sound: fillers drawl, words don't."""
+    if FILLER_LABEL.fullmatch(text):
+        return 2.0
+    letters = sum(ch.isalpha() for ch in text)
+    return min(1.5, 0.3 + 0.1 * max(letters, 1))
+
+
+def trim_overlong(words: List[Word], env: np.ndarray,
+                  thr: Optional[Sequence[float]] = None) -> int:
+    """Cut back tokens whose letters were spread over more than one sound.
+
+    On an isolated mic the other speakers are still faintly there, and a lone
+    low-confidence "Yeah." or "The." — often transcribed from that bleed — can
+    be aligned with its letters seconds apart: EP21 had a "hmm" 11.5 s long and
+    a "Yeah." 7 s long, each blocking every cut point in that stretch and
+    tripping false cuts_word flags. The last-letter anchor can't help there,
+    since the last letter is the misplaced one. Physically, a word neither
+    contains a quarter second of silence nor outlasts its letters by much; when
+    one does, it is kept to the first sound from its onset. In place; returns
+    how many were trimmed.
+    """
+    n = 0
+    hop = HOP_S
+    for i, w in enumerate(words):
+        limit = max_token_s(w.text)
+        a, b = int(w.start / hop), min(env.size, int(np.ceil(w.end / hop)))
+        if b <= a + 1:
+            continue
+        t = thr[i] if thr is not None else float(np.percentile(env[a:b], 90)) * 0.063
+        quiet_at = _sound_end_run(env, a + 5, b, t, INTERNAL_QUIET_S)
+        if w.end - w.start <= limit and quiet_at is None:
+            continue
+        cap = w.start + limit
+        end = quiet_at if quiet_at is not None else None
+        if end is None or end > cap:
+            end = _sound_end(env, w.start + 0.05, cap, t)
+        if end is None:
+            end = cap
+        w.end = round(max(w.start + 0.05, min(end, w.end)), 3)
+        n += 1
+    return n
+
+
+def _sound_end_run(env: np.ndarray, a: int, b: int, thr: float,
+                   run_s: float) -> Optional[float]:
+    """Start of the first quiet run of ``run_s`` inside frames [a, b), if any."""
+    need = max(1, int(round(run_s / HOP_S)))
+    quiet = 0
+    for j in range(a, b):
+        if env[j] < thr:
+            quiet += 1
+            if quiet >= need:
+                return (j - need + 1) * HOP_S
+        else:
+            quiet = 0
+    return None
+
 
 def _chunk_floors(env: np.ndarray, chunks) -> List[float]:
     """Each chunk's room tone: the 10th percentile of its own level.

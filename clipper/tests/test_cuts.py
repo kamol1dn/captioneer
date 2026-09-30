@@ -153,6 +153,18 @@ def test_touching_words_meet_at_the_dip():
           f"'Most' starts where 'two.' ends: {words[1].start}")
 
 
+def test_letters_spread_over_two_sounds_keep_the_first():
+    """The EP21 7-second "Yeah.": its last letter landed on the next sound."""
+    from caption_engine.transcriber.verbatim_backend import trim_overlong
+    env = _env([(1.00, 1.30, 0.1), (3.00, 3.40, 0.1)], total=6.0)
+    words = [W("Yeah.", 1.00, 3.30), W("[um]", 3.50, 3.60)]
+    trimmed = trim_overlong(words, env)
+    check(trimmed >= 1, "the stretched word is trimmed")
+    check(abs(words[0].end - 1.30) <= 0.011, f"'Yeah.' ends with its own sound: {words[0].end}")
+    ok = [W("effectively", 0.95, 1.35)]
+    check(trim_overlong(ok, _env([(0.95, 1.35, 0.1)])) == 0, "a normal word is left alone")
+
+
 def test_chunks_cover_everything_and_cut_at_quiet():
     from caption_engine.transcriber.verbatim_backend import chunk_bounds
     env = _env([(0.0, 100.0, 0.1)], total=100.0)
