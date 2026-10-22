@@ -49,6 +49,25 @@ clipper_projects.json
 # _assets is images staged for a render, copied from wherever they live.
 graphics/node_modules/
 graphics/public/_assets/
+# Everything under graphics/src/ but the engine's own files is generated: show
+# components copied in by graphics/sync-shows.mjs (src/<show>/, src/_shows.ts)
+# and an episode's scenes copied in by skleyka/render.py (src/_episode/).
+/graphics/src/*
+!/graphics/src/Root.tsx
+!/graphics/src/index.ts
+!/graphics/src/theme.tsx
+!/graphics/src/templates/
+!/graphics/src/panel/
+# Fonts the renderer serves: only the free ones are the engine's; a show's
+# licensed faces are synced in from shows/ and stay out of git.
+/graphics/public/fonts/*
+!/graphics/public/fonts/BebasNeue-Regular.ttf
+!/graphics/public/fonts/Montserrat-VariableFont_wght.ttf
+
+# The client tier: one folder per show (its own private repo), see
+# caption_engine/shows.py. Only the README describing the layout is public.
+/shows/*
+!/shows/README.md
 
 # Remotion's downloaded headless Chrome (~270 MB), re-fetched on demand
 .remotion/

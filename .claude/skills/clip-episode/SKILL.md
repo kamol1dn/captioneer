@@ -84,34 +84,33 @@ frozen. Worth one visual check per episode, not per clip.
 
 ## Which show is this?
 
-There are two, and they differ in exactly two settings. **Ask once, at the
-start, if the user hasn't said** — then pass both to `create_project` and never
-think about them again; every later tool reads them off the project.
+Every client is a **show**: a folder `shows/<id>/` (outside the engine's git)
+with its caption presets, graphics family, dressing and a `RULES.md` saying how
+that client's episodes are edited. **Ask once, at the start, if the user hasn't
+said which show, then read `shows/<id>/RULES.md` before anything else.** Its
+"Project settings" table gives the `language`, `caption_preset` and `show` to
+pass to `create_project`; never think about them again after that, every later
+tool reads them off the project. `list_shows` lists what exists.
 
-| Show | `language` | `caption_preset` |
-|------|-----------|------------------|
-| **Gashtak** (Uzbek) | `"uz"` | `"gashtak_2"` |
-| **OTG** (English) | `"en"` | `"otg_red"` (since EP20; `otg_cyan` before) |
+`language` is not cosmetic. `"uz"` routes transcription to the Kotib Uzbek
+model with MMS forced alignment instead of the English verbatim model, selects
+the Uzbek section of `prompts.txt` (the `o‘`/`g‘` orthography and
+Russian-code-switch rules), and makes `verify_clip_audio` listen in Uzbek.
+Leave it unset on an Uzbek episode and everything still "works", badly and
+silently: a mediocre auto-detected transcript, English caption rules applied to
+Uzbek text, and a verification report that is pure noise.
 
-`language="uz"` is not cosmetic. It routes transcription to the Kotib Uzbek
-model with MMS forced alignment instead of the English verbatim model, selects the Uzbek section
-of `prompts.txt` (the `o‘`/`g‘` orthography and Russian-code-switch rules), and
-makes `verify_clip_audio` listen in Uzbek. Leave it unset on an Uzbek episode
-and everything still "works" — badly, and silently: a mediocre auto-detected
-transcript, English caption rules applied to Uzbek text, and a verification
-report that is pure noise.
-
-**Working on a project created earlier?** Check `get_project` — projects made
+**Working on a project created earlier?** Check `get_project`: projects made
 before these were tracked have `language: ""` and no preset, so they'd
 auto-detect and render with the default preset. Fix with
-`set_project_defaults(project_id, language, caption_preset)` rather than
+`set_project_defaults(project_id, language, caption_preset, show)` rather than
 re-creating or hand-editing `project.json`. It doesn't re-transcribe: if the
 transcript itself was made under the wrong language, re-run `ingest`.
 
-Nothing else in the pipeline is language-specific — the same defaults below
-apply to both shows. One caveat: `check_segments`' dangling-word and filler
-heuristics are English word lists, so on Gashtak only its punctuation and gap
-checks fire. It says so in its own output; read the joins yourself there.
+Nothing else in the pipeline is language-specific. One caveat:
+`check_segments`' dangling-word and filler heuristics are English word lists,
+so on a non-English show only its punctuation and gap checks fire. It says so
+in its own output; read the joins yourself there.
 
 ## House defaults
 
@@ -238,52 +237,26 @@ one long take: keep 124.3–141.8 and 208.0–240.5, drop the tangent between.
 
 ### Every clip must stand alone
 
-Standing direction from Sam (OTG creative group, 2026-08-27) after clip
-viewership dropped. The diagnosis was that clips only made sense to someone who
-had already watched the full episode or the earlier clips — so treat these as
-requirements, not preferences:
-
-- **Assume the viewer has never seen the podcast.** Within the clip itself they
-  must get *what is being discussed*, *why it matters*, and *the key point*. A
-  clip that leans on context from the episode or from a sibling clip has failed,
-  however good the exchange is.
-- **This is a named instruction for AI tools in the editing process** — it is
-  aimed at this pipeline, so apply it when selecting, not as an afterthought.
-- **Fewer clips is explicitly fine.** Said twice in the same message. If the
-  episode only supports 8 standalone moments, deliver 8 and say why — do not
-  reach the requested number by including clips that need context. This
-  overrides a requested clip count: report the shortfall rather than pad.
-- **Prioritise breaking news, timely stories, and strong points tied to the news
-  being discussed.** These grab attention; evergreen commentary does not. The
-  same test applies to guest segments — a guest's point about a current story, a
-  viral topic, or a major market development beats a better-argued but timeless
-  one. Rank candidates by this before trimming to the final set.
-- **The copy matters as much as the cut.** The headline and accompanying text
-  are part of what makes someone stop and watch, so they must communicate the
-  clip's *relevance*, not just label its topic. This is what the clip `title`
-  carries into the sequence name (see step 7) — the editor copies it out from
-  there, so write it as publishable copy rather than an internal description.
+Unless the show's RULES.md says otherwise, assume the viewer has never seen the
+podcast: within the clip itself they must get *what is being discussed*, *why
+it matters*, and *the key point*. A clip that leans on context from the episode
+or a sibling clip has failed, however good the exchange is. Fewer clips is
+better than padding the count with ones that need context; report the
+shortfall. Clients add their own brief on top of this (OTG's producer, for
+instance, ranks timely news first); it is in their RULES.md.
 
 Two ways to satisfy this, and the cut is only one of them:
 
-1. **In the cut** — keep the *setup line* that names the company and the event,
-   even when the punchy reaction alone would cut tighter. Opening on "so it's
-   quite aggressive from Stripe" tests worse than spending four seconds on what
-   Stripe just did first.
-2. **On top, in Premiere** — b-roll, a title card, or on-screen context supplies
-   the same information without spending clip time on it. This is the user's
-   preferred fix and it is often the better one: it keeps the cut tight and the
-   hook early.
+1. **In the cut**: keep the *setup line* that names the company and the event,
+   even when the punchy reaction alone would cut tighter.
+2. **On top, in Premiere**: b-roll, a title card, or on-screen context supplies
+   the same information without spending clip time on it. This keeps the cut
+   tight and the hook early.
 
-So a clip whose *audio* leans on prior context is not automatically rejected —
+So a clip whose *audio* leans on prior context is not automatically rejected:
 ask whether it can be established visually instead. What is not acceptable is
 shipping it with neither. Flag which clips need that treatment when presenting
-the rundown, so they can be handled deliberately rather than found later during
-a bulk edit.
-
-Out of scope for this skill but part of the same direction: thumbnails get three
-test versions, and those should differ in hook, layout and angle — not be small
-variations of one design.
+the rundown.
 
 **5. Choose angles.** With `diarize=True` the transcript states the speaker
 (`A:` / `B:`) — cut to whoever the line belongs to and skip the guesswork. Fall
@@ -442,17 +415,14 @@ audio track).
 - `set_clip_captions(project_id, clip_id, words)` — validated against clip
   duration.
 
-Beyond the prompt's rules, fix what the ASR misheard — proper nouns are what a
-viewer notices. Recurring offenders on OTG: **Otabek** (not "Otome"),
-**Andreessen Horowitz** (not "Anderson"), **Satya Nadella** *backing* (not
-"baking"), **Anthropic** (not "Tropic"/"Antropic"), **Wise** (the ASR writes
-"VISA" and "Y" all through the Wise story), **Nik Storonski**, **Genius Act**,
-and "earnings per **share**". If a figure looks mis-transcribed, leave it out of
-the caption rather than burning in a wrong number.
+Beyond the prompt's rules, fix what the ASR misheard: proper nouns are what a
+viewer notices. Each show's RULES.md lists the names its episodes keep getting
+wrong. If a figure looks mis-transcribed, leave it out of the caption rather
+than burning in a wrong number.
 
 Polish every clip first, then render them all at once with
 `render_all_captions(project_id)` — the project's preset is used automatically
-(gashtak_2 if it somehow has none), so pass `preset=` only to override for a
+(the engine's neutral `reels_classic` if it somehow has none), so pass `preset=` only to override for a
 one-off; `list_caption_presets` shows what else exists. One call instead of
 fourteen, ~11s per 60s clip. Strip-sized by default, positioned by hand in
 Premiere; don't pass `full_frame=True` unless asked.

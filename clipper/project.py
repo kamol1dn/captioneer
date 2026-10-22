@@ -73,6 +73,10 @@ class Camera:
 
     @property
     def has_audio(self) -> bool:
+        # A track-backed angle with no mic file has nothing to listen to,
+        # whatever its stored probe says.
+        if self.from_master and not self.path:
+            return False
         return bool((self.probe or {}).get("has_audio", True))
 
     def to_dict(self, project_dir: Optional[Path] = None) -> dict:
@@ -140,7 +144,7 @@ class Project:
     language: str = ""
     # Caption preset name for this project's clips. Empty = the engine default.
     caption_preset: str = ""
-    # Which show's dressing the reels wear: the key of a shows/<id>.json.
+    # Which show's dressing the reels wear: the id of a shows/<id>/ folder.
     # Empty means none, which is the bare cut - what every project written
     # before shows existed keeps exporting.
     show_id: str = ""
@@ -655,8 +659,14 @@ def create(name: str, cameras: List[dict], primary_audio_camera: str = "",
         raise ValueError(f"primary_audio_camera {primary!r} is not a camera id")
     # Only the primary is transcribed by default: every camera records the same
     # room, so extra Whisper passes cost GPU minutes for near-identical text.
-    if not any(c.transcribe for c in cams):
-        next(c for c in cams if c.id == primary).transcribe = True
+    primary_cam = next(c for c in cams if c.id == primary)
+    if not primary_cam.path:
+        warnings.append(
+            f"primary_audio_camera {primary!r} has no path, so there is no "
+            f"audio to transcribe or snap cuts to — name a camera with a mic "
+            f"file or the mix")
+    elif not any(c.transcribe for c in cams):
+        primary_cam.transcribe = True
 
     # Report multi-angle speakers *after* the transcribe defaulting above, so
     # the warning names the mic that will actually be used rather than telling
@@ -668,7 +678,7 @@ def create(name: str, cameras: List[dict], primary_audio_camera: str = "",
     for spk, group in groups.items():
         if len(group) < 2:
             continue
-        if all(c.from_master for c in group):
+        if all(c.from_master and not c.path for c in group):
             # Track-backed angles are picture-only by construction; their sound
             # arrives with the master's own audio tracks, so the usual "which of
             # these do we transcribe" advice does not apply to them.
@@ -681,6 +691,12 @@ def create(name: str, cameras: List[dict], primary_audio_camera: str = "",
         flagged = [c.id for c in group if c.transcribe and c.has_audio]
         with_audio = [c.id for c in group if c.has_audio]
         mic = flagged[0] if flagged else (with_audio[0] if with_audio else None)
+        deaf = [c.id for c in group if c.from_master and not c.path]
+        if deaf and mic:
+            warnings.append(
+                f"camera(s) {', '.join(deaf)} have no path — picture only, "
+                f"with no loudness of their own; speaker {spk!r} is heard "
+                f"through {mic}")
         warnings.append(
             f"speaker {spk!r} has {len(group)} angles "
             f"({', '.join(c.id for c in group)}) — a second angle to cut to "

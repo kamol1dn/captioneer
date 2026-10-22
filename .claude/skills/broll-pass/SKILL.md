@@ -81,20 +81,15 @@ three seconds to decide whether to stay.
 ## First: which show is this?
 
 `get_project` reports a `show` block. It decides which graphics templates exist,
-which whooshes you can place and whether reels end on a tail card — so read it
+which whooshes you can place and whether reels end on a tail card, so read it
 before planning anything, and call `list_graphic_templates(project_id)` rather
-than the bare form, which only ever returns the OTG set.
+than the bare form, which only ever returns the engine's default set. Then read
+`shows/<show>/RULES.md`: it says what this client's reels look like, how dense
+the graphics run and what they must never do, and it overrides the general
+guidance below wherever the two disagree.
 
-- **otg** — the news set: twenty templates, charts, headlines, stat cards. A
-  short is a brief that argues with data, so it is dense on purpose.
-- **gashtak** — a conversation, and the brief is the opposite: b-roll, a whoosh
-  over the hard cuts, and a card only when he names something a viewer will not
-  know. Three templates, all of them Helvetica and cream on nothing.
-  `GashtakNote` is the default; reach for `GashtakFacts` only when the note will
-  not fit in two lines.
-
-A project with no show set gets the OTG set and no dressing. If the reels are
-clearly one show's and the project says otherwise, fix it once with
+A project with no show set gets the default set and no dressing. If the reels
+are clearly one show's and the project says otherwise, fix it once with
 `set_project_defaults(show=...)` and say that you did.
 
 ## What you are placing
@@ -240,9 +235,10 @@ card would sit squarely on a face in the check image. The hook stays at the top
 - **Never cover the hook.** The first seconds establish who is speaking.
 - **Land it on the word, not after it.** Start slightly before the phrase it
   illustrates; arriving late reads as a mistake.
-- **Fit inside a segment.** B-roll must sit inside a kept range — the validator
-  rejects anything else, since the space between segments does not exist in the
-  finished clip.
+- **Start and end inside kept segments.** Each end of an entry must fall in a kept
+  range (the space between segments does not exist in the finished clip); the
+  entry may run across the joins in between, and its length is what plays on the
+  short. A card held over two trimmed "um"s is one entry, not three.
 - **The captions are already on top.** They render as a strip the user positions
   by hand in Premiere, so do not place an overlay where it will fight them
   without saying so in the entry's `query` or a marker.

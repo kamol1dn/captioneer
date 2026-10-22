@@ -4,17 +4,20 @@
   "description": "Remotion templates for the b-roll pass: alpha overlays rendered to ProRes 4444 and attached to a clip's EDL.",
   "type": "module",
   "scripts": {
-    "studio": "remotion studio src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "studio": "node sync-shows.mjs && remotion studio src/index.ts",
+    "typecheck": "node sync-shows.mjs && tsc --noEmit"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.524",
     "@remotion/cli": "4.0.524",
     "@remotion/fonts": "4.0.524",
     "@remotion/renderer": "4.0.524",
+    "d3-geo": "^3.1.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "remotion": "4.0.524"
+    "remotion": "4.0.524",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@types/react": "19.1.8",

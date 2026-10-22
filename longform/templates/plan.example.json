@@ -1,6 +1,6 @@
 {
  "name": "SHOW EPxx panels",
- "show": "otg",
+ "show": "<show id>",
  "video": "D:/.../epxx/main.mp4",
  "out_dir": "D:/.../epxx/for claude/longform/panels",
  "shots_dir": "D:/.../epxx/for claude/longform/shots",

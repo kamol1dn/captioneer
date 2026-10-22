@@ -5,7 +5,8 @@ covers a cutaway, how loud it sits under the voice, whether reels end on a
 subscribe card, which graphics family the cards are drawn from. Two shows share
 the clipper and share nothing else.
 
-Config lives in ``shows/<id>.json`` at the repo root, and a project names one in
+Config lives in ``shows/<id>/show.json`` (the client tier, outside the engine's
+git: see :mod:`caption_engine.shows`), and a project names one in
 ``project.json``. A project that names no show gets ``DEFAULT``, which dresses
 nothing — so every project written before this module existed exports exactly
 the bytes it did before. That is the whole reason the empty show exists rather
@@ -19,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-SHOWS_DIR = Path(__file__).resolve().parent.parent / "shows"
+from caption_engine import shows as shows_root
 
 
 @dataclass
@@ -90,7 +91,7 @@ class Outro:
 class Show:
     id: str = ""
     name: str = ""
-    graphics: str = "otg"        # which template family cards come from
+    graphics: str = "default"    # template family: "default" is the engine's own set
     transitions: Dict[str, TransitionAsset] = field(default_factory=dict)
     default_transition: str = ""
     outro: Optional[Outro] = None
@@ -111,14 +112,14 @@ DEFAULT = Show(id="", name="none")
 
 
 def load(show_id: str) -> Show:
-    """Read ``shows/<id>.json``. An empty or unknown id is the empty show.
+    """Read ``shows/<id>/show.json``. An empty or unknown id is the empty show.
 
     Unknown rather than error on purpose: a project moved between machines
     should still export its cut, just undressed, instead of refusing.
     """
     if not show_id:
         return DEFAULT
-    path = SHOWS_DIR / f"{show_id}.json"
+    path = shows_root.show_dir(show_id) / "show.json"
     if not path.is_file():
         return DEFAULT
     return parse(json.loads(path.read_text(encoding="utf-8")), base=path.parent,
@@ -154,7 +155,7 @@ def parse(d: dict, base: Optional[Path] = None, show_id: str = "") -> Show:
 
     return Show(
         id=show_id or d.get("id", ""), name=d.get("name", ""),
-        graphics=d.get("graphics", "otg"),
+        graphics=d.get("graphics", "default"),
         transitions=transitions,
         default_transition=d.get("default_transition", ""),
         outro=outro,
@@ -195,6 +196,4 @@ def file_meta(show: Show, frame_size, tb, outro_mov: Optional[str] = None,
 
 
 def known() -> List[str]:
-    if not SHOWS_DIR.is_dir():
-        return []
-    return sorted(p.stem for p in SHOWS_DIR.glob("*.json"))
+    return shows_root.known()

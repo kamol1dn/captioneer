@@ -2,8 +2,21 @@
   "mcpServers": {
     "clipper-engine": {
       "command": "D:\\coding\\captioneer-english\\venv\\Scripts\\python.exe",
-      "args": ["-m", "clipper.mcp_server"],
+      "args": [
+        "-m",
+        "clipper.mcp_server"
+      ],
       "cwd": "D:\\coding\\captioneer-english"
+    },
+    "skleyka": {
+      "command": "D:\\coding\\captioneer-english\\venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "skleyka.mcp_server"
+      ],
+      "env": {
+        "PYTHONPATH": "D:\\coding\\captioneer-english"
+      }
     }
   }
 }

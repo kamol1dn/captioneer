@@ -5,7 +5,7 @@ surface is testable from a shell with real tracebacks:
 
     python -m caption_engine.toolkit transcribe reel.mp4
     python -m caption_engine.toolkit align voice.wav --text-file script.txt
-    python -m caption_engine.toolkit render voice.words.json -o captions.mov --preset otg_cyan
+    python -m caption_engine.toolkit render voice.words.json -o captions.mov --preset reels_classic
     python -m caption_engine.toolkit research https://www.instagram.com/reel/XXXX/ -o research/
 
 Every command prints one JSON object on stdout (logs go to stderr).

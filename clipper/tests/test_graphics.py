@@ -43,12 +43,18 @@ def _edl(broll=None, tb=Timebase(30, ntsc=True)):
 # -- manifest ------------------------------------------------------------------
 
 def test_every_template_has_a_component():
-    """templates.json and src/templates/index.ts must list the same names."""
-    index = (Path(__file__).resolve().parents[2] / "graphics" / "src"
-             / "templates" / "index.ts").read_text(encoding="utf-8")
-    for name in manifest():
-        check(f"  {name}," in index, f"{name} is in templates.json but not "
-                                     f"registered in src/templates/index.ts")
+    """Each manifest lists the same names its index registers: the engine's
+    templates.json against src/templates/index.ts, a show's against its
+    graphics/index.ts."""
+    from caption_engine import shows
+    engine = (Path(__file__).resolve().parents[2] / "graphics" / "src"
+              / "templates" / "index.ts").read_text(encoding="utf-8")
+    for name, spec in manifest().items():
+        sid = spec.get("show")
+        where = (shows.show_dir(sid) / "graphics" / "index.ts") if sid else None
+        index = where.read_text(encoding="utf-8") if where and where.is_file() else engine
+        check(f"  {name}," in index, f"{name} is in {'shows/' + sid if sid else 'the engine'}'s "
+                                     f"templates.json but not registered in its index.ts")
 
 
 def test_every_example_is_valid():
@@ -100,11 +106,25 @@ def test_frames_in_second_segment_use_its_offset():
           f"frame count {frames} is not the entry's length")
 
 
-def test_entry_across_a_gap_is_rejected():
-    edl, clip = _edl([BRoll(18.0, 52.0, id="b1", kind="overlay")])
+def test_entry_across_a_join_counts_only_what_plays():
+    # Segments 10-20 and 50-60: a card from 18 to 52 runs across the join, and
+    # its length on the short is 2 s + 2 s — the gap 20-50 never plays.
+    tb = Timebase(30, ntsc=True)
+    edl, clip = _edl([BRoll(18.0, 52.0, id="b1", kind="overlay")], tb)
+    start, frames = broll_frames(clip, tb, clip.broll[0])
+    check(start == tb.to_frames(18.0) - tb.to_frames(10.0),
+          f"program start {start} wrong for an entry across a join")
+    want = (tb.to_frames(20.0) - tb.to_frames(18.0)) + (tb.to_frames(52.0) - tb.to_frames(50.0))
+    check(frames == want, f"frame count {frames} should be {want} (gap excluded)")
+    r = validate(edl, ["A", "B"], master_duration=3600)
+    check(not any("b1" in e for e in r["errors"]), f"an entry across a join must validate: {r['errors']}")
+
+
+def test_entry_ending_in_a_gap_is_rejected():
+    edl, clip = _edl([BRoll(18.0, 30.0, id="b1", kind="overlay")])
     try:
         broll_frames(clip, edl.timebase, clip.broll[0])
-        check(False, "an entry spanning the gap between segments must raise")
+        check(False, "an entry ending between segments must raise")
     except ValueError:
         pass
 

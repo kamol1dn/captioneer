@@ -71,21 +71,44 @@ def _seed() -> dict:
         "bold_yellow_box": builtin.bold_yellow_box,
         "minimal_white": builtin.minimal_white,
         "punchy_green": builtin.punchy_green,
-        "otg_cyan": builtin.otg_cyan,
-        "gashtak_main": builtin.gashtak_main,
-        "gashtak_2": builtin.gashtak_2,
     }
     for name, factory in factories.items():
         d = factory().to_dict()
         d["_group"] = name_to_group.get(name, "English")
         presets[name] = d
 
-    return {
+    data = {
         "version": SCHEMA_VERSION,
         "app": _default_app(),
         "presets": presets,
         "preset_groups": {k: list(v) for k, v in PRESET_GROUPS.items()},
     }
+    _add_show_presets(data)
+    return data
+
+
+def _add_show_presets(data: dict) -> None:
+    """Add each show's ``captions.json`` presets the store doesn't have yet.
+
+    A client's house styles live with the client (``shows/<id>/``), not in the
+    engine's seed. They join the library under the group the show names, and
+    a preset already in the store, possibly edited in the GUI, is left alone.
+    ``font_path`` in a show's file is relative to that show's folder.
+    """
+    from . import shows
+    for sid, d in shows.each_json("captions.json"):
+        group = d.get("group", "English")
+        for name, style in (d.get("presets") or {}).items():
+            if name in data["presets"]:
+                continue
+            style = dict(style)
+            if style.get("font_path") and not os.path.isabs(style["font_path"]):
+                style["font_path"] = str((shows.show_dir(sid) / style["font_path"]).resolve())
+            style["_group"] = group
+            data["presets"][name] = style
+            members = data["preset_groups"].setdefault(group, [])
+            if name not in members:
+                members.append(name)
 
 
 # ── load / save ──────────────────────────────────────────────────────────────
@@ -119,6 +142,7 @@ def load() -> dict:
             data["presets"] = seed["presets"]
             data["preset_groups"] = seed["preset_groups"]
         data.setdefault("preset_groups", seed["preset_groups"])
+        _add_show_presets(data)
         return data
 
 

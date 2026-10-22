@@ -9,30 +9,23 @@ run), so the GUI can create and edit them. ``builtin.py`` is kept as the seed /
 CLI and any existing importers keep working.
 """
 from ..style import CaptionStyle
-from .builtin import (
-    reels_classic, bold_yellow_box, minimal_white, punchy_green, otg_cyan, otg_red,
-    gashtak_main, gashtak_2,
-)
+from .builtin import reels_classic, bold_yellow_box, minimal_white, punchy_green
 
 # The built-in seed set, still importable for reference/reset. The live library
 # (including user-created presets) comes from the preferences store below.
+# A client's own styles are not here: they live in its shows/<id>/captions.json
+# and join the library when the store loads (see preferences._add_show_presets).
 PRESETS = {
-    "otg_red": otg_red,
-    "otg_cyan": otg_cyan,
     "reels_classic": reels_classic,
     "bold_yellow_box": bold_yellow_box,
     "minimal_white": minimal_white,
     "punchy_green": punchy_green,
-    "gashtak_main": gashtak_main,
-    "gashtak_2": gashtak_2,
 }
 
 # Default grouping used to seed preferences.json. The live grouping (which the
 # GUI can extend) is read from the store via ``groups()``.
 PRESET_GROUPS = {
-    "English": ["otg_red", "otg_cyan", "reels_classic", "bold_yellow_box",
-                "minimal_white", "punchy_green"],
-    "Uzbek": ["gashtak_2", "gashtak_main"],
+    "English": ["reels_classic", "bold_yellow_box", "minimal_white", "punchy_green"],
 }
 
 
@@ -57,6 +50,5 @@ def groups() -> dict:
 
 __all__ = [
     "PRESETS", "PRESET_GROUPS", "get", "names", "groups",
-    "reels_classic", "bold_yellow_box", "minimal_white", "punchy_green", "otg_cyan", "otg_red",
-    "gashtak_main", "gashtak_2",
+    "reels_classic", "bold_yellow_box", "minimal_white", "punchy_green",
 ]

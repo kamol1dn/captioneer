@@ -1,7 +1,8 @@
 """Locating font files for caption rendering.
 
-Fonts live under the project's `assets-fonts/` directory; these helpers find a
-bundled bold text font and the bundled color-emoji font.
+The engine bundles free fonts under `assets-fonts/`. Licensed faces a client's
+brand is set in live in the client tier instead (`shows/_shared/fonts/` and
+`shows/<id>/fonts/`, see caption_engine.shows), and are offered alongside.
 """
 import os
 from collections import OrderedDict
@@ -16,36 +17,49 @@ def _project_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(here)))
 
 
+def _font_roots() -> list:
+    """The engine's bundled fonts, then the shows' (shared first)."""
+    from .. import shows
+    roots = [os.path.join(_project_root(), "assets-fonts"),
+             str(shows.root() / shows.SHARED / "fonts")]
+    roots += [str(shows.show_dir(sid) / "fonts") for sid in shows.known()]
+    return [r for r in roots if os.path.isdir(r)]
+
+
 def default_emoji_font() -> str:
-    p = os.path.join(
-        _project_root(),
-        "assets-fonts", "ios-emojis", "AppleColorEmoji-Windows.ttf",
-    )
-    return p if os.path.exists(p) else ""
+    """The color-emoji font, from any font root's `ios-emojis/` (not bundled:
+    Apple's face is not ours to redistribute, so it lives with the shows)."""
+    for root in _font_roots():
+        p = os.path.join(root, "ios-emojis", "AppleColorEmoji-Windows.ttf")
+        if os.path.exists(p):
+            return p
+    return ""
 
 
 def list_available_fonts() -> "OrderedDict[str, str]":
     """Return {display_name: path} for every bundled text font, sorted by name.
 
-    Scans `assets-fonts/` recursively for .ttf/.otf/.ttc files, excluding the
-    color-emoji font (it isn't a text face). Display names are the file stems;
+    Scans every font root recursively for .ttf/.otf/.ttc files, excluding the
+    color-emoji font (it isn't a text face) and the `graphics/` sets the
+    Remotion renderer uses. Display names are the file stems;
     on a stem collision the parent folder is appended to keep keys unique.
     """
-    root = os.path.join(_project_root(), "assets-fonts")
     found: list = []  # (label, path)
     seen_labels: dict = {}
-    for dirpath, _dirs, files in os.walk(root):
-        if "ios-emojis" in dirpath.replace("\\", "/").split("/"):
-            continue  # skip the emoji font directory
-        for name in files:
-            if not name.lower().endswith(_FONT_EXTS):
+    for root in _font_roots():
+        for dirpath, _dirs, files in os.walk(root):
+            parts = dirpath.replace("\\", "/").split("/")
+            if "ios-emojis" in parts or "graphics" in parts:
                 continue
-            path = os.path.join(dirpath, name)
-            label = os.path.splitext(name)[0]
-            if label in seen_labels:
-                label = f"{label} ({os.path.basename(dirpath)})"
-            seen_labels[label] = path
-            found.append((label, path))
+            for name in files:
+                if not name.lower().endswith(_FONT_EXTS):
+                    continue
+                path = os.path.join(dirpath, name)
+                label = os.path.splitext(name)[0]
+                if label in seen_labels:
+                    label = f"{label} ({os.path.basename(dirpath)})"
+                seen_labels[label] = path
+                found.append((label, path))
     found.sort(key=lambda lp: lp[0].lower())
     return OrderedDict(found)
 
@@ -55,9 +69,8 @@ def find_system_font() -> str:
     root = _project_root()
     _win = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
     candidates = [
-        # Project-bundled fonts (highest priority). Helvetica-Bold is licensed
-        # for the podcast, so it's the default; Montserrat is the fallback.
-        os.path.join(root, "assets-fonts", "helvetica", "Helvetica-Bold.ttf"),
+        # The engine's bundled face. A show that wants its own brand font names
+        # it in its captions.json presets.
         os.path.join(root, "assets-fonts", "monsterrat", "static", "Montserrat-Bold.ttf"),
         # Windows
         # os.path.join(_win, "arialbd.ttf"),

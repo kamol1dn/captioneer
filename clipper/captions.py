@@ -48,9 +48,9 @@ from .timebase import Timebase
 DEFAULT_VERTICAL_ANCHOR = 0.78
 
 # What a clip renders with when neither the call nor the project names a preset.
-# gashtak_2 is the house style for these shorts; the English projects set
-# ``caption_preset`` on the project instead of relying on this.
-DEFAULT_PRESET = "gashtak_2"
+# A show's house style is set as ``caption_preset`` on its projects; this is
+# only the engine's neutral fallback.
+DEFAULT_PRESET = "reels_classic"
 
 
 def program_ranges(clip: Clip, tb: Timebase) -> List[Tuple[float, float, int]]:

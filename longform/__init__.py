@@ -1,15 +1,16 @@
 """Long-form episode tooling: graphics for the layout panes, and text layers.
 
-One folder per show (``longform/otg``) holds its ``show.json`` — pane
-geometry, tracks, text-layer limits — and one subfolder per episode with the
-plans that drive ``clipper.panels`` and ``clipper.headlines``. Media stays in
-the episode's own folder on disk; only the plans live here.
+A show's long-form config (pane geometry, tracks, text-layer limits) is its
+``shows/<id>/longform.json``, in the client tier (see caption_engine.shows).
+The plans that drive ``clipper.panels`` and ``clipper.headlines`` live with the
+episode, next to its Premiere project, never in the engine repo.
 """
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent
+from caption_engine import shows as shows_root
 
 
 def show_config(show: str) -> dict:
-    import json
-    return json.loads((ROOT / show / "show.json").read_text(encoding="utf-8"))
+    d = shows_root.read_json(show, "longform.json")
+    if d is None:
+        raise FileNotFoundError(f"no long-form config for show {show!r}: "
+                                f"expected {shows_root.show_dir(show) / 'longform.json'}")
+    return d

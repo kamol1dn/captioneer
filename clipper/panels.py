@@ -4,7 +4,7 @@ A show's long-form layouts are 4K PNG frames with transparent panes. Graphics
 for those panes are rendered at the pane's own size (never a 4K canvas with
 padding), so the editor drops them on a track, sets Position once, and pastes
 that Motion onto every other clip on the track. The panes, tracks and bins
-come from ``longform/<show>/show.json``; for OTG:
+come from the show's ``shows/<id>/longform.json``; for OTG:
 
     news  layout (``angle v1_1 (2).png``): middle pane -> V8
     guest layout (``angle V4.png``):       right pane  -> V9
@@ -12,7 +12,7 @@ come from ``longform/<show>/show.json``; for OTG:
 A plan is JSON (see ``longform/templates``):
 
     {"name": "OTG EP19 panels",
-     "show": "otg",                         # longform/otg/show.json
+     "show": "otg",                         # shows/otg/longform.json
      "video": "D:/.../main_1.mp4",          # the long-form render (timing + reference)
      "out_dir": "D:/.../longform/panels",
      "shots_dir": "D:/.../longform/shots",  # from `python -m longform.shoot` (+ .json)
@@ -49,13 +49,13 @@ FPS = Timebase(30, ntsc=True)
 # Premiere's tick rate, for the transitions' cutPointTicks.
 TICKS_PER_SECOND = 254016000000
 IMAGE_PROPS = ("image", "logo", "photo")
-DEFAULT_SHOW = "otg"
 
 
 def show(name: str) -> dict:
-    """A show's layouts, from ``longform/<name>/show.json``.
+    """A show's layouts, from ``shows/<name>/longform.json``.
 
-    ``pane`` is the transparent rectangle measured off the layout PNG (4K).
+    ``pane`` is the transparent rectangle measured off the layout PNG (4K), as
+    ``[x, y, w, h]`` — a width and height, not a second corner.
     ``size`` is what gets rendered: the pane plus a few px of bleed each side,
     even for the codecs — the frame border is opaque well past the bleed, so a
     half-pixel of misalignment can never open a hairline gap.
@@ -81,7 +81,9 @@ def position(lay: dict):
 def load(plan_path) -> dict:
     plan = json.loads(Path(plan_path).read_text(encoding="utf-8"))
     plan["_dir"] = str(Path(plan_path).parent)
-    plan["_show"] = show(plan.get("show", DEFAULT_SHOW))
+    if not plan.get("show"):
+        raise ValueError("the plan names no show; add \"show\": \"<id>\" (its layouts are shows/<id>/longform.json)")
+    plan["_show"] = show(plan["show"])
     return plan
 
 

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 10px; background: #232323; color: #ccc; font: 11px/1.4 Helvetica, Arial, sans-serif; }
+  #status { font-weight: bold; margin-bottom: 6px; }
+  #status.running { color: #6c6; }
+  #status.down { color: #c66; }
+  #dir { color: #888; word-break: break-all; margin-bottom: 6px; }
+  #log { font-family: Consolas, monospace; font-size: 10px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="status">Starting…</div>
+<div id="dir"></div>
+<div id="log"></div>
+<script src="CSInterface.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from caption_engine import shows as shows_root
 from caption_engine.media import ffmpeg_bin
 
 from .captions import program_ranges
@@ -39,21 +40,36 @@ _POSITIONS = ("top", "center", "bottom")
 
 
 def manifest() -> Dict[str, dict]:
-    return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))["templates"]
+    """Every template: the engine's own, then each show's ``templates.json``.
+
+    A show's entries are tagged with its id as ``show`` (the family they belong
+    to); the engine's have none. Components for the show's entries come from
+    its ``graphics/`` folder, synced into the bundle by ``sync-shows.mjs``.
+    """
+    out = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))["templates"]
+    for sid, d in shows_root.each_json("templates.json"):
+        for name, spec in d.get("templates", {}).items():
+            if name in out:
+                raise ValueError(f"template {name!r} in shows/{sid} is already "
+                                 f"defined{' by ' + out[name]['show'] if out[name].get('show') else ' by the engine'}")
+            out[name] = {**spec, "show": sid}
+    return out
 
 
 def for_show(show_id: str = "") -> Dict[str, dict]:
-    """The templates one show may use.
+    """The templates one show may use: its graphics family, and nothing else.
 
     Two shows with two looks would otherwise hand an agent a menu of forty, half
-    of them in the wrong brand — and a Gashtak reel wearing an OTG chart is the
-    kind of mistake nobody catches until it is published. An entry with no
-    ``show`` belongs to OTG, which is what every template written before shows
-    existed is, and what a project naming no show still gets.
+    of them in the wrong brand, and a Gashtak reel wearing another show's chart
+    is the kind of mistake nobody catches until it is published. A show whose
+    ``graphics`` is "default" (or a project naming no show) gets the engine's
+    own set; any other family is the templates that show's folder defines.
     """
-    want = show_id or "otg"
-    return {name: spec for name, spec in manifest().items()
-            if spec.get("show", "otg") == want}
+    from . import show as show_mod
+    family = show_mod.load(show_id).graphics if show_id else "default"
+    if family in ("", "default"):
+        return {name: spec for name, spec in manifest().items() if not spec.get("show")}
+    return {name: spec for name, spec in manifest().items() if spec.get("show") == family}
 
 
 def template_kind(template: str) -> str:
@@ -77,6 +93,12 @@ def ensure_installed() -> None:
             f"{GRAPHICS_DIR}")
     if shutil.which("node") is None:
         raise RuntimeError("node is not on PATH; the graphics renderer needs it")
+    # Each show's components and fonts into the bundle. render.mjs does this
+    # too, but Skleyka copies fonts out of public/fonts before it runs.
+    proc = subprocess.run(["node", str(GRAPHICS_DIR / "sync-shows.mjs")], cwd=str(GRAPHICS_DIR),
+                          capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    if proc.returncode:
+        raise RuntimeError(f"syncing show graphics failed: {proc.stderr.strip()[-500:]}")
 
 
 def check_props(template: str, props: dict) -> List[str]:
@@ -113,8 +135,9 @@ def check_props(template: str, props: dict) -> List[str]:
     return errors
 
 
-def stage_images(template: str, props: dict) -> dict:
-    """Copy local image props into the renderer's public dir; return new props.
+def stage_images(template: str, props: dict, public_dir: Optional[Path] = None) -> dict:
+    """Copy local image props into the renderer's public dir (or another
+    project's ``public_dir``, under _assets/); return new props.
 
     Named by content hash, so staging the same screenshot twice is free and two
     different files called ``screenshot.png`` cannot collide.
@@ -126,8 +149,9 @@ def stage_images(template: str, props: dict) -> dict:
             continue
         src = Path(p)
         digest = hashlib.sha1(src.read_bytes()).hexdigest()[:16]
-        STAGED_DIR.mkdir(parents=True, exist_ok=True)
-        dest = STAGED_DIR / f"{digest}{src.suffix.lower()}"
+        staged = Path(public_dir) / "_assets" if public_dir else STAGED_DIR
+        staged.mkdir(parents=True, exist_ok=True)
+        dest = staged / f"{digest}{src.suffix.lower()}"
         if not dest.exists():
             shutil.copyfile(src, dest)
         out[key] = f"_assets/{dest.name}"
@@ -137,18 +161,25 @@ def stage_images(template: str, props: dict) -> dict:
 def broll_frames(clip: Clip, tb: Timebase, b: BRoll) -> Tuple[int, int]:
     """(program_start_frame, frame_count) of a b-roll entry in the finished short.
 
-    Raises when the entry does not sit inside one kept segment — the validator
-    rejects that shape anyway, and rendering a file for it would be wasted work.
+    An entry may run across segment joins: its start and end each sit inside a
+    kept segment, and its length is what plays between them on the short (the
+    trimmed gaps don't count). Raises when either end is outside every kept
+    segment — the validator rejects that shape anyway.
     """
-    for m_start, m_end, p_start in program_ranges(clip, tb):
-        if m_start - 1e-9 <= b.start and b.end <= m_end + 1e-9:
-            start = p_start + tb.to_frames(b.start) - tb.to_frames(m_start)
-            end = p_start + tb.to_frames(b.end) - tb.to_frames(m_start)
-            if end <= start:
-                break
-            return start, end - start
-    raise ValueError(f"b-roll {b.id!r} ({b.start:.2f}-{b.end:.2f}) is not inside "
-                     f"one kept segment of clip {clip.id!r}")
+    ranges = program_ranges(clip, tb)
+
+    def at(t: float, end: bool):
+        for m_start, m_end, p_start in ranges:
+            inside = (m_start + 1e-9 < t <= m_end + 1e-9) if end else (m_start - 1e-9 <= t < m_end - 1e-9)
+            if inside:
+                return p_start + tb.to_frames(t) - tb.to_frames(m_start)
+        return None
+
+    start, end = at(b.start, False), at(b.end, True)
+    if start is None or end is None or end <= start:
+        raise ValueError(f"b-roll {b.id!r} ({b.start:.2f}-{b.end:.2f}) does not start and "
+                         f"end inside kept segments of clip {clip.id!r}")
+    return start, end - start
 
 
 def program_frames(clip: Clip, tb: Timebase) -> int:

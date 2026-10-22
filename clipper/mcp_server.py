@@ -245,7 +245,7 @@ def set_project_defaults(project_id: str, language: Optional[str] = None,
         known = show_mod.known()
         if show and show not in known:
             raise ValueError(f"unknown show {show!r}; have {known} "
-                             f"(a show is a shows/<id>.json in the repo)")
+                             f"(a show is a shows/<id>/show.json)")
         project.show_id = show
     if caption_preset:
         from caption_engine import presets as _presets
@@ -1024,6 +1024,25 @@ def _clip_or_raise(project, edl, clip_id: str):
     return clip
 
 
+def _blocking(result: dict, clip_ids) -> List[str]:
+    """The validation errors that should stop a save touching only `clip_ids`.
+
+    A graphics edit or render changes one clip; an error elsewhere in the EDL
+    (another session mid-edit on its own clip) must not silently drop it — on
+    EP22 a rendered hook lost its link that way. Document-level errors (no
+    "clip '<id>'" prefix) still block.
+    """
+    ids = {str(c) for c in clip_ids}
+    out = []
+    for e in result["errors"]:
+        if e.startswith("clip '") or e.startswith("duplicate clip id"):
+            if any(e.startswith(f"clip {i!r}") for i in ids):
+                out.append(e)
+        else:
+            out.append(e)
+    return out
+
+
 def _save_graphics_edit(project, edl, clip, **extra) -> dict:
     """Validate, persist only if clean, and echo the clip's graphics either way.
 
@@ -1033,9 +1052,10 @@ def _save_graphics_edit(project, edl, clip, **extra) -> dict:
     """
     result = validate(edl, project.camera_ids, project.master_duration,
                       project.video_camera_ids)
-    if result["ok"]:
+    blocking = _blocking(result, [clip.id])
+    if not blocking:
         edl.save(project.edl_path)
-    return {"ok": result["ok"], "saved": result["ok"],
+    return {"ok": not blocking, "saved": not blocking,
             "errors": result["errors"],
             "warnings": (result["warnings"] + graphics_mod.stale_graphics(edl)
                          + graphics_mod.hook_conflicts(edl)),
@@ -1090,9 +1110,10 @@ def add_broll(project_id: str, clip_id: str, start: float, end: float,
     card, a lower third). They compile to separate tracks, so an overlay may run
     over footage; two of the same kind may not overlap.
 
-    `start`/`end` are **master seconds**, like everything else in the EDL, and
-    must fall inside one of the clip's kept segments — not program seconds
-    counted from the start of the short.
+    `start`/`end` are **master seconds**, like everything else in the EDL — not
+    program seconds counted from the start of the short. Each must fall inside a
+    kept segment; the entry may run across the joins between segments (its
+    length on the short is what plays between the two, gaps excluded).
 
     Leave `source` empty for a placeholder: it exports as a timeline marker
     carrying `query`, so the intent reaches the editor without Premiere nagging
@@ -1127,11 +1148,24 @@ def set_clip_broll(project_id: str, clip_id: str, broll: List[dict]) -> dict:
     better call for a single addition. Each entry takes {start, end, kind, query,
     id, source, source_in, audio} — see `add_broll` for what they mean. An empty
     list clears the clip's b-roll.
+
+    An entry that keeps an existing `id` and omits `source` keeps that entry's
+    rendered file (source, graphic, media) as long as its length is unchanged,
+    so re-laying a clip doesn't orphan graphics already rendered. Pass
+    `"source": null` to drop a render on purpose.
     """
     project = _load(project_id)
     edl = EDL.load(project.edl_path)
     clip = _clip_or_raise(project, edl, clip_id)
+    old = {b.id: b for b in clip.broll if b.id}
     clip.broll = edl_mod.parse_broll(broll)
+    for d, b in zip(broll, clip.broll):
+        prev = old.get(b.id)
+        if (prev is not None and prev.source and "source" not in d
+                and abs((b.end - b.start) - (prev.end - prev.start)) < 0.02):
+            b.source, b.source_in, b.status = prev.source, prev.source_in, prev.status
+            b.graphic = b.graphic or prev.graphic
+            b.media = b.media or prev.media
     return _save_graphics_edit(project, edl, clip)
 
 
@@ -1249,7 +1283,7 @@ def render_outro(project_id: str) -> dict:
     it will not hold ten seconds of picture under a card that was never made.
     One file serves every clip — the card says the same thing on each.
 
-    Re-run it after editing the show's `outro` block in `shows/<id>.json`.
+    Re-run it after editing the show's `outro` block in `shows/<id>/show.json`.
     """
     project = _load(project_id)
     edl = EDL.load(project.edl_path)
@@ -1375,10 +1409,11 @@ def render_hooks(project_id: str, clip_ids: Optional[List[str]] = None) -> dict:
                        "check": str(check), "frames": job.frames})
     result = validate(edl, project.camera_ids, project.master_duration,
                       project.video_camera_ids)
-    if result["ok"]:
+    blocking = _blocking(result, [j.clip_id for j in jobs])
+    if not blocking:
         edl.save(project.edl_path)
-    return {"ok": result["ok"] and all(x["ok"] for x in report),
-            "saved": result["ok"], "rendered": sum(x["ok"] for x in report),
+    return {"ok": not blocking and all(x["ok"] for x in report),
+            "saved": not blocking, "rendered": sum(x["ok"] for x in report),
             "items": report, "errors": result["errors"],
             "warnings": (result["warnings"] + graphics_mod.stale_graphics(edl)
                          + graphics_mod.hook_conflicts(edl))}
@@ -1457,7 +1492,8 @@ def collect_broll(project_id: str, assign: Optional[List[dict]] = None,
         return {
             "files": listed,
             "waiting": [{"clip_id": c.id, "broll_id": b.id, "query": b.query,
-                         "seconds": round(b.end - b.start, 2),
+                         "seconds": round(edl.timebase.to_seconds(
+                             graphics_mod.broll_frames(c, edl.timebase, b)[1]), 2),
                          "candidates": b.candidates or []} for c, b in slots],
             "suggested": stock_mod.suggest(files, slots),
             "searched": [str(d) for d in dirs],
@@ -1497,12 +1533,12 @@ def list_graphic_templates(project_id: Optional[str] = None) -> dict:
     the b-roll entry it fills, with its entrance and exit animation baked in —
     so nothing needs a dissolve applied by hand in Premiere.
 
-    Scoped to the project's show, because the two shows have two looks and a
-    Gashtak reel wearing an OTG chart is a mistake nobody catches until it is
-    published. Omit `project_id` for the OTG set.
+    Scoped to the project's show, because each show has its own look and a reel
+    wearing another show's chart is a mistake nobody catches until it is
+    published. Omit `project_id` for the engine's default set.
     """
     show_id = _load(project_id).show_id if project_id else ""
-    return {"show": show_id or "otg", "templates": {
+    return {"show": show_id or "default", "templates": {
         name: {k: spec[k] for k in ("description", "props", "required", "example")}
         for name, spec in graphics_mod.for_show(show_id).items()}}
 
@@ -1611,10 +1647,11 @@ def render_graphics(project_id: str, items: List[dict]) -> dict:
 
     result = validate(edl, project.camera_ids, project.master_duration,
                       project.video_camera_ids)
-    if touched and result["ok"]:
+    blocking = _blocking(result, {e["clip_id"] for e in report if e.get("clip_id")})
+    if touched and not blocking:
         edl.save(project.edl_path)
-    return {"ok": result["ok"] and all(x["ok"] for x in report),
-            "saved": bool(touched) and result["ok"],
+    return {"ok": not blocking and all(x["ok"] for x in report),
+            "saved": bool(touched) and not blocking,
             "rendered": sum(1 for x in report if x["ok"]),
             "items": report, "errors": result["errors"],
             "warnings": result["warnings"] + graphics_mod.stale_graphics(edl)}

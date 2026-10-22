@@ -1,195 +1,121 @@
 this is totally vibecoded project, but literally saves 95% of my time, idk if it fits your workflow
 
-# Caption Engine
+# Captioneer
 
-Offline, word-by-word caption generator. Produces transparent **ProRes 4444 .mov**
-files you drop into Premiere / DaVinci Resolve / Final Cut as an overlay — the
-kind of animated, word-highlighted captions used on Reels / TikTok / Shorts.
+An editing engine for podcast and interview shows, driven by Claude Code and
+delivered into Premiere Pro. It started as an offline word-by-word caption
+generator. It now takes a recorded multicam episode and turns it into finished
+work: vertical reels cut from the transcript, word-highlighted captions,
+animated graphics, long-form overlays, and edits placed straight into a live
+Premiere timeline.
 
-- **100% offline** — transcription runs locally (faster-whisper / WhisperX / Kotib)
-- **Accurate word timing** via forced alignment (WhisperX for English, MMS for Uzbek)
-- **Local web app** — double-click `run.bat`, work in your browser
-- **Optional AI cleanup loop** — copy a prompt into ChatGPT/Claude to fix
-  transcription errors, break lines, and add emoji, then paste the result back
-- **English + Uzbek** — Uzbek routes to a dedicated Kotib model with proper
-  o‘/g‘ digraphs and Russian code-switch handling
-- **Word-level highlighting** (scale pop, color, or box), phrase fades, emoji
-- **Editable style presets** — create/tweak/save your own in the UI
-- **Editor-agnostic output** — alpha .mov works everywhere
+The editor stays in charge. Claude proposes and builds; everything lands in
+Premiere as ordinary clips, tracks and sequences that can be changed by hand.
 
-Everything it needs is bundled: FFmpeg 7.1 and the fonts ship in the repo, and
-`run.bat` installs Python + the AI libraries on first launch.
+| Piece | What it does |
+| --- | --- |
+| **Clipper** (`clipper/`) | Multicam episode in, short vertical clips out: transcript, camera switching by who is speaking, cuts snapped to silence, joins checked by ear, one FCP7 XML for Premiere |
+| **Caption engine** (`caption_engine/`) | Local transcription (English and Uzbek) and word-by-word caption overlays as transparent ProRes 4444 `.mov`; also a browser app for one-off videos |
+| **Graphics** (`graphics/`) | Remotion templates rendered to alpha ProRes at the clip's exact size, rate and length: hooks, stat cards, charts, full-screen explainers |
+| **Long-form** (`longform/`, `clipper/panels.py`) | Graphics for the panes of a show's long-form layout, page screenshots with phrase marks, retitled text layers |
+| **Skleyka** (`skleyka/`) | A live bridge into Premiere: reads the editor's multicam edit, transcribes it, and places graphics, sounds and baked cards on its own tracks |
+| **Long captions** (`long_captions/`) | Traditional `.srt`/`.vtt` subtitles for full episodes |
 
-![The Caption Engine app: source/transcribe/refine/export on the left, a live preview and word editor in the middle, and the style/preset editor on the right](readme-assets/app.png)
+Claude Code drives the clipper and Skleyka through their MCP servers
+(`.mcp.json`), following the skills in `.claude/skills/` (`clip-episode`,
+`broll-pass`).
 
-## Quick start (Windows, one click)
+## How it is organised
 
-Double-click **`run.bat`**.
+The engine is generic. Everything that belongs to one client, and everything
+made for one episode, lives outside it:
 
-The first launch sets everything up automatically — installs Python 3.12,
-PyTorch (GPU build if an NVIDIA card is present, CPU build otherwise), the
-transcription libraries, and wires the bundled FFmpeg into place. That download
-is a few GB and can take 10–30 minutes. Every launch after that skips setup and
-opens the app in seconds.
+```
+captioneer/                 this repo: the engine, public
+  caption_engine/ clipper/ graphics/ longform/ skleyka/ long_captions/
+  shows/                    the client tier, gitignored (see shows/README.md)
+    <show>/                 one folder per client, normally its own private repo
+      show.json             reel dressing: graphics family, whooshes, outro card
+      captions.json         the show's caption presets
+      templates.json        its own graphic templates...
+      graphics/             ...and their Remotion components
+      fonts/                its licensed faces
+      longform.json         its long-form layouts
+      RULES.md              how this client's episodes are edited
 
-When it's ready a browser tab opens at `http://127.0.0.1:8765`. Keep the black
-console window open — closing it shuts the app down.
+<episode folder>/           next to the episode's Premiere project
+  clipper/                  the clipper project: transcript, EDL, captions, renders
+  skleyka/                  Skleyka's scenes, staged footage, renders
+  longform/                 long-form plans and build scripts
+```
 
-> The first time you transcribe, the speech models themselves download (another
-> few GB, one time only).
+A show's graphics are copied into the Remotion bundle before every render
+(`graphics/sync-shows.mjs`), and its caption presets join the preset library
+when it loads. With no shows at all, the engine still cuts, captions and renders
+with its own default look. Set `CAPTIONEER_SHOWS` to keep the shows folder
+somewhere else.
 
-## The workflow
+**Adding a client** is a new folder under `shows/`: a `show.json` (even just
+`{"name": "..."}`), any presets or graphics it needs, and a `RULES.md`. Projects
+name it with `show`, and the skills read its rules before working.
 
-The app walks left-to-right through five steps:
+## Setup
 
-1. **Source** — pick a video or audio file (mp3/wav podcasts work too), choose
-   the language and Whisper model, and toggle alignment / emoji.
-2. **Transcribe & Build Prompt** — runs speech-to-text locally and produces an
-   *AI-refinement prompt*.
-3. **Refine** *(optional but recommended)* — paste that prompt into ChatGPT or
-   Claude. The AI fixes transcription mistakes, sets line breaks at natural
-   pauses, and sprinkles in emoji, then returns clean captions JSON that you
-   paste back into the app. (You can also skip this and edit words by hand.)
-4. **Style & Review** — pick a preset and tweak any setting live. A canvas
-   preview updates instantly; **Render Preview** produces a pixel-accurate,
-   low-res render through the real engine so you can trust what you'll get. The
-   built-in word editor lets you fix text, retime, and set line breaks (`↵`).
-5. **Export** — renders the final transparent ProRes 4444 `.mov`.
+Windows, one click: double-click **`run.bat`**. The first launch installs
+Python 3.12, PyTorch (the GPU build if there is an NVIDIA card), the
+transcription libraries, and wires the bundled FFmpeg 7.1 into place. That is a
+few GB and can take 10 to 30 minutes; later launches open the caption app at
+`http://127.0.0.1:8765` in seconds. The speech models download on first use.
 
-Dropping the AI step in the middle is deliberate: local Whisper nails the timing
-but a big cloud model is far better at spelling, punctuation, and phrasing, so
-the pipeline uses each for what it's best at.
-
-| Paste the prompt into any chat model… | …then paste the refined JSON back and export |
-| :---: | :---: |
-| ![Pasting the generated refinement prompt into Claude](readme-assets/refine-prompt.png) | ![The Refine panel with refined captions JSON, then Export ProRes .mov](readme-assets/refine-export.png) |
-
-## In your editor
-
-The exported `.mov` has a real alpha channel, so it drops straight onto a track
-above your footage in any NLE — no chroma key, no matte. Below, the caption
-render sits on `V4` in a Premiere timeline and composites over the video in the
-program monitor.
-
-| The `.mov` on a timeline track | Composited over the footage |
-| :---: | :---: |
-| ![The caption render on track V4 above the video clips in a Premiere timeline](readme-assets/premiere-timeline.png) | ![The word-highlighted caption overlaid on the video in Premiere's program monitor](readme-assets/premiere-monitor.png) |
-
-## Transcription backends
-
-`transcribe()` picks a backend automatically by language:
-
-| Backend            | Used for                | Word timing                          |
-| ------------------ | ----------------------- | ------------------------------------ |
-| **WhisperX**       | English (default)       | Forced alignment, ~±20–50 ms         |
-| **faster-whisper** | English, `--no-align`   | Inferred, drifts ±100–300 ms         |
-| **Kotib + MMS**    | Uzbek (`language=uz`)   | MMS forced alignment                 |
-| **Verbatim**       | English editing (clipper default, `backend="verbatim"`) | MMS alignment, extents measured from the audio |
-
-WhisperX transcribes with faster-whisper and then force-aligns with a phoneme
-model. If WhisperX isn't installed the engine warns and falls back to plain
-faster-whisper. Kotib is a Whisper fine-tune for Uzbek text, paired with Meta's
-MMS aligner for accurate word timing.
-
-Verbatim is for cutting, not captioning. Whisper deletes "um" and "uh" and
-folds their time into the neighbouring words, so a pause in its transcript can
-be a filler, and a cut placed there lands in it. The verbatim backend runs
-[CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper)
-(`nyralabs/faster_CrisperWhisper`), which keeps fillers as `[uh]`/`[um]` tokens,
-then force-aligns each silence-cut chunk with MMS and measures every token's
-start and end from the audio. Captions never show the fillers. The weights are
-under a non-commercial licence.
-
-## Presets
-
-Presets are editable and stored in `preferences.json` (created on first run,
-seeded from the built-ins). Create, edit, group, and delete them right in the
-UI; **Reset** restores the built-in set.
-
-**English:** `otg_cyan` · `reels_classic` · `bold_yellow_box` · `minimal_white`
-· `punchy_green`
-**Uzbek:** `gashtak_2` · `gashtak_main`
-
-Every visual knob is a field on the `CaptionStyle` dataclass — font, size,
-tracking, colors, stroke, background box (with offset/scale), highlight mode
-(`none`/`scale`/`box`), phrase fades, hold-across-gaps, and more.
-
-## Command line (power users)
-
-The GUI is the main way in, but the full pipeline is scriptable:
+By hand (`run.command` does this on macOS):
 
 ```bash
-# Full pipeline: video -> transparent caption .mov
-python -m caption_engine.cli my_reel.mp4 -o captions.mov --preset reels_classic
-
-# Iterate on style without re-running Whisper (much faster):
-python -m caption_engine.cli my_reel.mp4 --transcribe-only -j words.json
-python -m caption_engine.cli --from-json words.json -o v1.mov --preset punchy_green
-python -m caption_engine.cli --from-json words.json -o v2.mov --preset gashtak_main
-
-# Preview a preset with mock words, no input file needed:
-python -m caption_engine.cli --test-render --preset bold_yellow_box -o test.mov
+py -3.12 -m venv venv
+venv/Scripts/python -m pip install -U pip
+# GPU (CUDA 12.8) build of torch; plain PyPI serves CPU-only wheels:
+venv/Scripts/python -m pip install torch==2.8.0 torchaudio==2.8.0 torchvision==0.23.0 \
+    --index-url https://download.pytorch.org/whl/cu128
+venv/Scripts/python -m pip install -r requirements.txt
 ```
 
-Useful flags: `--model {tiny,base,small,medium,large-v3}`, `--language uz`,
-`--no-align`, `--width/--height/--fps`, `--hold`.
+See the header of `requirements.txt` and `run.bat` for exact versions and the
+torchcodec/FFmpeg DLL wiring.
 
-## Python API
-
-```python
-from caption_engine import make_captions, transcribe, save_words, presets
-
-# Easy mode
-make_captions("reel.mp4", "out.mov", preset="reels_classic")
-
-# Custom style
-style = presets.reels_classic()
-style.font_size = 100
-style.highlight_color = (255, 100, 200, 255)   # pink
-style.max_chars_per_line = 14
-make_captions("reel.mp4", "out.mov", style=style)
-
-# Cache transcription once, render many variants
-words = transcribe("reel.mp4", model_size="base")
-save_words(words, "words.json")
-for name in ["reels_classic", "punchy_green", "bold_yellow_box"]:
-    make_captions(words_json="words.json", output_mov=f"out_{name}.mov", preset=name)
-```
-
-## Long-form subtitles (`long_captions`)
-
-A separate sidecar tool for traditional **.srt / .vtt** subtitles on long media
-(lectures, podcasts) — not the word-by-word overlay style above. It reuses the
-same transcription engine but slices long audio into silence-snapped windows so
-Uzbek MMS alignment stays within a flat VRAM budget regardless of length.
+Graphics need Node 18+:
 
 ```bash
-python -m long_captions.subtitle_gen lecture.mp4 -o lecture.srt --language uz
-python -m long_captions.gui        # small Tkinter front-end
+cd graphics
+npm install
+npm run studio      # syncs the shows' graphics, then opens Remotion Studio
 ```
 
-## Multicam clipper (`clipper/`)
+Skleyka needs its CEP panel signed and installed in Premiere once:
+`skleyka/scripts/sign-panel.ps1` (see `skleyka/README.md`).
 
-A second sidecar tool: turn a long **multicam episode** into a set of short
-vertical clips and export them as a Premiere-importable FCP7 XML timeline. You
-(or Claude) make the edit decisions from the transcript; Premiere does the
-rendering.
+## Cutting reels: the clipper
 
-The flow: create a project from the camera exports (or straight from an episode
+Turn a long multicam episode into short vertical clips and export them as a
+Premiere-importable FCP7 XML timeline. Claude makes the edit decisions from the
+transcript; Premiere does the rendering.
+
+Create a project from the camera exports (or straight from the episode's
 `.xml` timeline, one V-track per angle), `ingest` to compute per-camera loudness
-envelopes and a word-level — optionally speaker-diarized — transcript, pick
-moments and camera cuts into an **EDL** (kept ranges in master seconds plus
-`{at, camera, why}` switches), snap every boundary to silence, sanity-check the
-joins (`check_segments`) and the concatenated audio (`verify_clip_audio`), then
-render word-by-word captions through the same `caption_engine` and export one
-XML with every clip as its own sequence. Each sequence stacks one video track
-per camera with only the live angle enabled, so the editor can flip an angle in
-Premiere with a track toggle and no re-export.
+and a word-level, optionally speaker-diarized, transcript, then pick moments and
+camera cuts into an **EDL** (kept ranges in master seconds plus
+`{at, camera, why}` switches). Every boundary snaps to silence; `check_segments`
+reads the joins and `verify_clip_audio` re-transcribes the concatenated audio
+to catch clipped words. Captions render per clip through the caption engine,
+and the export writes one XML with every clip as its own sequence. Each sequence
+stacks one video track per camera with only the live angle enabled, so the
+editor can flip an angle with a track toggle and no re-export.
 
-Two front-ends, same plain functions underneath:
+The second pass, b-roll and graphics (`broll-pass` skill), runs over a finished
+cut: animated cards over the speaker, full-screen frames, stock footage that
+Claude shortlists and the editor downloads, whooshes and outro cards from the
+show's dressing.
 
 ```bash
-# CLI mirror of every tool — real Python tracebacks for debugging
+# CLI mirror of every MCP tool, for real Python tracebacks
 python -m clipper create-project "EP12" --camera A=CamA.mp4 --camera B=CamB.mp4 --primary A
 python -m clipper ingest 2026-07-20_ep12 --diarize --wait
 python -m clipper outline 2026-07-20_ep12
@@ -197,95 +123,100 @@ python -m clipper set-edl 2026-07-20_ep12 --file edl.json
 python -m clipper export-xml 2026-07-20_ep12
 ```
 
-- **`clipper-engine` MCP server** (`clipper/mcp_server.py`, wired in `.mcp.json`)
-  — the tool surface Claude Code drives via the bundled `clip-episode` skill.
-- The browser caption editor can also open a clipper project directly to fix one
-  clip's words and re-render its overlay in place — Premiere picks the
-  overwritten `.mov` up on its next refresh, no re-export
-  (`caption_engine/web/clipper_api.py`).
-- **Second pass: b-roll and graphics** (`broll-pass` skill), run in a fresh
-  session over a finished cut. Animated graphics — cards over the speaker and
-  full-screen frames — render from Remotion templates in `graphics/` to alpha
-  ProRes and attach to the clip; Envato stock is shortlisted by Claude,
-  downloaded by you, and picked up from Downloads by `collect_broll`. One-time
-  setup, needs Node 18+:
+## Long-form
 
+`longform/` makes graphics for the transparent panes of a show's 4K long-form
+layout: page screenshots with highlighted phrases (`longform.shoot`), timed
+panels rendered at the pane's own size (`clipper.panels`), and text layers
+retitled across the timeline (`clipper.headlines`). See `longform/README.md`.
+
+`skleyka/` works inside Premiere itself. The editor syncs and switches angles
+by hand in a real multicam sequence; Skleyka reads that edit (the active angle
+of every cut comes from the saved `.prproj`), transcribes it in edit time, finds
+the free space in each shot, and places rendered graphics, sounds and baked
+glass cards on its own `SKL` tracks. It never flattens or rewrites the editor's
+sequence. See `skleyka/README.md`.
+
+## Captions
+
+The caption engine renders word-by-word, highlighted captions to transparent
+ProRes 4444 `.mov` files that drop onto a track above the footage in any NLE.
+
+| Backend | Used for | Word timing |
+| --- | --- | --- |
+| **WhisperX** | English (default) | Forced alignment, about ±20-50 ms |
+| **faster-whisper** | English, `--no-align` | Inferred, drifts ±100-300 ms |
+| **Kotib + MMS** | Uzbek (`language=uz`) | MMS forced alignment |
+| **Verbatim** | English editing (clipper default) | MMS alignment, extents measured from the audio |
+
+Verbatim is for cutting, not captioning. Whisper deletes "um" and "uh" and
+folds their time into neighbouring words, so a pause in its transcript can be a
+filler and a cut placed there lands in it. The verbatim backend runs
+[CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper)
+(`nyralabs/faster_CrisperWhisper`, non-commercial licence), which keeps fillers
+as tokens, then force-aligns each chunk with MMS and measures every token's
+start and end from the audio. Captions never show the fillers.
+
+Every visual setting is a field on the `CaptionStyle` dataclass: font, size,
+tracking, colors, stroke, background box, highlight mode (`none`/`scale`/`box`),
+phrase fades, hold across gaps. Presets live in `preferences.json` (seeded from
+the built-ins, plus each show's `captions.json`) and are editable in the app.
+
+### The caption app
+
+For one-off videos, `run.bat` opens a local browser app that walks through
+five steps: pick a source, transcribe, optionally paste a generated prompt into
+a chat model to fix spelling, line breaks and emoji, style and review with a
+live preview, and export.
+
+![The caption app: source, transcribe, refine and export on the left, a live preview and word editor in the middle, the style editor on the right](readme-assets/app.png)
+
+| Paste the prompt into any chat model | Paste the refined JSON back and export |
+| :---: | :---: |
+| ![Pasting the generated refinement prompt into Claude](readme-assets/refine-prompt.png) | ![The Refine panel with refined captions JSON, then Export ProRes .mov](readme-assets/refine-export.png) |
+
+| The `.mov` on a timeline track | Composited over the footage |
+| :---: | :---: |
+| ![The caption render on track V4 above the video clips in a Premiere timeline](readme-assets/premiere-timeline.png) | ![The word-highlighted caption overlaid on the video in Premiere's program monitor](readme-assets/premiere-monitor.png) |
+
+From the command line or Python:
+
+```bash
+python -m caption_engine.cli my_reel.mp4 -o captions.mov --preset reels_classic
+# transcribe once, restyle many times
+python -m caption_engine.cli my_reel.mp4 --transcribe-only -j words.json
+python -m caption_engine.cli --from-json words.json -o v2.mov --preset punchy_green
 ```
-cd graphics
-npm install
+
+```python
+from caption_engine import make_captions
+make_captions("reel.mp4", "out.mov", preset="reels_classic")
 ```
+
+Long-form subtitles: `python -m long_captions.subtitle_gen lecture.mp4 -o lecture.srt --language uz`.
+Long audio is sliced into silence-snapped windows, so Uzbek MMS alignment stays
+within a flat VRAM budget however long the episode is.
 
 ## Architecture
 
 ```
-caption_engine/
-  transcriber/   Whisper/WhisperX/Kotib backends -> word-level timestamps
-  layout/        group words into phrases & lines (chars, gaps, line breaks)
-  style/         CaptionStyle dataclass + font discovery
-  presets/       built-in style seeds
-  preferences.py preferences.json store (app settings + user presets)
-  prompt.py      builds the AI-refinement prompt (text in prompts.txt)
-  emoji.py       shared emoji detection / font-switching
-  renderer/      Pillow frames -> ffmpeg -> ProRes 4444 .mov (+ preview)
-  engine.py      orchestrator (public API)
-  cli.py         command-line interface
-  web/           Flask app + browser UI (the default front-end)
-    clipper_api.py  opens a clipper project to re-render one clip's captions
-clipper/         multicam episode -> vertical clips -> Premiere FCP7 XML
-  ingest.py / diarize.py / energy.py   loudness envelopes + word-level transcript
-  edl.py / compile.py / xmeml/         EDL -> compiled clips -> FCP7 XML
-  captions.py                          per-clip overlays via caption_engine
-  graphics.py / stock.py               rendered graphics and stock footage for b-roll
-  mcp_server.py                        clipper-engine MCP server (clip-episode, broll-pass)
-  __main__.py                          CLI mirror of every tool
-graphics/        Remotion templates -> alpha ProRes overlays (templates.json lists them)
-long_captions/   long-form .srt/.vtt subtitle generator (separate tool)
-ffmpeg-7.1/      bundled FFmpeg binaries
-assets-fonts/    bundled Helvetica, Montserrat, Apple Color Emoji
+caption_engine/   transcription backends, phrase layout, CaptionStyle, Pillow -> ffmpeg renderer,
+                  preset store, browser app (web/), shows.py (where the client tier lives)
+clipper/          ingest / diarize / energy        loudness envelopes + word-level transcript
+                  edl / compile / xmeml            EDL -> compiled clips -> FCP7 XML
+                  sanity / verify                  joins checked in text and by re-transcription
+                  captions / graphics / stock      per-clip captions, rendered graphics, stock b-roll
+                  show.py                          a show's reel dressing
+                  panels / headlines               long-form panes and text layers
+                  mcp_server.py, __main__.py       clipper-engine MCP server and its CLI mirror
+graphics/         Remotion: the engine's default templates (templates.json), render.mjs, sync-shows.mjs
+longform/         screenshots with phrase marks, word timings, plan templates
+skleyka/          Premiere bridge: CEP panel, ExtendScript helpers, MCP server, placement, baking
+long_captions/    .srt/.vtt generator
+ffmpeg-7.1/       bundled FFmpeg
+assets-fonts/     the engine's free fonts (Montserrat)
+.claude/skills/   clip-episode and broll-pass: how Claude runs the pipeline
 ```
 
-Each module is independent and swappable — the transcriber, layout, and
-renderer don't know about each other beyond the `Word`/`Phrase`/`CaptionStyle`
-data types that pass between them.
-
-## Manual setup (non-Windows / developers)
-
-`run.bat` automates this on Windows (`run.command` on macOS). To do it by hand:
-
-```bash
-py -3.12 -m venv venv
-venv/Scripts/python -m pip install -U pip
-# GPU (CUDA 12.8) build of torch — plain PyPI serves CPU-only wheels:
-venv/Scripts/python -m pip install torch==2.8.0 torchaudio==2.8.0 torchvision==0.23.0 \
-    --index-url https://download.pytorch.org/whl/cu128
-venv/Scripts/python -m pip install -r requirements.txt
-```
-
-Requires Python 3.12. FFmpeg is bundled in `ffmpeg-7.1/`; if you use your own,
-put it on `PATH`. See the header of `requirements.txt` and `run.bat` for the
-exact versions and the torchcodec/FFmpeg DLL wiring.
-
-## Performance
-
-- Transcription: ~1–2× realtime on CPU (`base` int8); much faster on GPU
-- Rendering: ~30–60 fps on a modern laptop
-- A 60s reel → roughly a minute end-to-end (transcribe + render)
-
-## Roadmap
-
-Shipped:
-
-- [x] ProRes 4444 alpha renderer (Pillow → ffmpeg)
-- [x] English transcription with WhisperX forced alignment
-- [x] Uzbek language support (Kotib + MMS alignment)
-- [x] Command-line interface
-- [x] Local web UI (browser app)
-- [x] Persistence — user-editable presets & settings in `preferences.json`
-- [x] Multicam clipper — episode → vertical clips → Premiere FCP7 XML
-      (`clipper/`, driven by the `clip-episode` skill over its MCP server)
-
-Next:
-
-- [ ] Audio waveform-aware emphasis (louder = bigger pop)
-- [ ] More built-in presets and animation styles
-- [ ] Premiere / DaVinci extension that drives this engine as a backend
+Tests are plain modules: `python -m clipper.tests.test_cuts` (one per file in
+`clipper/tests/`) and `python -m skleyka.tests.run`.
