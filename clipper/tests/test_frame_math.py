@@ -460,7 +460,7 @@ def test_validation_catches_real_mistakes():
                    broll=[BRoll(start=50, end=55, id="b1")])
     edl.clips = [outside]
     r = validate(edl, list(CAMERAS), master_duration=3600)
-    check(any("not inside a kept segment" in e for e in r["errors"]),
+    check(any("does not start and end inside kept segments" in e for e in r["errors"]),
           "b-roll outside a segment must be an error")
 
     glitch = Clip(id="c5", segments=[Segment(0, 10)],

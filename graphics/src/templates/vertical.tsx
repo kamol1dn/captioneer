@@ -5,7 +5,7 @@
 // Same broadcast language as the rest: Helvetica, flat near-black, hairlines
 // between items, the brand-red bar as the signature, red only as an accent.
 import React from "react";
-import { Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import {
   Band,
   COLORS,
@@ -47,6 +47,8 @@ export type WebsiteProps = {
   focus?: Rect & { at?: number };
   zoom?: number;
   caption?: string;
+  /** Full screen: the page edge to edge under a slim source bar, instead of a window in the safe area. */
+  fill?: boolean;
 };
 
 const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; scroll: number }> = ({ m, dispW, dispH, ix, scroll }) => {
@@ -102,8 +104,187 @@ const MarkView: React.FC<{ m: Mark; dispW: number; dispH: number; ix: number; sc
 // Window geometry, in design units — clipper/webcard.py mirrors these numbers
 // to plan the crop and the scroll, so change them together.
 export const WEB = { bar: 64, capH: 190 };
+// Full-screen ("fill") geometry, design units: a dark bar over the logo zone, the page below it to the
+// frame's bottom, its text column in the middle `1080 - 2*side`. Mirrored in clipper/webcard.py.
+export const WEBFILL = { top: 250, side: 80, focusY: 0.4 };
 
 export const Website: React.FC<WebsiteProps> = ({
+  image,
+  imgW,
+  imgH,
+  url,
+  source,
+  x0 = 0,
+  x1 = 1,
+  path,
+  marks = [],
+  focus: focusProp,
+  zoom = 1.25,
+  caption,
+  fill = false,
+}) => {
+  if (fill) {
+    return <WebsiteFill {...{ image, imgW, imgH, url, source, x0, x1, path, marks, focus: focusProp, zoom, caption }} />;
+  }
+  return <WebsiteWindow {...{ image, imgW, imgH, url, source, x0, x1, path, marks, focus: focusProp, zoom, caption }} />;
+};
+
+const WebsiteFill: React.FC<WebsiteProps> = ({
+  image,
+  imgW,
+  imgH,
+  url,
+  source,
+  x0 = 0,
+  x1 = 1,
+  path,
+  marks = [],
+  focus: focusProp,
+  zoom = 1.25,
+  caption,
+}) => {
+  const u = useUnit();
+  const frame = useCurrentFrame();
+  const { durationInFrames, height, width, fps } = useVideoConfig();
+  const top = WEBFILL.top * u;
+  const side = WEBFILL.side * u;
+  const colW = width - side * 2;
+  const viewH = height - top;
+  const k = colW / ((x1 - x0) * imgW);
+  const L = side - x0 * imgW * k;
+  const dispH = imgH * k;
+  const maxScroll = Math.max(0, dispH - viewH);
+  const yAt =
+    path && path.length > 1
+      ? interpolate(frame, path.map((p) => p[0] * durationInFrames), path.map((p) => p[1]), {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.inOut(Easing.cubic),
+        })
+      : path?.[0]?.[1] ?? 0;
+  const scroll = Math.min(maxScroll, Math.max(0, yAt * dispH));
+  const focus = focusProp ?? marks[0];
+  const zStart = durationInFrames * Math.max(0, (focus?.at ?? 0.25) - 0.06);
+  const zp = interpolate(frame, [zStart, zStart + fps * 0.9], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const drift = interpolate(frame, [0, durationInFrames], [0, 0.03]);
+  const s = 1 + (zoom - 1) * zp + drift;
+  // Horizontally the push-in stays on the text column (its centre is the frame's): centring on the marked
+  // phrase would shift the page sideways and cut the start of every line.
+  const fx = width / 2;
+  const fy = focus ? (focus.y + focus.h / 2) * imgH * k - scroll : viewH / 2;
+  // The marked line eases to ~40% down the frame: well above the captions and the caption sticker.
+  const cy = height * (caption ? WEBFILL.focusY - 0.03 : WEBFILL.focusY) - top;
+  const tx = fx + (width / 2 - fx) * zp - s * fx;
+  const ty = fy + (cy - fy) * zp - s * fy;
+  const pageIn = interpolate(frame, [0, 9], [0, 1], { extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
+  const exit = interpolate(frame, [durationInFrames - 8, durationInFrames - 1], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const head = useCue(5, 10);
+  const capIn = useCue(Math.round(durationInFrames * Math.min(0.55, (marks[marks.length - 1]?.at ?? 0.3) + 0.12)), 10);
+  return (
+    <AbsoluteFill style={{ opacity: exit }}>
+      <AbsoluteFill style={{ background: COLORS.bg, opacity: pageIn }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top,
+          bottom: 0,
+          overflow: "hidden",
+          background: "#fff",
+          opacity: pageIn,
+          transform: `translateY(${(1 - pageIn) * 60 * u}px)`,
+        }}
+      >
+        <div style={{ position: "absolute", inset: 0, transform: `translate(${tx}px, ${ty}px) scale(${s})`, transformOrigin: "0 0" }}>
+          {image ? <Img src={assetSrc(image)} style={{ position: "absolute", left: L, top: -scroll, width: imgW * k, height: dispH }} /> : null}
+          {marks.map((m, i) => (
+            <MarkView key={i} m={m} dispW={imgW * k} dispH={dispH} ix={L} scroll={scroll} />
+          ))}
+        </div>
+      </div>
+      {/* The captions sit on the lower page: a scrim takes it to near-black under them so they read. */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: height * 0.55,
+          bottom: 0,
+          opacity: pageIn,
+          background: "linear-gradient(to bottom, rgba(14,14,14,0) 0%, rgba(14,14,14,0.93) 28%, rgba(14,14,14,0.97) 100%)",
+        }}
+      />
+      <div style={{ position: "absolute", left: 0, right: 0, top: top - 6 * u, height: 6 * u, background: COLORS.brand, opacity: pageIn }} />
+      {/* Source + address, right-aligned: the show's logo owns the bar's top-left. */}
+      <div
+        style={{
+          position: "absolute",
+          left: width * 0.3,
+          right: side,
+          top: 0,
+          height: top - 6 * u,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          justifyContent: "flex-end",
+          gap: 6 * u,
+          paddingBottom: 24 * u,
+          fontFamily: FONT,
+          ...reveal(head, u),
+        }}
+      >
+        {source ? (
+          <div style={{ color: COLORS.accent, fontFamily: DISPLAY, fontWeight: 700, fontSize: 36 * u, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+            {source}
+          </div>
+        ) : null}
+        <div style={{ maxWidth: "100%", color: COLORS.muted, fontWeight: 400, fontSize: 24 * u, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+          {url ?? ""}
+        </div>
+      </div>
+      {caption ? (
+        <div
+          style={{
+            position: "absolute",
+            left: side,
+            right: side,
+            bottom: height * (1 - SAFE.bottom) + 20 * u,
+            display: "flex",
+            alignItems: "stretch",
+            boxShadow: `0 ${10 * u}px ${40 * u}px rgba(0,0,0,0.35)`,
+            ...reveal(capIn, u),
+          }}
+        >
+          <div style={{ width: 12 * u, background: COLORS.brand, flex: "none" }} />
+          <div
+            style={{
+              flex: 1,
+              background: COLORS.bg,
+              color: COLORS.text,
+              fontFamily: FONT,
+              fontWeight: 700,
+              fontSize: fitSize(plain(caption), 52, 34, 38) * u,
+              lineHeight: 1.18,
+              padding: `${26 * u}px ${32 * u}px`,
+            }}
+          >
+            <Rich text={caption} />
+          </div>
+        </div>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+const WebsiteWindow: React.FC<WebsiteProps> = ({
   image,
   imgW,
   imgH,

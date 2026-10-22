@@ -1,6 +1,6 @@
 import React from "react";
 import { Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { Band, COLORS, Card, Position, assetSrc, fitSize, useUnit } from "../theme";
+import { Band, COLORS, Card, Position, Rich, assetSrc, fitSize, plain, useUnit } from "../theme";
 
 export type ImageCardProps = { image: string; caption?: string; credit?: string; position?: Position };
 
@@ -33,7 +33,7 @@ export const ImageCard: React.FC<ImageCardProps> = ({ image, caption, credit, po
         {caption || credit ? (
           <div style={{ padding: `${20 * u}px ${10 * u}px ${6 * u}px` }}>
             {caption ? (
-              <div style={{ fontWeight: 700, fontSize: fitSize(caption, 42, 34, 30) * u, lineHeight: 1.2 }}>{caption}</div>
+              <div style={{ fontWeight: 700, fontSize: fitSize(plain(caption), 42, 34, 30) * u, lineHeight: 1.2 }}><Rich text={caption} /></div>
             ) : null}
             {credit ? (
               <div style={{ marginTop: 8 * u, color: COLORS.muted, fontWeight: 400, fontSize: 26 * u }}>{credit}</div>

@@ -36,6 +36,13 @@ _WIN_W = 1080 - 2 * 100
 _WIN_H = _FRAME_H * (0.635 - 0.215)
 _BAR = 64
 _CAP = 190 + 26
+# Full-screen ("fill", the default since EP22): WEBFILL in vertical.tsx. The page runs from under a
+# 250-unit source bar to the frame's bottom, its column 1080 - 2*80 wide; marked lines are planned to
+# read between the bar and the caption band (SAFE.bottom), which the captions cover below.
+_FILL_TOP = 250
+_FILL_W = 1080 - 2 * 80
+_FILL_PLAN_H = _FRAME_H * 0.635 - _FILL_TOP
+_FILL_FULL_H = _FRAME_H - _FILL_TOP
 # A marked line this tall (design units) reads on a phone: ~50 px at 1440x2560.
 _READ_H = 38
 
@@ -47,7 +54,8 @@ def website_props(shot: Union[str, Path],
                   source: Optional[str] = None,
                   url: Optional[str] = None,
                   from_top: bool = False,
-                  zoom: Optional[float] = None) -> dict:
+                  zoom: Optional[float] = None,
+                  window: bool = False) -> dict:
     shot = Path(shot)
     meta = json.loads(shot.with_suffix(".json").read_text(encoding="utf-8"))
     W0, H0 = meta["imgW"], meta["imgH"]
@@ -77,10 +85,13 @@ def website_props(shot: Union[str, Path],
     if x1 - x0 < 0.4:
         mid = (x0 + x1) / 2
         x0, x1 = max(0.0, mid - 0.2), min(1.0, mid + 0.2)
-    k = _WIN_W / ((x1 - x0) * W0)            # design units per image px
-    view_h = _WIN_H - _BAR - (_CAP if caption else 0)
+    if window:
+        win_w, view_h, full_h = _WIN_W, _WIN_H - _BAR - (_CAP if caption else 0), _WIN_H - _BAR
+    else:
+        win_w, view_h, full_h = _FILL_W, _FILL_PLAN_H - (_CAP if caption else 0), _FILL_FULL_H
+    k = win_w / ((x1 - x0) * W0)             # design units per image px
     view = view_h / (H0 * k)                  # visible fraction of the image
-    lim = max(0.0, 1 - (_WIN_H - _BAR) / (H0 * k))
+    lim = max(0.0, 1 - full_h / (H0 * k))
     clamp = lambda v: round(min(lim, max(0.0, v)), 4)
 
     props = {"image": str(shot), "imgW": W0, "imgH": H0,
@@ -102,11 +113,15 @@ def website_props(shot: Union[str, Path],
             fit_w = 0.96 * (x1 - x0) / (right - left)
             fit_h = 0.8 * view_h / ((fy1 - fy0) * H0 * k)
             zoom = max(1.0, min(2.2, fit_w, fit_h, max(1.08, _READ_H / max(line_h, 1e-6))))
+    if not window:
+        # Fill mode pushes in on the column's centre and the column already spans the frame: past
+        # ~1.08 the line starts leave the frame (and phones crop the outer ~9% too).
+        zoom = min(zoom or 1.0, 1.08)
     props["zoom"] = round(zoom or 1.0, 3)
 
     # Crop to what the window ever shows, and remap marks, focus and scroll.
     tag = hashlib.sha1(json.dumps([str(shot), props["x0"], props["x1"], props.get("path")]).encode()).hexdigest()[:8]
-    full_view = (_WIN_H - _BAR) / (H0 * k)
+    full_view = full_h / (H0 * k)
     focus = props.pop("focus", None)
     if focus:  # ride along with the marks so the crop remaps it the same way
         props["marks"] = props["marks"] + [focus]
@@ -117,6 +132,8 @@ def website_props(shot: Union[str, Path],
         props["caption"] = caption
     if source:
         props["source"] = source
+    if not window:
+        props["fill"] = True
     u = url or meta.get("url", "")
     props["url"] = u.split("://", 1)[-1].removeprefix("www.")
     return props
@@ -138,9 +155,10 @@ def main(argv: Optional[List[str]] = None) -> None:
     ap.add_argument("--url")
     ap.add_argument("--from-top", action="store_true")
     ap.add_argument("--zoom", type=float)
+    ap.add_argument("--window", action="store_true", help="the old browser window in the safe area (pre-EP22)")
     a = ap.parse_args(argv)
     props = website_props(a.shot, [_parse_mark(m) for m in a.mark], a.seconds, a.caption,
-                          a.source, a.url, a.from_top, a.zoom)
+                          a.source, a.url, a.from_top, a.zoom, a.window)
     json.dump(props, sys.stdout, ensure_ascii=False, indent=1)
     print()
 

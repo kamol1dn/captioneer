@@ -22,9 +22,13 @@ right at a segment boundary are the signal worth acting on, and the report
 scores findings that way.
 """
 import difflib
+import os
 import re
 import subprocess
 import sys
+import tempfile
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -81,6 +85,39 @@ def export_clip_audio(compiled, out_path) -> Path:
     return out
 
 
+@contextmanager
+def _gpu_lock():
+    """Hold the machine-wide GPU lock while a check transcribes.
+
+    Two reel agents on one 8 GB laptop GPU (this check in one, reel-studio's
+    otg_align in another) stalled each other for 15 minutes on OTG EP23. The
+    lock file is shared with reel-studio's tools/heavy.py `gpu()`."""
+    if os.name != "nt":
+        yield
+        return
+    import msvcrt
+    d = Path(tempfile.gettempdir()) / "reel-studio-slots"
+    d.mkdir(exist_ok=True)
+    while True:
+        f = open(d / "gpu.lock", "a+")
+        try:
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            break
+        except OSError:
+            f.close()
+            time.sleep(3)
+    try:
+        yield
+    finally:
+        try:
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+        f.close()
+
+
 def transcribe_file(audio_path, out_json, model_size: str = "base",
                     language: Optional[str] = None) -> List[Word]:
     """Transcribe a rendered clip in a child interpreter.
@@ -97,7 +134,7 @@ def transcribe_file(audio_path, out_json, model_size: str = "base",
            "--audio", str(audio_path), "--out", str(out_json),
            "--model-size", model_size, "--language", language or ""]
     log = out_json.with_suffix(".log")
-    with open(log, "w", encoding="utf-8") as fh:
+    with _gpu_lock(), open(log, "w", encoding="utf-8") as fh:
         proc = subprocess.run(cmd, cwd=str(Path(__file__).resolve().parent.parent),
                               stdin=subprocess.DEVNULL, stdout=fh,
                               stderr=subprocess.STDOUT)

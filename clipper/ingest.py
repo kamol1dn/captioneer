@@ -89,6 +89,15 @@ def start_ingest(project: Project, model_size: str = "large-v3",
                 "diarize needs at least 2 speakers; got "
                 f"{sorted(mic_of) or 'none'} — two angles on one person are "
                 f"one speaker, not two")
+    else:
+        # A track-backed angle with no ``path`` has nothing to decode; asking
+        # to transcribe it would only fail once the job is already running.
+        deaf = [c.id for c in targets if c.transcribe and not c.path]
+        if deaf:
+            raise ValueError(
+                f"camera(s) {', '.join(deaf)} are flagged to transcribe but "
+                f"have no path — a track-backed angle without a mic file has "
+                f"no audio to transcribe")
     speaker_of = project.camera_to_speaker()
     mic_ids = set(mic_of.values())
     backend = resolve_backend(backend, language)
@@ -105,6 +114,13 @@ def start_ingest(project: Project, model_size: str = "large-v3",
         spoken: dict = {}
         try:
             for i, cam in enumerate(targets):
+                if not cam.path:
+                    # A track-backed angle with no mic file: picture only. Its
+                    # person is heard through whichever angle in their group
+                    # has a mic, and ``load_envelopes(by_speaker=True)`` folds
+                    # that into one loudness line without this camera.
+                    per_camera[cam.id] = "picture_only"
+                    continue
                 job.progress(i, total, f"energy: {cam.id}")
                 _ensure_energy(project, cam)
                 per_camera[cam.id] = "energy_only"

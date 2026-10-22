@@ -251,13 +251,26 @@ def _decode(audio, chunks, language, device, compute_type, batch_size,
         suppress_tokens=suppress_list(model, language),
     )
 
+    return file_words(segments, chunks, say)
+
+
+def file_words(segments, chunks, say=lambda _m: None) -> List[List[Tuple[str, float, float]]]:
+    """Decoded segments -> per-chunk (text, start, end) tokens.
+
+    Each word goes to the chunk its own start falls in, not the segment's: the
+    batched pipeline can return one segment running on past its chunk (EP22:
+    1283-1330 s came back as one segment of a 1283-1301 chunk). Filed by the
+    segment's start, a chunk then gets the next chunk's words too and the
+    aligner squeezes 47 s of speech into its 18 s, while the next chunk aligns
+    nothing: a run of impossibly dense words, then a fake silence.
+    """
     starts = np.array([a for a, _ in chunks])
     out: List[List[Tuple[str, float, float]]] = [[] for _ in chunks]
     done = 0
     for seg in segments:
-        ci = int(np.searchsorted(starts, float(seg.start) + 1e-3, side="right")) - 1
-        ci = min(max(ci, 0), len(chunks) - 1)
         for w in seg.words or []:
+            ci = int(np.searchsorted(starts, float(w.start) + 1e-3, side="right")) - 1
+            ci = min(max(ci, 0), len(chunks) - 1)
             out[ci].extend(split_token(w.word, float(w.start), float(w.end)))
         done += 1
         if done % 40 == 0:

@@ -20,6 +20,10 @@ Two orthogonal lists describe a clip:
 Keeping them independent is the point: you can retime a segment boundary without
 touching camera assignments, and switch cameras without re-deciding what to keep.
 """
+import copy
+import os
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
@@ -250,7 +254,7 @@ class EDL:
                     **({"transitions": [_clean(vars(t)) for t in c.transitions]}
                        if c.transitions else {}),
                     "markers": [_clean(vars(m)) for m in c.markers],
-                    **({"hook": c.hook} if c.hook else {}),
+                    **({"hook": copy.deepcopy(c.hook)} if c.hook else {}),
                 }
                 for c in self.clips
             ],
@@ -279,19 +283,91 @@ class EDL:
                     transitions=[Transition(**t)
                                  for t in c.get("transitions", [])],
                     markers=[Marker(**m) for m in c.get("markers", [])],
-                    hook=c.get("hook") or None,
+                    hook=copy.deepcopy(c.get("hook")) or None,
                 )
                 for c in d.get("clips", [])
             ],
         )
 
     def save(self, path: Path) -> None:
-        paths.write_json_atomic(Path(path), self.to_dict())
+        """Write the EDL. If it was loaded from disk and the file has changed
+        since — another session or agent saved meanwhile — merge clip by clip
+        instead of overwriting: clips (and top-level settings) this copy changed
+        are written, everything else keeps what is on disk now. A graphics render
+        that loads, works for minutes, then saves can no longer erase another
+        writer's clip (EP22: a hook vanished that way with two agents running).
+        An EDL that was not loaded (``set_edl``'s parsed document) replaces the
+        file whole, as before."""
+        path = Path(path)
+        new = self.to_dict()
+        base = getattr(self, "_base", None)
+        with _file_lock(path):
+            if base is not None:
+                data = paths.read_json(path)
+                disk = EDL.from_dict(data).to_dict() if data else None
+                if disk is not None and disk != base:
+                    new = _merge_docs(base, new, disk)
+            paths.write_json_atomic(path, new)
+        self._base = new
 
     @classmethod
     def load(cls, path: Path) -> Optional["EDL"]:
         data = paths.read_json(Path(path))
-        return cls.from_dict(data) if data else None
+        if not data:
+            return None
+        edl = cls.from_dict(data)
+        edl._base = edl.to_dict()
+        return edl
+
+
+def _merge_docs(base: dict, ours: dict, disk: dict) -> dict:
+    """Three-way merge of EDL documents at clip granularity (see ``EDL.save``)."""
+    out = {k: (ours[k] if ours.get(k) != base.get(k) else disk.get(k, ours[k]))
+           for k in ours if k != "clips"}
+    b = {c["id"]: c for c in base.get("clips", [])}
+    o = {c["id"]: c for c in ours.get("clips", [])}
+    clips = []
+    for dc in disk.get("clips", []):
+        cid = dc["id"]
+        if cid in o:
+            clips.append(o[cid] if o[cid] != b.get(cid) else dc)
+        elif cid in b and dc == b[cid]:
+            continue                      # we deleted it and nobody else touched it
+        else:
+            clips.append(dc)              # someone else's clip (or they changed one we dropped)
+    have = {c["id"] for c in clips}
+    clips += [c for c in ours.get("clips", []) if c["id"] not in have and c["id"] not in b]
+    out["clips"] = clips
+    return out
+
+
+@contextmanager
+def _file_lock(path: Path, timeout: float = 30.0):
+    """A sidecar lock file, so read-merge-write is atomic across processes."""
+    lock = path.with_name(path.name + ".lock")
+    t0 = time.time()
+    while True:
+        try:
+            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            try:
+                if time.time() - lock.stat().st_mtime > timeout:
+                    lock.unlink()         # stale: its writer died mid-save
+                    continue
+            except FileNotFoundError:
+                continue
+            if time.time() - t0 > timeout:
+                raise TimeoutError(f"EDL is locked by another writer: {lock}")
+            time.sleep(0.05)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        try:
+            lock.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _clean(d: dict) -> dict:
@@ -389,6 +465,15 @@ def _parse(cls, d: dict, i: int, what: str):
 
 # ── validation ───────────────────────────────────────────────────────────────
 
+def broll_segment_span(segs, start: float, end: float):
+    """(index of the segment `start` falls in, index of the one `end` falls in),
+    either None when that time is in no kept segment. A start may sit on a
+    segment's in-point, an end on its out-point. `segs` sorted by start."""
+    i0 = next((i for i, s in enumerate(segs) if s.start - 1e-6 <= start < s.end - 1e-6), None)
+    i1 = next((i for i, s in enumerate(segs) if s.start + 1e-6 < end <= s.end + 1e-6), None)
+    return i0, i1
+
+
 def validate(edl: EDL, camera_ids: List[str],
              master_duration: Optional[float] = None,
              video_camera_ids: Optional[List[str]] = None) -> dict:
@@ -477,10 +562,13 @@ def validate(edl: EDL, camera_ids: List[str],
         for b in clip.broll:
             if b.end <= b.start:
                 errors.append(f"{tag}: b-roll {b.id!r} is empty or inverted")
-            if not any(s.start - 1e-6 <= b.start and b.end <= s.end + 1e-6
-                       for s in segs):
+            # Start and end must each fall inside a kept segment; the entry may
+            # run across the joins between them (a card held over a trimmed
+            # "um" is one card on the finished short, not two).
+            i0, i1 = broll_segment_span(segs, b.start, b.end)
+            if i0 is None or i1 is None or i1 < i0:
                 errors.append(f"{tag}: b-roll {b.id!r} ({b.start:.2f}-{b.end:.2f}) "
-                              f"is not inside a kept segment")
+                              f"does not start and end inside kept segments")
             if b.kind not in BROLL_KINDS:
                 errors.append(f"{tag}: b-roll {b.id!r} has unknown kind "
                               f"{b.kind!r} (expected one of "

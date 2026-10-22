@@ -174,7 +174,23 @@ def _transcribe_uzbek_windowed(
         text = (result.get("text") or "").strip()
         tokens = _collapse_repetitions(_WORD_RE.findall(text))
         if tokens:
-            timings = mms_align.align_words(chunk, tokens, device=device)
+            try:
+                timings = mms_align.align_words(chunk, tokens, device=device)
+            except RuntimeError as exc:
+                # MMS cannot pin text to (almost) no audio: a hallucinated word
+                # in a sliver of a window at the end of a recording, say. The
+                # caller saves only when every window is done, so an error here
+                # used to cost the whole episode. Drop a sliver; otherwise keep
+                # the words with timings spread across the window.
+                dur = len(chunk) / SAMPLE_RATE
+                action = "dropped" if dur < 0.5 else "spread evenly over the window"
+                print(f"\n  alignment failed in window {w + 1} ({dur:.2f}s, {len(tokens)} words), "
+                      f"{action}: {exc}", file=sys.stderr)
+                if dur < 0.5:
+                    tokens, timings = [], []
+                else:
+                    step = dur / len(tokens)
+                    timings = [(i * step, (i + 1) * step, 0.0) for i in range(len(tokens))]
             for tok, (s, e, score) in zip(tokens, timings):
                 words.append(Word(
                     text=tok,

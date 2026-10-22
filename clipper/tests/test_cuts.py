@@ -132,6 +132,20 @@ def _env(spans, total=4.0, floor=1e-4):
     return env
 
 
+def test_words_filed_by_their_own_chunk():
+    from types import SimpleNamespace as NS
+    from caption_engine.transcriber.verbatim_backend import file_words
+    # EP22: the batched decoder returned one segment starting in chunk 0 whose
+    # words ran on into chunk 1. Filed by the segment's start, chunk 0 got all of
+    # them (and aligned 47 s of speech into 18 s) while chunk 1 got none.
+    chunks = [(0.0, 18.0), (18.0, 47.0)]
+    seg = NS(words=[NS(word=" one", start=1.0, end=1.4), NS(word=" two", start=17.0, end=17.5),
+                    NS(word=" three", start=18.6, end=19.0), NS(word=" four", start=40.0, end=40.4)])
+    out = file_words([seg], chunks)
+    check([t for t, _, _ in out[0]] == ["one", "two"], f"chunk 0 got {out[0]}")
+    check([t for t, _, _ in out[1]] == ["three", "four"], f"chunk 1 got {out[1]}")
+
+
 def test_word_end_found_after_ctc_spike():
     from caption_engine.transcriber.verbatim_backend import refine_extents
     # A word sounding 1.00-1.50, silence, the next 1.80-2.20; CTC saw less.
