@@ -1,4 +1,4 @@
-this is totally vibecoded project, but literally saves 95% of my time, idk if it fits your workflow
+This project literally saves 95% of my time, idk if it fits your workflow
 
 # Captioneer
 
